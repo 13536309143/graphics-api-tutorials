@@ -1,0 +1,96 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 15 课 · Render Pass、动态渲染与附件契约 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 15 课 · Render Pass、动态渲染与附件契约 · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/07_targets_depth_msaa.html">对照精讲</a> · <a href="../14_fixed_function/README.html">上一课</a> · <a href="../16_pipeline_interface/README.html">下一课</a></p>
+<h2>本课目标与先修</h2>
+<p>学习目标：解释“Render Pass、动态渲染与附件契约”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
+<h2>为什么需要这一层</h2>
+<p>一段渲染范围需要明确读写哪些附件、以什么格式/样本数访问、开始时清除或保留、结束后是否保留。传统 render pass 与现代直接指定附件的方式不同，但这些问题始终存在。</p>
+<h2>DirectX 12 的对象、参数与执行推导</h2>
+<p>OMSetRenderTargets 绑定 RTV/DSV，Clear 调用执行清除，resource state 声明合法访问。当前使用 legacy barrier 与普通 command list，不将其写成 D3D12 render-pass API 示例。</p>
+<h2>对照 Vulkan 原生：相同问题的另一种分工</h2>
+<p>参考章节的 RenderPass/Framebuffer 需要理解；当前代码用 vkCmdBeginRendering，PipelineRenderingCreateInfo 声明格式。loadOp=CLEAR 与 storeOp=STORE 的意义分别是初始化和保留；UNDEFINED 旧布局表示不依赖旧内容，不适用于需要保留历史图像的 pass。</p>
+<h2>关键参数与可检查不变量</h2>
+<div class="table-scroll"><table>
+<tr><td>检查项</td><td>Vulkan 表达</td><td>DX12 表达</td><td>不变量 / 证据</td></tr>
+<tr><td>开始策略</td><td>loadOp=CLEAR</td><td>显式 ClearRT/Depth</td><td>保留历史内容时不能随意丢弃</td></tr>
+<tr><td>结束策略</td><td>storeOp 决定保留</td><td>资源内容与后续命令</td><td>保存不等于自动连接下一 pass</td></tr>
+<tr><td>接口路线</td><td>dynamic rendering</td><td>普通 command list + legacy barriers</td><td>明确区别于参考材料的其他对象模型</td></tr>
+</table></div>
+<p>先为每项指出源码中的创建/绑定位置，以及证明它成立的实际日志、字节或图像。数值中的设备限制以查询为准；固定实验尺寸不当作所有设备的上限。</p>
+<h2>nvpro_core2 框架对照</h2>
+<p>RenderTargetState 可以填附件并开始 dynamic rendering，但调用者仍定义附件用途及后续读依赖。GENERAL layout 不代表无需同步。</p>
+<p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>运行与实际检查</h2>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>实际实验</td></tr>
+<tr><td>DirectX 12</td><td><a href="../../lessons/dx10_offscreen/README.html">dx10_offscreen</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk10_offscreen/README.html">vk10_offscreen</a></td></tr>
+</table></div>
+<p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
+<pre><code>cmake --preset dx12
+cmake --build --preset dx12-debug --target dx10_offscreen --parallel 4
+.\DirectX12\build\bin\Debug\dx10_offscreen.exe
+ctest --preset dx12-debug -R &quot;^dx10_offscreen$&quot; --output-on-failure</code></pre>
+<p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
+<h2>关键实现：从当前源码定位</h2>
+<p>来自 <a href="../../common/dx12_course.hpp#L576">DirectX12/common/dx12_course.hpp</a>，第 576—619 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>        if (mode == 10) {
+            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+            clear = {};
+            clear.Format = desc.Format;
+            dxCheck(c.device-&gt;CreateCommittedResource(&amp;heap,
+                                                      D3D12_HEAP_FLAG_NONE,
+                                                      &amp;desc,
+                                                      D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                      &amp;clear,
+                                                      IID_PPV_ARGS(&amp;offscreen)));
+            c.device-&gt;CreateRenderTargetView(offscreen.Get(), nullptr, rtv(2));
+        }
+    }
+    void render(float time, const std::filesystem::path* capturePath) {
+
+        // 每帧重新取得当前 back buffer；普通路径将其从 PRESENT 切到 RENDER_TARGET。
+        auto back = colors[swap-&gt;GetCurrentBackBufferIndex()];
+        c.begin();
+        if (mode != 10) {
+            auto b = transition(
+                back.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            c.cmd-&gt;ResourceBarrier(1, &amp;b);
+        }
+        auto color = rtv(options.samples &gt; 1 ? 3
+                         : mode == 10        ? 2
+                                             : swap-&gt;GetCurrentBackBufferIndex()),
+             ds = dsvHeap-&gt;GetCPUDescriptorHandleForHeapStart();
+        float clear[] = {.035f, .055f, .09f, 1};
+        c.cmd-&gt;ClearRenderTargetView(color, clear, 0, nullptr);
+        c.cmd-&gt;ClearDepthStencilView(ds, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
+        c.cmd-&gt;OMSetRenderTargets(1, &amp;color, FALSE, &amp;ds);
+        D3D12_VIEWPORT viewport{
+            0, 0, float(width) / (scene &amp;&amp; scene-&gt;halfViewport ? 2 : 1), float(height), 0, 1};
+        D3D12_RECT scissor{0, 0, scene &amp;&amp; scene-&gt;halfScissor ? width / 2 : width, height};
+        c.cmd-&gt;RSSetViewports(1, &amp;viewport);
+        c.cmd-&gt;RSSetScissorRects(1, &amp;scissor);
+        if (scene) {
+            if (options.update)
+                options.update(*scene, time);
+            scene-&gt;render(width, height, time);
+        }
+
+        // 离屏课先画独立纹理，再把它作为 COPY_SOURCE 拷贝到交换链图像。</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+<h2>受控修改实验</h2>
+<p>若下一个 pass 要采样本遍颜色，指出除“保存颜色”以外还需什么。</p>
+<p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>
+<h3>参考推导与通过标准</h3>
+<p>需要可采样用途/视图、正确绑定，以及颜色写入到 shader 读取的依赖和合适布局/状态。store 只处理保留意图，不完成全部连接。</p>
+<h2>常见失败与排查顺序</h2>
+<p>把 storeOp=DONT_CARE 的结果当成可靠输入，或把离屏 copy 当成可执行任意 shader 的后处理，会混淆契约。</p>
+<p>先看第一条错误和当前执行路径，再看实际数据/绑定，最后看 shader 与画面。需要 GPU 证据时抓取正常交互帧；仅四帧的 smoke 适合自动检查，不适合手动抓帧。</p>
+<h2>自测与本课交付</h2>
+<p>能否不看源码回答：若下一个 pass 要采样本遍颜色，指出除“保存颜色”以外还需什么。</p>
+<p>提交一份简短记录：输入与假设、唯一修改、预期、实际证据、原因、是否恢复基线。如果只能复述函数名而说不清何时允许访问/释放，先回到本课的数据流。</p>
+<h2>官方阅读位置与当前工程差异</h2>
+<p><a href="https://docs.vulkan.net.cn/tutorial/latest/03_Drawing_a_triangle/02_Graphics_pipeline_basics/03_Render_passes.html">指定 Vulkan 教程对应位置</a>。DX12 路线按同一概念顺序建立映射，其对象与约束以 Microsoft 文档和本后端代码为准。49—54 课包含在基础/compute 之后加入的工程扩展。</p>
+<p><a href="../../../docs/REFERENCES.html">版本与资料说明</a> · <a href="../../../docs/DEBUGGING.html">调试</a> · <a href="../../../docs/FEATURE_MATRIX.html">功能完成度</a></p>
+<h2>固定输入的实际 GPU 读回</h2>
+<p><img alt="dx10_offscreen" src="../../../docs/previews/dx10_offscreen.png"></p></main></html>

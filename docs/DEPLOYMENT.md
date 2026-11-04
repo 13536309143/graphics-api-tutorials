@@ -35,3 +35,8 @@ dist/ 下生成该路线的 Windows x64 ZIP。其他路线替换 Track。打包�
 ## 备用预下载入口
 
 若 CMake 的 CDN 下载停滞，可先从根目录执行 `powershell -ExecutionPolicy Bypass -File .\scripts\prepare-dependencies.ps1 -Track all`，再运行 build。该脚本通过 Windows 下载栈获取官方归档，逐一校验 SHA256 并保存到 Git 忽略的源码缓存；也可 `deploy.ps1 -PrepareCache -Build` 一步处理。它不关闭 TLS 证书校验，不改变系统 SDK。单条路线可将 Track 换成对应名称。
+
+
+## 54 课扩展的资产依赖
+
+原生 Vulkan 和 DX12 新实验也使用已固定的 Assimp 5.4.3（只启用 OBJ/glTF）及 stb_image。预下载脚本的对应 Track 会准备 Assimp；构建把课程自制 assets 复制到 exe 旁，运行不依赖工作目录。没有新增需下载的外部商业模型或图片。

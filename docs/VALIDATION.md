@@ -1,5 +1,29 @@
 # 验证记录
 
+## 当前 54 课扩展（2026-11-04）
+
+| 路线 | Debug 检查 | 证据 |
+| --- | --- | --- |
+| OpenGL | 34/34 | 保留的真实上下文与图像检查 |
+| Vulkan 原生 | 54/54 | API 查询/诊断、拷贝、模型、mip 逐 texel、MSAA、计算/粒子、同步与缓存 |
+| Vulkan / nvpro_core2 | 6/6 | 公共 SceneVk 扩展后的框架回归 |
+| DirectX 12 | 54/54 | 调试层、InfoQueue、资源状态与同类数值/图像检查 |
+
+共 **148/148**。两条新主线各有 **54 章教材和 54 个独立程序**；实验类型区分查询、计算与图形。完整日志位于本机构建目录，统计见 [validation-results.json](validation-results.json)。Vulkan 粒子/顶点裁剪空间对齐后另行通过受影响的两个检查。
+
+静态模型、glTF 节点、粒子和背面剔除在本机固定输入下做了双后端逐通道读回对照；综合场景包含图片、mip、轨道相机和 4x MSAA。对照数据见 [readback-comparison.json](readback-comparison.json)，方法见 [实验协议](EXPERIMENTS.md)。这不等于跨 GPU 保证或性能排名。
+
+![新增功能实际 GPU 读回](previews/advanced-backends.jpg)
+
+已生成 308 对教材 Markdown/离线 HTML，文档检查覆盖所有本地链接、图片和脚本、148 个实验说明、54+54 主线目录以及源码定位。浏览器实测 54+54 章、148 个可用入口、离线/窄屏阅读，并从教材实际启动两条路线的 GPU mip 实验。图形 smoke 验证非空输出，数值实验逐项验证数据；二者不混用。双槽计算实验实际处理八次提交，窗口 renderer 仍按帧等待。
+
+本轮使用 Windows x64 / MSVC 19.44 / Windows SDK 10.0.26100 / CMake 4.2.1 / RTX 3060。Release、其他 GPU、Linux、长期交互和所有 resize 组合未逐项验收。完整 glTF 材质/skin、IBL/SSAO 和完整多帧呈现仍按功能矩阵标记范围。
+
+## 以前的阶段记录
+
+以下保留先前 60 课版本的验证历史，作为演进记录；当前通过数量以上表为准。
+
+
 日期：2026-11-04。最终本机工程目录：E:\GraphicsAPI-Tutorials。
 
 | 路线 | Debug 检查 | 内容 |

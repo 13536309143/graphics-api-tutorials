@@ -1,16 +1,16 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>10 · 计算着色器、Storage Buffer、UAV 与读回</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>10 · 计算着色器、Storage Buffer、UAV 与读回</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>10 · 计算着色器、Storage Buffer、UAV 与读回</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>10 · 计算着色器、Storage Buffer、UAV 与读回</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#10_compute_readback">交互式对照</a> · <a href="09_commands_frames.html">上一章</a> · <a href="11_models_animation.html">下一章</a></p>
 <p>计算课去掉窗口和光栅化，只验证 GPU 按指定规则处理数据。本仓库用 <code>result[i] = i*i + 1</code> 处理 256 个整数，逐项验证比“打印第一个值”更能发现分组或索引错误。</p>
 <h2>把工作范围算清楚</h2>
 <p>Vulkan GLSL 使用 local_size_x=64；HLSL 使用 numthreads(64,1,1)。host dispatch 4 组，所以总共发出 256 个线程。shader 使用全局调用索引，不是仅组内索引；使用组内 0..63 会让四组反复写同一段。</p>
 <p>任意元素数 N 的组数通常向上取整为 <code>(N + localSize - 1) / localSize</code>，shader 还应判断 <code>i &lt; N</code>。这解决覆盖范围，不解决组间同步。一个 dispatch 内不同工作组不能随意依赖对方恰好先执行；跨组生产/消费通常需要重新组织算法或拆分 dispatch 并建立依赖。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>概念</td><td>Vulkan / nvpro</td><td>DX12</td><td>OpenGL 路线</td></tr>
 <tr><td>可写缓冲接口</td><td>storage-buffer descriptor</td><td>UAV / RWStructuredBuffer</td><td>当前 3.3 基线没有对应 compute 课程</td></tr>
 <tr><td>执行管线</td><td>compute pipeline</td><td>compute PSO</td><td>若扩展需提高版本或查询扩展</td></tr>
 <tr><td>全局线程索引</td><td>gl_GlobalInvocationID</td><td>SV_DispatchThreadID</td><td>更高基线可用相应 GLSL 内建</td></tr>
 <tr><td>CPU 读取</td><td>可见内存 + 依赖 + fence</td><td>copy 到 READBACK + fence</td><td>不能用现有粒子课冒充 compute</td></tr>
-</table>
+</table></div>
 <p>OpenGL 32 的粒子使用实例化绘制，并非本仓库已经有 compute 后端。对比应把“API 版本支持能力”和“课程是否实现”分别写清楚。</p>
 <h2>Vulkan 与 DX12 读回为什么不同</h2>
 <p>Vulkan 当前计算缓冲选择 host-visible coherent 内存，GPU 直接写它。完成计算后录制 compute-storage-write 到 host-read 的内存依赖；immediate 提交等待 fence，再 map 并核对。若改成非 coherent 内存，还要按规则 invalidate。</p>
@@ -23,13 +23,13 @@
 <p>验收记录组大小、组数量、元素数量、缓冲字节数、生产者/消费者与完成条件。控制台课成功后应查看“运行输出”，没有弹出窗口不是异常。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td>基线外</td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv05_compute_readback/README.html">nv05_compute_readback</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 基线外</h3>
 <p>当前 OpenGL 3.3 路线没有 compute 实现；粒子实例化不能作为 compute 对照。</p>
 <h3>Vulkan 原生 · 已实现</h3>
@@ -48,7 +48,7 @@ void main() {
 }</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>Context 提供队列和设备；计算管线与资源依赖仍是 Vulkan。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L442">Vulkan/common/scene_vk.hpp</a>，第 442—478 行：</p>
+<p><a href="../../Vulkan/common/scene_vk.hpp#L466">Vulkan/common/scene_vk.hpp</a>，第 466—502 行：</p>
 <pre><code>inline void computeSquares(const VkContextRef&amp; c, const std::filesystem::path&amp; shaders) {
     VkBufferResource storage;
     storage.init(c, 256 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
@@ -88,7 +88,7 @@ void main() {
     VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>DEFAULT UAV 结果拷贝到 READBACK，经 fence 后 Map。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L195">DirectX12/common/dx12_course.hpp</a>，第 195—242 行：</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L197">DirectX12/common/dx12_course.hpp</a>，第 197—244 行：</p>
 <pre><code>inline void dxCompute(DxDevice&amp; c) {
     auto storage = c.buffer(1024,
                             D3D12_HEAP_TYPE_DEFAULT,

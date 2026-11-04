@@ -1,0 +1,56 @@
+{
+  "scope": "Same machine, Debug smoke time=1, fixed scene; not a performance benchmark",
+  "maximum_mean_error": 0.25,
+  "comparisons": [
+    {
+      "experiment": 21,
+      "dimensions": [
+        960,
+        640
+      ],
+      "mean_absolute_channel_error": 0.0,
+      "maximum_channel_error": 0,
+      "passed": true
+    },
+    {
+      "experiment": 22,
+      "dimensions": [
+        960,
+        640
+      ],
+      "mean_absolute_channel_error": 0.0,
+      "maximum_channel_error": 0,
+      "passed": true
+    },
+    {
+      "experiment": 29,
+      "dimensions": [
+        960,
+        640
+      ],
+      "mean_absolute_channel_error": 0.0,
+      "maximum_channel_error": 0,
+      "passed": true
+    },
+    {
+      "experiment": 36,
+      "dimensions": [
+        960,
+        640
+      ],
+      "mean_absolute_channel_error": 0.006162651909722222,
+      "maximum_channel_error": 2,
+      "passed": true
+    },
+    {
+      "experiment": 50,
+      "dimensions": [
+        960,
+        640
+      ],
+      "mean_absolute_channel_error": 0.0,
+      "maximum_channel_error": 0,
+      "passed": true
+    }
+  ]
+}

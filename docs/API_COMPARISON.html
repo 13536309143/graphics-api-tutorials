@@ -1,7 +1,7 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>三种 API 的责任、数据流与源码对照</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>三种 API 的责任、数据流与源码对照</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>三种 API 的责任、数据流与源码对照</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>三种 API 的责任、数据流与源码对照</h1>
 <p><a href="COMPARE.html">进入 16 章精讲</a> · <a href="compare/index.html">交互式并排源码</a> · <a href="FEATURE_MATRIX.html">功能矩阵</a> · <a href="EXPERIMENTS.html">实验协议</a></p>
 <p>三种 API 都要把输入、管线、目标、命令和依赖连接起来。主要区别是这些状态保存在何处、由谁管理内存与执行，以及哪些约束由应用显式声明。nvpro_core2 是 Vulkan 的工具框架，不改变底层规则。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>责任</td><td>OpenGL</td><td>Vulkan 原生</td><td>Vulkan / nvpro_core2</td><td>DirectX 12</td></tr>
 <tr><td>初始化</td><td>context / GLAD</td><td>instance / physical / device / queues</td><td>Context</td><td>DXGI adapter / device / queue</td></tr>
 <tr><td>几何解释</td><td>VAO / VBO / EBO</td><td>buffers / input descriptions</td><td>相同机制，含 VMA staging 示例</td><td>resources / VBV / IBV / input layout</td></tr>
@@ -12,7 +12,7 @@
 <tr><td>命令</td><td>驱动组织</td><td>command pool / buffer / queue submit</td><td>Application 加自定义 pass</td><td>allocator / list / ExecuteCommandLists</td></tr>
 <tr><td>依赖</td><td>按 API 操作规则</td><td>stage / access / layout + sync objects</td><td>框架不替代自定义依赖</td><td>legacy state barriers + fences</td></tr>
 <tr><td>输出</td><td>default framebuffer / FBO</td><td>swapchain / image views</td><td>RenderTarget / ImGui</td><td>DXGI back buffers / RTV / DSV</td></tr>
-</table>
+</table></div>
 <h2>一份数据的完整旅程</h2>
 <pre><code>CPU 场景数据 -&gt; 上传内存 -&gt; GPU 资源 -&gt; view/descriptor/输入布局
                                        -&gt; pipeline + draw -&gt; 目标图像

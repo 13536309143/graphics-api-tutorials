@@ -1,0 +1,72 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk34_dynamic_scissor · 动态裁剪状态</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk34_dynamic_scissor · 动态裁剪状态</h1>
+<p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>目的与实际执行</h2>
+<p>分别运行 half-scissor、half-viewport、back-face culling 和 red-only 写掩码实验。viewport/scissor 是管线声明的 dynamic state，cull 与写掩码在本实现中仍是创建时配置。投影 Y 翻转也会影响屏幕绕序判断。 本实验共用外表面逆时针模型：Vulkan 使用 COUNTER_CLOCKWISE，DX12 显式设置 FrontCounterClockwise=TRUE；不可依赖两边零初始化得到同一正面。</p>
+<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<h2>构建和运行</h2>
+<pre><code>cmake --preset vulkan-native
+cmake --build --preset vulkan-native-debug --target vk34_dynamic_scissor --parallel 4
+.\Vulkan\native\build\bin\Debug\vk34_dynamic_scissor.exe</code></pre>
+<h2>深入学习：数据、接口与执行</h2>
+<ul>
+<li><a href="../../chapters/14_fixed_function/README.html">第 14 课：固定功能、颜色掩码、视口与剔除</a></li>
+</ul>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../../common/scene_vk.hpp#L212">Vulkan/common/scene_vk.hpp</a>，第 212—255 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>    bool halfScissor = false;
+    bool halfViewport = false;
+    std::optional&lt;Frame&gt; overrideFrame;
+    std::function&lt;Frame(float, float, bool)&gt; frameProvider;
+    std::vector&lt;Draw&gt; overrideDraws;
+    std::shared_ptr&lt;void&gt; extension;
+    SceneVk(const VkContextRef&amp; context,
+            int lesson,
+            VkFormat format,
+            const std::filesystem::path&amp; shaders,
+            const Geometry* replacement = nullptr,
+            VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,
+            VkPipelineCache cache = VK_NULL_HANDLE,
+            VkCullModeFlags cull = VK_CULL_MODE_NONE,
+            bool redOnly = false)
+        : c(context), mode(lesson), colorFormat(format),
+          mesh(replacement ? *replacement : geometry(lesson)) {
+        if (mode &gt;= 4) {
+            vertices.init(
+                c, mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+            vertices.upload(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
+            if (!mesh.indices.empty()) {
+                indices.init(c, mesh.indices.size() * 4, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+                indices.upload(mesh.indices.data(), mesh.indices.size() * 4);
+            }
+        }
+        uniform.init(c, sizeof(Frame), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        Frame initial;
+        uniform.upload(&amp;initial, sizeof(initial));
+        auto data = checker();
+        VkBufferResource upload;
+        upload.init(c, data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+        upload.upload(data.data(), data.size());
+        texture.init(c,
+                     {64, 64},
+                     VK_FORMAT_R8G8B8A8_SRGB,
+                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                     VK_IMAGE_ASPECT_COLOR_BIT);
+
+        // 纹理先切到传输目标布局，拷贝完成后再切到 shader 只读布局供片元阶段采样。
+        immediate(c, [&amp;](VkCommandBuffer cmd) {
+            barrier(cmd,
+                    texture.image,
+                    VK_IMAGE_LAYOUT_UNDEFINED,</code></pre>
+<h3>同主题跨 API 导航</h3>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>程序</td></tr>
+<tr><td>Vulkan 原生</td><td><a href="README.html">vk34_dynamic_scissor</a></td></tr>
+<tr><td>对照后端</td><td><a href="../../../../DirectX12/lessons/dx34_dynamic_scissor/README.html">dx34_dynamic_scissor</a></td></tr>
+</table></div>
+<h3>先预测，再验证</h3>
+<p>先预测半视口与半裁剪的区别，再分别运行对应实验，检查模型宽高和可见区域。</p>
+<p>参考推导：半视口把整幅几何压进较窄映射，半裁剪保留原映射但屏蔽右侧。它们可能显示相同面积，却不是相同几何变换。</p>
+<h2>验证与边界</h2>
+<p>运行 <code>--smoke</code> 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。</p>
+<h2>实际画面</h2>
+<p><img alt="vk34_dynamic_scissor" src="../../../../docs/previews/vk34_dynamic_scissor.png"></p></main></html>

@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 24 课：PBR 贴图工作流</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 24 课：PBR 贴图工作流</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 24 课：PBR 贴图工作流</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 24 课：PBR 贴图工作流</h1>
 <p><a href="../../README.html">课程首页</a> · <a href="../23_pbr/README.html">上一课</a> · <a href="../25_ibl/README.html">下一课</a></p>
 <h2>目标与运行</h2>
 <pre><code>cmake --preset opengl
@@ -59,13 +59,13 @@ cmake --build --preset opengl-debug --target 24_pbr_textures --parallel 4
                 shader.set(&quot;metallic&quot;, float(y) / 4);</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
 <tr><td>OpenGL</td><td><a href="README.html">24_pbr_textures</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
-</table>
+</table></div>
 <h3>先预测，再验证</h3>
 <p>交换 MR 的 G/B 通道会发生什么？</p>
 <p>参考推导：材质的粗糙度与金属度分布交换，高光形状和漫反射比例同时变化。用单通道调试图先确认输入。</p>

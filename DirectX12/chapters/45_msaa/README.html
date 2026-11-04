@@ -1,0 +1,96 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 45 课 · 多重采样、匹配附件与 Resolve · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 45 课 · 多重采样、匹配附件与 Resolve · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/07_targets_depth_msaa.html">对照精讲</a> · <a href="../44_mip_sampling/README.html">上一课</a> · <a href="../46_compute/README.html">下一课</a></p>
+<h2>本课目标与先修</h2>
+<p>学习目标：解释“多重采样、匹配附件与 Resolve”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
+<h2>为什么需要这一层</h2>
+<p>MSAA 增加覆盖采样而非把全部 shader 计算自动变成更高分辨率。先检查颜色/深度格式共同支持，再创建匹配目标与管线，最终 resolve 到可呈现的单样本图像。</p>
+<h2>DirectX 12 的对象、参数与执行推导</h2>
+<p>PSO SampleDesc、深度与颜色目标保持一致，ResolveSubresource 前把 MSAA 源转 RESOLVE_SOURCE、back buffer 转 RESOLVE_DEST，再恢复各自后续状态。普通 CopyResource 不能替代多样本 resolve。</p>
+<h2>对照 Vulkan 原生：相同问题的另一种分工</h2>
+<p>多样本颜色和深度为 4x，graphics pipeline sample count 同样 4x；dynamic rendering 的 resolve attachment 写单样本交换链目标。输入与输出的用途和布局均要正确。</p>
+<h2>关键参数与可检查不变量</h2>
+<div class="table-scroll"><table>
+<tr><td>检查项</td><td>Vulkan 表达</td><td>DX12 表达</td><td>不变量 / 证据</td></tr>
+<tr><td>样本数</td><td>4x color/depth/pipeline</td><td>4x color/depth/PSO</td><td>三者必须一致</td></tr>
+<tr><td>目标转换</td><td>dynamic resolve 到单样本</td><td>RESOLVE_SOURCE→DEST</td><td>不是普通 image/resource copy</td></tr>
+<tr><td>质量边界</td><td>覆盖边缘抗锯齿</td><td>覆盖边缘抗锯齿</td><td>不自动消除纹理/材质高频</td></tr>
+</table></div>
+<p>先为每项指出源码中的创建/绑定位置，以及证明它成立的实际日志、字节或图像。数值中的设备限制以查询为准；固定实验尺寸不当作所有设备的上限。</p>
+<h2>nvpro_core2 框架对照</h2>
+<p>RenderTarget 的样本管理需与自定义 pipeline 和最终 UI 可采样目标匹配。框架对照着重列出这些依赖，不声称现有 nv03 默认已经开启 4x。</p>
+<p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>运行与实际检查</h2>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>实际实验</td></tr>
+<tr><td>DirectX 12</td><td><a href="../../lessons/dx20_msaa_resolve/README.html">dx20_msaa_resolve</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk20_msaa_resolve/README.html">vk20_msaa_resolve</a></td></tr>
+</table></div>
+<p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
+<pre><code>cmake --preset dx12
+cmake --build --preset dx12-debug --target dx20_msaa_resolve --parallel 4
+.\DirectX12\build\bin\Debug\dx20_msaa_resolve.exe
+ctest --preset dx12-debug -R &quot;^dx20_msaa_resolve$&quot; --output-on-failure</code></pre>
+<p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
+<h2>关键实现：从当前源码定位</h2>
+<p>来自 <a href="../../common/dx12_course.hpp#L643">DirectX12/common/dx12_course.hpp</a>，第 643—686 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>            c.cmd-&gt;ResolveSubresource(
+                back.Get(), 0, multisample.Get(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+            auto restore = transition(multisample.Get(),
+                                      D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+                                      D3D12_RESOURCE_STATE_RENDER_TARGET);
+            c.cmd-&gt;ResourceBarrier(1, &amp;restore);
+            old = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+        }
+        ComPtr&lt;ID3D12Resource&gt; readback;
+        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+        if (capturePath) {
+            auto b = transition(back.Get(), old, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            c.cmd-&gt;ResourceBarrier(1, &amp;b);
+            auto desc = back-&gt;GetDesc();
+            UINT rows;
+            UINT64 bytes, total;
+            c.device-&gt;GetCopyableFootprints(&amp;desc, 0, 1, 0, &amp;footprint, &amp;rows, &amp;bytes, &amp;total);
+            readback = c.buffer(total, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+            D3D12_TEXTURE_COPY_LOCATION src{}, dst{};
+            src.pResource = back.Get();
+            src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+            dst.pResource = readback.Get();
+            dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+            dst.PlacedFootprint = footprint;
+            c.cmd-&gt;CopyTextureRegion(&amp;dst, 0, 0, 0, &amp;src, nullptr);
+            old = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        }
+
+        // 呈现前把 back buffer 恢复到 PRESENT；CPU 读回则在 GPU 拷贝及 fence 完成后进行。
+        auto present = transition(back.Get(), old, D3D12_RESOURCE_STATE_PRESENT);
+        c.cmd-&gt;ResourceBarrier(1, &amp;present);
+        c.submit();
+        dxCheck(swap-&gt;Present(1, 0));
+        c.wait();
+        if (capturePath) {
+            void* p;
+            D3D12_RANGE range{0, SIZE_T(readback-&gt;GetDesc().Width)};
+            dxCheck(readback-&gt;Map(0, &amp;range, &amp;p));
+            std::vector&lt;uint8_t&gt; packed(size_t(width) * height * 4);
+            for (int y = 0; y &lt; height; ++y)
+                std::memcpy(packed.data() + size_t(y) * width * 4,
+                            static_cast&lt;uint8_t*&gt;(p) + footprint.Offset +
+                                size_t(y) * footprint.Footprint.RowPitch,
+                            size_t(width) * 4);</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+<h2>受控修改实验</h2>
+<p>在斜边放大观察单样本与 4x，同时说明为什么纹理莫尔纹仍可能存在。</p>
+<p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>
+<h3>参考推导与通过标准</h3>
+<p>MSAA 主要改善几何覆盖边缘；纹理缩小和 shader 高频还需要 mip、过滤或其他策略。不要把所有走样归为同一个环节。</p>
+<h2>常见失败与排查顺序</h2>
+<p>颜色 4x、深度 1x、PSO/pipeline 1x 的任一混搭都不满足目标契约，先修正一致性再讨论视觉效果。</p>
+<p>先看第一条错误和当前执行路径，再看实际数据/绑定，最后看 shader 与画面。需要 GPU 证据时抓取正常交互帧；仅四帧的 smoke 适合自动检查，不适合手动抓帧。</p>
+<h2>自测与本课交付</h2>
+<p>能否不看源码回答：在斜边放大观察单样本与 4x，同时说明为什么纹理莫尔纹仍可能存在。</p>
+<p>提交一份简短记录：输入与假设、唯一修改、预期、实际证据、原因、是否恢复基线。如果只能复述函数名而说不清何时允许访问/释放，先回到本课的数据流。</p>
+<h2>官方阅读位置与当前工程差异</h2>
+<p><a href="https://docs.vulkan.net.cn/tutorial/latest/10_Multisampling.html">指定 Vulkan 教程对应位置</a>。DX12 路线按同一概念顺序建立映射，其对象与约束以 Microsoft 文档和本后端代码为准。49—54 课包含在基础/compute 之后加入的工程扩展。</p>
+<p><a href="../../../docs/REFERENCES.html">版本与资料说明</a> · <a href="../../../docs/DEBUGGING.html">调试</a> · <a href="../../../docs/FEATURE_MATRIX.html">功能完成度</a></p>
+<h2>固定输入的实际 GPU 读回</h2>
+<p><img alt="dx20_msaa_resolve" src="../../../docs/previews/dx20_msaa_resolve.png"></p></main></html>

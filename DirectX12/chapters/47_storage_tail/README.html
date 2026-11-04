@@ -1,0 +1,94 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 47 课 · Storage/UAV、边界与 257 项实验 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 47 课 · Storage/UAV、边界与 257 项实验 · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/10_compute_readback.html">对照精讲</a> · <a href="../46_compute/README.html">上一课</a> · <a href="../48_compute_graphics/README.html">下一课</a></p>
+<h2>本课目标与先修</h2>
+<p>学习目标：解释“Storage/UAV、边界与 257 项实验”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
+<h2>为什么需要这一层</h2>
+<p>非整组元素数是比整齐 256 更有效的范围测试。N=257、local=64 需要五组，最后一组只有一个有效元素。容量、组数、shader guard 和 CPU 检查必须共同改变。</p>
+<h2>DirectX 12 的对象、参数与执行推导</h2>
+<p>RWStructuredBuffer&lt;uint&gt; 的结构元素大小与资源容量匹配；root UAV 选择地址但不会携带自动上界保护。即使资源足够大，逻辑上未写的元素也不能当成正确结果。</p>
+<h2>对照 Vulkan 原生：相同问题的另一种分工</h2>
+<p>storage buffer range 覆盖足够字节，shader 以 i&lt;count 防止尾部写越界。host 用向上取整组数并逐项核对 affine 公式。buffer 的 usage、descriptor 类型与 shader 声明必须相容。</p>
+<h2>关键参数与可检查不变量</h2>
+<div class="table-scroll"><table>
+<tr><td>检查项</td><td>Vulkan 表达</td><td>DX12 表达</td><td>不变量 / 证据</td></tr>
+<tr><td>尾部范围</td><td>ceil(257/64)=5 组</td><td>相同 5 组</td><td>最后仅一项有效</td></tr>
+<tr><td>安全条件</td><td>i&lt;count guard</td><td>i&lt;count guard</td><td>容量、组数、guard、CPU 检查一起更新</td></tr>
+<tr><td>读回证据</td><td>全部 257 项</td><td>全部 257 项</td><td>首元素正确不足以证明覆盖</td></tr>
+</table></div>
+<p>先为每项指出源码中的创建/绑定位置，以及证明它成立的实际日志、字节或图像。数值中的设备限制以查询为准；固定实验尺寸不当作所有设备的上限。</p>
+<h2>nvpro_core2 框架对照</h2>
+<p>Context 不改变边界算法；将相同 count/dispatch 约定带入框架路径即可比较初始化层差异。</p>
+<p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>运行与实际检查</h2>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>实际实验</td></tr>
+<tr><td>DirectX 12</td><td><a href="../../lessons/dx28_compute_tail/README.html">dx28_compute_tail</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk28_compute_tail/README.html">vk28_compute_tail</a></td></tr>
+</table></div>
+<p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
+<pre><code>cmake --preset dx12
+cmake --build --preset dx12-debug --target dx28_compute_tail --parallel 4
+.\DirectX12\build\bin\Debug\dx28_compute_tail.exe
+ctest --preset dx12-debug -R &quot;^dx28_compute_tail$&quot; --output-on-failure</code></pre>
+<p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
+<h2>关键实现：从当前源码定位</h2>
+<p>来自 <a href="../../common/advanced_labs.cpp#L100">DirectX12/common/advanced_labs.cpp</a>，第 100—143 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>    void record(ID3D12GraphicsCommandList* cmd,
+                uint32_t mode,
+                uint32_t count,
+                uint32_t factor,
+                uint32_t bias,
+                uint32_t slot = 0) {
+        if (state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+            auto b = transition(output.Get(), state, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            cmd-&gt;ResourceBarrier(1, &amp;b);
+        }
+        uint32_t constants[4] = {mode, count, factor, bias};
+        cmd-&gt;SetPipelineState(pipeline.Get());
+        cmd-&gt;SetComputeRootSignature(signature.Get());
+        cmd-&gt;SetComputeRoot32BitConstants(0, 4, constants, 0);
+        cmd-&gt;SetComputeRootUnorderedAccessView(1, output-&gt;GetGPUVirtualAddress());
+        cmd-&gt;SetComputeRootConstantBufferView(2, parameters-&gt;GetGPUVirtualAddress() + slot * 256);
+        cmd-&gt;Dispatch((count + 63) / 64, 1, 1);
+        auto barrier = transition(
+            output.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        cmd-&gt;ResourceBarrier(1, &amp;barrier);
+        cmd-&gt;CopyBufferRegion(readback.Get(), 0, output.Get(), 0, 4096);
+        state = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    }
+    void execute(uint32_t mode, uint32_t count, uint32_t factor, uint32_t bias, uint32_t slot = 0) {
+        c.begin();
+        record(c.cmd.Get(), mode, count, factor, bias, slot);
+        c.submit();
+    }
+};
+void capabilities(DxDevice&amp; c) {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS options{};
+    dxCheck(c.device-&gt;CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &amp;options, sizeof(options)));
+    D3D12_FEATURE_DATA_FORMAT_SUPPORT format{DXGI_FORMAT_R8G8B8A8_UNORM};
+    dxCheck(c.device-&gt;CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &amp;format, sizeof(format)));
+    require((format.Support1 &amp; D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0,
+            &quot;RGBA8 render target unsupported&quot;);
+    std::cout &lt;&lt; &quot;ResourceBindingTier=&quot; &lt;&lt; options.ResourceBindingTier
+              &lt;&lt; &quot;, heapTier=&quot; &lt;&lt; options.ResourceHeapTier
+              &lt;&lt; &quot;, CBV alignment=&quot; &lt;&lt; D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT
+              &lt;&lt; &quot;, texture pitch alignment=&quot; &lt;&lt; D3D12_TEXTURE_DATA_PITCH_ALIGNMENT &lt;&lt; &#x27;\n&#x27;;
+    D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS ms{};
+    ms.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    ms.SampleCount = 4;
+    dxCheck(</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+<h2>受控修改实验</h2>
+<p>只把 CPU 验证改成 257 而仍分配 256 项，会产生什么问题？</p>
+<p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>
+<h3>参考推导与通过标准</h3>
+<p>可能读取越界；只扩容量却不扩组数则尾项未写。正确验收不能用忽略最后一项来让测试通过。</p>
+<h2>常见失败与排查顺序</h2>
+<p>首元素正确或进程未崩溃不证明范围正确。保留全量参考函数和错误返回值，让脚本能识别失败。</p>
+<p>先看第一条错误和当前执行路径，再看实际数据/绑定，最后看 shader 与画面。需要 GPU 证据时抓取正常交互帧；仅四帧的 smoke 适合自动检查，不适合手动抓帧。</p>
+<h2>自测与本课交付</h2>
+<p>能否不看源码回答：只把 CPU 验证改成 257 而仍分配 256 项，会产生什么问题？</p>
+<p>提交一份简短记录：输入与假设、唯一修改、预期、实际证据、原因、是否恢复基线。如果只能复述函数名而说不清何时允许访问/释放，先回到本课的数据流。</p>
+<h2>官方阅读位置与当前工程差异</h2>
+<p><a href="https://docs.vulkan.net.cn/tutorial/latest/11_Compute_Shader.html">指定 Vulkan 教程对应位置</a>。DX12 路线按同一概念顺序建立映射，其对象与约束以 Microsoft 文档和本后端代码为准。49—54 课包含在基础/compute 之后加入的工程扩展。</p>
+<p><a href="../../../docs/REFERENCES.html">版本与资料说明</a> · <a href="../../../docs/DEBUGGING.html">调试</a> · <a href="../../../docs/FEATURE_MATRIX.html">功能完成度</a></p></main></html>

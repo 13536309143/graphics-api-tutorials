@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>扩充版部署与验证</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>扩充版部署与验证</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>扩充版部署与验证</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>扩充版部署与验证</h1>
 <p>2026-11-03，最终目录 <strong>OpenGL</strong>。从原 13 课扩充到 <strong>34 课，新增 21 个独立程序</strong>，01–13 的 main.cpp 保持原样。</p>
 <h2>本机结果</h2>
 <ul>
@@ -11,7 +11,7 @@
 </ul>
 <h2>效果对比</h2>
 <p>正常状态和 <code>--smoke --variant</code> 对应的新课空格状态作差。差异阈值为像素任一通道变化大于 2/255；全图通道差的平均值仅供了解效果范围，不是渲染质量评分。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>程序</td><td>改变像素数</td><td>通道平均绝对差</td></tr>
 <tr><td>19_normal_mapping</td><td>381839</td><td>5.57604</td></tr>
 <tr><td>20_parallax</td><td>422212</td><td>12.38807</td></tr>
@@ -24,7 +24,7 @@
 <tr><td>31_skeletal</td><td>45378</td><td>4.19448</td></tr>
 <tr><td>33_point_shadows</td><td>58410</td><td>13.73878</td></tr>
 <tr><td>34_gallery</td><td>4762</td><td>0.07398</td></tr>
-</table>
+</table></div>
 <p>原始数据在 <a href="previews/effect-comparisons.json">effect-comparisons.json</a>。SSAO 和 MSAA 只改变接触区/几何边缘，差异像素较少是正常现象；AO 本身可按 1 查看，不能以总亮度越大认定效果越好。</p>
 <h2>图像核查</h2>
 <p>已人工查看新增示例总览、模型、PBR/IBL、蒙皮与粒子，检查几何/材质和预期效果。每课说明也有单独截图，截图时间固定为 1 秒。</p>

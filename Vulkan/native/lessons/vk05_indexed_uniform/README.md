@@ -59,7 +59,7 @@ Frame/Draw → SceneVk uniform/descriptor/pipelineLayout → render → vkCmdDra
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L265)，第 265—294 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L282)，第 282—311 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
         VkDescriptorSetLayoutBinding bindings[2] = {

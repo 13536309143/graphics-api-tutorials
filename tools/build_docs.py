@@ -4,7 +4,7 @@ import html
 import re
 
 ROOT=Path(__file__).resolve().parents[1]
-STYLE='''body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}'''
+STYLE='''body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}'''
 
 def inline(text):
     text=html.escape(text)
@@ -26,10 +26,10 @@ def render(markdown):
         if code:buf.append(line);continue
         if line.startswith('<!--') and line.endswith('-->'):continue
         if line.startswith('|'):
-            if not table:out.append('<table>');table=True
+            if not table:out.append('<div class="table-scroll"><table>');table=True
             if re.fullmatch(r'[| :\-]+',line):continue
             out.append('<tr>'+''.join('<td>'+inline(cell.strip())+'</td>' for cell in line.strip('|').split('|'))+'</tr>');continue
-        if table:out.append('</table>');table=False
+        if table:out.append('</table></div>');table=False
         bullet=re.match(r'^(?:- |\d+\. )(.*)',line)
         if bullet:
             if not listing:out.append('<ul>');listing=True
@@ -38,17 +38,19 @@ def render(markdown):
         heading=re.match(r'^(#{1,6}) (.*)',line)
         if heading:out.append(f'<h{len(heading[1])}>'+inline(heading[2])+f'</h{len(heading[1])}>')
         elif line.strip():out.append('<p>'+inline(line)+'</p>')
-    if table:out.append('</table>')
+    if table:out.append('</table></div>')
     if listing:out.append('</ul>')
     return '\n'.join(out)
 
 def pages():
     result=list(ROOT.glob('*.md'))+list((ROOT/'docs').rglob('*.md'))
     for folder in ['OpenGL','Vulkan','Vulkan/native','Vulkan/nvpro','DirectX12']:
-        result+=list((ROOT/folder).glob('*.md'))+list((ROOT/folder/'docs').glob('*.md'))+list((ROOT/folder/'lessons').glob('*/*.md'))
+        result+=list((ROOT/folder).glob('*.md'))+list((ROOT/folder/'docs').glob('*.md'))+list((ROOT/folder/'lessons').glob('*/*.md'))+list((ROOT/folder/'chapters').glob('*/*.md'))
     return sorted(set(result))
 
 def build():
+    from build_curriculum import build as build_curriculum
+    build_curriculum()
     from build_comparison import build as build_comparison
     build_comparison()
     for page in pages():

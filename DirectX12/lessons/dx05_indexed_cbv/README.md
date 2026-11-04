@@ -63,7 +63,7 @@ Frame 地址通过 root CBV 提供，Draw 是 20 DWORD root constants，SRV tabl
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L328)，第 328—357 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L345)，第 345—374 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
         D3D12_ROOT_PARAMETER params[3]{};
@@ -83,7 +83,8 @@ Frame 地址通过 root CBV 提供，Draw 是 20 DWORD root constants，SRV tabl
         params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.AddressU = sampler.AddressV = sampler.AddressW =
+            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         sampler.MaxLOD = D3D12_FLOAT32_MAX;
         sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
@@ -95,7 +96,6 @@ Frame 地址通过 root CBV 提供，Draw 是 20 DWORD root constants，SRV tabl
         root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
         signature = rootSignature(c, root);
         auto vs = compileHlsl(mode == 3 ? "TriangleMain" : "VertexMain", "vs_5_1"),
-             ps = compileHlsl("PixelMain", "ps_5_1");
 ```
 
 ### 同主题跨 API 导航

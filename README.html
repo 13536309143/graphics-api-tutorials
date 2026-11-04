@@ -1,21 +1,24 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Graphics API Tutorials · C++ / CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="web/runner.css"><script defer src="web/runner.js"></script><main><nav><a href="index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>Graphics API Tutorials · C++ / CMake</h1>
-<p>中文图形 API 学习工程：<strong>OpenGL、原生 Vulkan、nvpro_core2 Vulkan、DirectX 12</strong>。三种 API 分目录，Vulkan 下保留两套路线。共 <strong>60 个可执行课程</strong>：OpenGL 34、原生 Vulkan 10、nvpro_core2 6、DX12 10。</p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Graphics API Tutorials · C++ / CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="web/runner.css"><script defer src="web/runner.js"></script><main><nav><a href="index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>Graphics API Tutorials · C++ / CMake</h1>
+<p>中文图形 API 学习工程：<strong>OpenGL、原生 Vulkan、nvpro_core2 Vulkan、DirectX 12</strong>。三种 API 分目录，Vulkan 下保留两套路线。共 <strong>148 个独立可执行实验</strong>：OpenGL 34、原生 Vulkan 54、nvpro_core2 6、DX12 54。原生 Vulkan 与 DX12 各有按官方顺序组织的 <strong>54 章完整主线</strong>。</p>
 <p><img alt="跨 API PBR 场景" src="docs/previews/api-comparison.jpg"></p>
 <h2>目录与路线</h2>
-<table>
+<div class="table-scroll"><table>
 <tr><td>API</td><td>目录</td><td>内容</td></tr>
 <tr><td>OpenGL</td><td><a href="OpenGL/README.html">OpenGL/</a></td><td>原有 34 课，含模型、PBR/IBL、HDR/Bloom、SSAO、动画</td></tr>
-<tr><td>Vulkan 原生</td><td><a href="Vulkan/native/README.html">Vulkan/native/</a></td><td>实例/队列、交换链、动态渲染、资源/描述符、计算、直接光 PBR、离屏传输</td></tr>
+<tr><td>Vulkan 原生</td><td><a href="Vulkan/native/README.html">Vulkan/native/</a></td><td>54 章/54 实验：基础对象、资源、模型、GPU mip、MSAA、compute/粒子、同步与缓存</td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="Vulkan/nvpro/README.html">Vulkan/nvpro/</a></td><td>Context、nvapp、RenderTarget、VMA/Staging、计算与可交互 PBR 视口</td></tr>
-<tr><td>DirectX 12</td><td><a href="DirectX12/README.html">DirectX12/</a></td><td>DXGI、命令与 fence、PSO/root signature、CBV/SRV/UAV、深度、计算、PBR</td></tr>
-</table>
-<p>新路线优先把显式 API 的资源和同步讲清楚。Vulkan/DX12 的 PBR 是直接光实现；OpenGL 的完整 IBL、模型导入等高级功能还没有全部迁移，具体实现范围在各路线 README 说明。</p>
+<tr><td>DirectX 12</td><td><a href="DirectX12/README.html">DirectX12/</a></td><td>54 章/54 实验：DXGI、PSO/根签名、模型、GPU mip、MSAA、资源环与 compute</td></tr>
+</table></div>
+<p>Vulkan/DX12 已补上真实静态 OBJ/glTF 节点、图片、mip、MSAA、GPU 生成顶点、动态常量、双槽计算、计数同步、时间戳和缓存。PBR 目前是直接光实现；完整 glTF 材质/skin、IBL、SSAO 等范围见功能矩阵。</p>
+<h2>先按完整主线学习</h2>
+<p><a href="Vulkan/native/COURSE.html">Vulkan 原生 54 课</a> · <a href="DirectX12/COURSE.html">DX12 54 课</a> · <a href="docs/CURRICULUM.html">54 课逐章对照</a> · <a href="Vulkan/nvpro/CHAPTER_MAP.html">nvpro_core2 框架对照</a></p>
+<p>顺序为初始化、呈现、管线、绘制/同步、顶点/索引、常量、纹理、深度、模型、mip、MSAA、compute，再接工程扩展。教材章号与实验号分别维护，旧程序链接保留。每章有目的、参数约束、两后端源码、框架边界、实验和答案。</p>
 <h2>深入学习与三 API 对照</h2>
 <p><a href="docs/compare/index.html">打开对照实验室</a> · <a href="docs/COMPARE.html">16 章详细精讲</a> · <a href="docs/FEATURE_MATRIX.html">功能完成度</a> · <a href="docs/EXPERIMENTS.html">统一实验协议</a></p>
-<p>精讲按窗口/设备、三角形、内存、矩阵、绑定、纹理、目标、同步、多帧、计算、模型、PBR/IBL、多遍、调试和框架组织。每章解释目的、参数与责任，并连接真实源码、实验和参考答案。所有 60 个课程也补充针对性的深入说明与横向导航。<a href="docs/REFERENCES.html">参考资料</a>记录你提供的 Vulkan/BootWiki 教程与当前工程的版本差异。</p>
+<p>精讲按窗口/设备、三角形、内存、矩阵、绑定、纹理、目标、同步、多帧、计算、模型、PBR/IBL、多遍、调试和框架组织。每章解释目的、参数与责任，并连接真实源码、实验和参考答案。全部实验均提供深入说明与横向导航。<a href="docs/REFERENCES.html">参考资料</a>记录你提供的 Vulkan/BootWiki 教程与当前工程的版本差异。</p>
 <h2>快速运行入口</h2>
 <p>先编译对应路线，再通过本地阅读器点击下表按钮。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>示例</td></tr>
 <tr><td>OpenGL</td><td><a href="OpenGL/lessons/02_triangle/README.html">彩色三角形</a></td></tr>
 <tr><td>OpenGL</td><td><a href="OpenGL/lessons/25_ibl/README.html">PBR / IBL</a></td></tr>
@@ -25,7 +28,7 @@
 <tr><td>Vulkan nvpro_core2</td><td><a href="Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">PBR 视口</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="DirectX12/lessons/dx03_triangle/README.html">彩色三角形</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="DirectX12/lessons/dx09_pbr/README.html">直接光 PBR</a></td></tr>
-</table>
+</table></div>
 <h2>本机要求</h2>
 <ul>
 <li>Windows 10/11 x64；Visual Studio 2022 的“使用 C++ 的桌面开发”和 Windows SDK；CMake 3.24+；Git。</li>
@@ -51,7 +54,7 @@ ctest --preset vulkan-native-debug
 <p>OpenGL 旧目录入口也会返回总入口。原来的 E:\OpenGL 独立教程无需移动或删除，本合集是独立工程。</p>
 <h2>学习方式</h2>
 <p>先 OpenGL 建立管线直觉，再用原生 Vulkan 观察显式资源与提交；然后阅读 nvpro_core2 看框架替你管理了哪些对象，最后对照 DX12。相同场景复用 shared/scene.hpp 与 Vulkan 公共渲染器，避免数学差异掩盖 API 差异。各课 main.cpp 选择不同的真实执行路径，不是重复输出相同画面。</p>
-<p>每课提供中文概念、代码阅读路径、练习和验证目标。CPU 数据上传、descriptor、同步和资源状态应能逐项解释，再做多帧重叠等性能优化。本教学版 Vulkan/DX12 主渲染路径按帧等待，不能作为高吞吐引擎模板直接套用。</p>
+<p>每课提供中文概念、代码阅读路径、练习和验证目标。CPU 数据上传、descriptor、同步和资源状态应能逐项解释，再做多帧重叠等性能优化。窗口渲染路径保留逐帧等待；新增双槽实验实际验证计算提交的资源环，尚不代表完整多帧呈现引擎。</p>
 <h2>文档</h2>
 <ul>
 <li><a href="docs/DEPLOYMENT.html">部署、离线缓存和可移植打包</a></li>

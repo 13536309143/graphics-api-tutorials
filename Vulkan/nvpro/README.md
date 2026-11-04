@@ -41,3 +41,8 @@ Context→Application→Element attach→resize/UI/render→detach→Application
 ## 深入精讲与横向阅读
 
 本路线每课已加入数据/接口/执行推导、真实源码切片和预测实验。配合[16 章三 API 精讲](../../docs/COMPARE.md)与[并排源码实验室](../../docs/compare/index.html)阅读；[功能矩阵](../../docs/FEATURE_MATRIX.md)区分已经实现与待迁移内容。
+
+
+## 与原生 54 课逐课对照
+
+按用户选择，本路线作为原生 Vulkan 的框架对照：[54 课映射](CHAPTER_MAP.md)。现有六个框架程序保留独立构建/运行；新增模型、mip、MSAA 等在原生教材中注明框架接入责任，不把未接入功能计作框架实现。

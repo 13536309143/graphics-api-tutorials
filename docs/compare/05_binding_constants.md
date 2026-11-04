@@ -90,7 +90,7 @@ block index、binding point 与实际 buffer 三层分开检查。
 
 layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L265)，第 265—302 行：
+[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L282)，第 282—319 行：
 
 ```cpp
         VkDescriptorSetLayoutBinding bindings[2] = {
@@ -137,18 +137,18 @@ layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。
 
 SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L411)，第 411—429 行：
+[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L435)，第 435—453 行：
 
 ```cpp
-        for (auto d : draws(mode, time)) {
-            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
             vkCmdPushConstants(cmd,
                                pipelineLayout,
                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                                0,
                                sizeof(d),
                                &d);
-            if (mode == 3)
+            if (indirectArguments)
+                vkCmdDrawIndirect(cmd, indirectArguments, 0, 1, sizeof(VkDrawIndirectCommand));
+            else if (mode == 3)
                 vkCmdDraw(cmd, 3, 1, 0, 0);
             else if (mode == 4)
                 vkCmdDraw(cmd, uint32_t(mesh.vertices.size()), 1, 0, 0);
@@ -165,7 +165,7 @@ SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。
 
 root parameter 2 指 t0，0 指 b0；两种编号不能混同。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L328)，第 328—363 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L345)，第 345—380 行：
 
 ```cpp
         D3D12_ROOT_PARAMETER params[3]{};
@@ -185,7 +185,8 @@ root parameter 2 指 t0，0 指 b0；两种编号不能混同。
         params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.AddressU = sampler.AddressV = sampler.AddressW =
+            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         sampler.MaxLOD = D3D12_FLOAT32_MAX;
         sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
@@ -203,5 +204,4 @@ root parameter 2 指 t0，0 指 b0；两种编号不能混同。
                                                 DXGI_FORMAT_R32G32B32_FLOAT,
                                                 0,
                                                 0,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
 ```

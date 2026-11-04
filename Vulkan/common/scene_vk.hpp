@@ -2,6 +2,8 @@
 #include <vulkan/vulkan.h>
 #include "scene.hpp"
 #include <functional>
+#include <optional>
+#include <memory>
 namespace course {
 inline void vkCheck(VkResult r, const char* message = "Vulkan call") {
     if (r != VK_SUCCESS)
@@ -81,15 +83,17 @@ struct VkImageResource {
               VkExtent2D size,
               VkFormat format,
               VkImageUsageFlags usage,
-              VkImageAspectFlags aspect) {
+              VkImageAspectFlags aspect,
+              uint32_t levels = 1,
+              VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT) {
         device = c.device;
         VkImageCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
         info.imageType = VK_IMAGE_TYPE_2D;
         info.format = format;
         info.extent = {size.width, size.height, 1};
-        info.mipLevels = 1;
+        info.mipLevels = levels;
         info.arrayLayers = 1;
-        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.samples = samples;
         info.tiling = VK_IMAGE_TILING_OPTIMAL;
         info.usage = usage;
         info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -106,7 +110,7 @@ struct VkImageResource {
         vi.image = image;
         vi.viewType = VK_IMAGE_VIEW_TYPE_2D;
         vi.format = format;
-        vi.subresourceRange = {aspect, 0, 1, 0, 1};
+        vi.subresourceRange = {aspect, 0, levels, 0, 1};
         vkCheck(vkCreateImageView(device, &vi, nullptr, &view));
     }
     void reset() {
@@ -204,11 +208,24 @@ public:
     VkPipelineLayout pipelineLayout{};
     VkPipeline pipeline{};
     VkBuffer overrideVertices{};
+    VkBuffer indirectArguments{};
+    bool halfScissor = false;
+    bool halfViewport = false;
+    std::optional<Frame> overrideFrame;
+    std::function<Frame(float, float, bool)> frameProvider;
+    std::vector<Draw> overrideDraws;
+    std::shared_ptr<void> extension;
     SceneVk(const VkContextRef& context,
             int lesson,
             VkFormat format,
-            const std::filesystem::path& shaders)
-        : c(context), mode(lesson), colorFormat(format), mesh(geometry(lesson)) {
+            const std::filesystem::path& shaders,
+            const Geometry* replacement = nullptr,
+            VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,
+            VkPipelineCache cache = VK_NULL_HANDLE,
+            VkCullModeFlags cull = VK_CULL_MODE_NONE,
+            bool redOnly = false)
+        : c(context), mode(lesson), colorFormat(format),
+          mesh(replacement ? *replacement : geometry(lesson)) {
         if (mode >= 4) {
             vertices.init(
                 c, mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
@@ -344,17 +361,18 @@ public:
         VkPipelineRasterizationStateCreateInfo raster{
             VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
         raster.polygonMode = VK_POLYGON_MODE_FILL;
-        raster.cullMode = VK_CULL_MODE_NONE;
+        raster.cullMode = cull;
         raster.lineWidth = 1;
         VkPipelineMultisampleStateCreateInfo ms{
             VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
-        ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        ms.rasterizationSamples = samples;
         VkPipelineDepthStencilStateCreateInfo depth{
             VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
         depth.depthTestEnable = depth.depthWriteEnable = mode >= 5;
         depth.depthCompareOp = VK_COMPARE_OP_LESS;
         VkPipelineColorBlendAttachmentState attachment{};
-        attachment.colorWriteMask = 15;
+        attachment.colorWriteMask =
+            redOnly ? VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_A_BIT : 15;
         VkPipelineColorBlendStateCreateInfo blend{
             VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
         blend.attachmentCount = 1;
@@ -383,8 +401,7 @@ public:
         gp.pColorBlendState = &blend;
         gp.pDynamicState = &dynamic;
         gp.layout = pipelineLayout;
-        VkResult result =
-            vkCreateGraphicsPipelines(c.device, VK_NULL_HANDLE, 1, &gp, nullptr, &pipeline);
+        VkResult result = vkCreateGraphicsPipelines(c.device, cache, 1, &gp, nullptr, &pipeline);
         vkDestroyShaderModule(c.device, vs, nullptr);
         vkDestroyShaderModule(c.device, ps, nullptr);
         vkCheck(result, "Graphics pipeline");
@@ -392,10 +409,15 @@ public:
 
     // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
     void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = frame(mode, float(size.width) / size.height, true);
+        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
+        if (frameProvider)
+            f = frameProvider(float(size.width) / size.height, time, true);
         uniform.upload(&f, sizeof(f));
-        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkViewport viewport{
+            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
         VkRect2D scissor{{0, 0}, size};
+        if (halfScissor)
+            scissor.extent.width /= 2;
         vkCmdSetViewport(cmd, 0, 1, &viewport);
         vkCmdSetScissor(cmd, 0, 1, &scissor);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -408,7 +430,7 @@ public:
             if (indices.buffer)
                 vkCmdBindIndexBuffer(cmd, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
         }
-        for (auto d : draws(mode, time)) {
+        for (auto d : overrideDraws.empty() ? draws(mode, time) : overrideDraws) {
             d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
             vkCmdPushConstants(cmd,
                                pipelineLayout,
@@ -416,7 +438,9 @@ public:
                                0,
                                sizeof(d),
                                &d);
-            if (mode == 3)
+            if (indirectArguments)
+                vkCmdDrawIndirect(cmd, indirectArguments, 0, 1, sizeof(VkDrawIndirectCommand));
+            else if (mode == 3)
                 vkCmdDraw(cmd, 3, 1, 0, 0);
             else if (mode == 4)
                 vkCmdDraw(cmd, uint32_t(mesh.vertices.size()), 1, 0, 0);

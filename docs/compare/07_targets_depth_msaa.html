@@ -1,16 +1,16 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>07 · 呈现目标、深度、离屏与 MSAA</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>07 · 呈现目标、深度、离屏与 MSAA</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>07 · 呈现目标、深度、离屏与 MSAA</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>07 · 呈现目标、深度、离屏与 MSAA</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#07_targets_depth_msaa">交互式对照</a> · <a href="06_textures_color.html">上一章</a> · <a href="08_synchronization.html">下一章</a></p>
 <p>渲染目标不仅是一张图片，还包含格式、尺寸、样本数、访问方式和清除/保留策略。本章区分“画到哪里”和“什么时候可以显示”。</p>
 <h2>默认目标与应用自己的目标</h2>
 <p>OpenGL 的默认 framebuffer 由窗口系统关联，FBO 则把应用纹理/renderbuffer 组织成附件。Vulkan 的交换链图像由实现提供，应用为其创建 image view；深度和离屏图片由应用分配。DXGI back buffer 同样由交换链提供，RTV/DSV 描述写入方式，自己的离屏目标是独立 resource。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>目标属性</td><td>OpenGL</td><td>Vulkan</td><td>DX12</td></tr>
 <tr><td>颜色访问</td><td>FBO attachment</td><td>image view + rendering attachment</td><td>RTV</td></tr>
 <tr><td>深度访问</td><td>depth attachment</td><td>D32 image/view</td><td>D32 resource + DSV</td></tr>
 <tr><td>清除</td><td>glClear 及 mask</td><td>loadOp=CLEAR / clearValue</td><td>ClearRenderTargetView / ClearDepthStencilView</td></tr>
 <tr><td>保存</td><td>附件继续存在</td><td>storeOp 决定是否保留</td><td>资源内容与后续命令决定</td></tr>
 <tr><td>显示</td><td>SwapBuffers</td><td>QueuePresentKHR</td><td>swap chain Present</td></tr>
-</table>
+</table></div>
 <p>Vulkan dynamic rendering 在开始时直接指定附件，管线仍声明相容格式。若创建 pipeline 时颜色格式与实际目标不同，省略 render pass 也不会让它合法。nvpro 的 RenderTarget 帮忙分配附件和填 rendering state；你仍要知道它的格式与图像用途。</p>
 <h2>深度测试的完整条件</h2>
 <p>正确遮挡需要深度存储、深度测试启用、合适比较函数、写入状态和每帧清除。当前显式后端用 D32、清为 1、LESS，匹配普通 0..1 深度投影。把 clear 改为 0 却继续 LESS，绝大多数可见片段会失败。OpenGL 还要注意 depth mask；透明遍关闭深度写入后必须在后续不透明遍恢复。</p>
@@ -19,19 +19,19 @@
 <p>OpenGL 11 把场景纹理交给全屏 shader，可以改变颜色。vk10 是先离屏画场景，再 blit 到交换链；dx10 是 CopyResource。后两者已经演示额外目标和传输依赖，但没有完整的后处理材质、Bloom 或 tone-mapping pass。CopyResource 也不像可着色的全屏 draw 那样能任意改变图像内容。</p>
 <p>如果要把 Bloom 移植过去，至少需要浮点 scene image、亮部提取、ping-pong blur targets、最终 composite pipeline 和各遍的依赖。先让离屏结果保持原样输出，再逐项加入效果，容易定位中间环节。</p>
 <h2>MSAA 的当前范围与迁移条件</h2>
-<p>OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标。Vulkan/DX12 当前均为单样本。增加 MSAA 时检查设备支持的 sample count，创建相同样本数的颜色/深度目标，并让 pipeline/PSO 匹配；最终 resolve 到可呈现的单样本图像。MSAA 主要处理几何覆盖边缘，不等于消除所有纹理闪烁或 shader 内的高频变化。</p>
+<p>OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标。基础课程保留单样本，新增两后端 20 已完成 4x MSAA 和 resolve。新增实现先检查设备支持的 sample count，创建相同样本数的颜色/深度目标，并让 pipeline/PSO 匹配；最终 resolve 到可呈现的单样本图像。MSAA 主要处理几何覆盖边缘，不等于消除所有纹理闪烁或 shader 内的高频变化。</p>
 <h2>窗口变化实验</h2>
 <p>重复缩放、最小化再恢复窗口。预期没有除零、旧尺寸访问或使用已销毁目标。Vulkan 遇到 OUT_OF_DATE 要重建；DX12 ResizeBuffers 前释放旧 back buffer 引用并等 GPU；OpenGL 自建 FBO 的附件存储也需要随尺寸变化。相机 aspect 和 viewport 是另外两项检查，不由新建纹理自动更新。</p>
 <p>自测：为什么换了 FBO 画面只占屏幕角落？常见答案是 viewport 还保留离屏小尺寸。目标绑定与 viewport 是独立状态。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/29_msaa/README.html">29_msaa</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk10_offscreen/README.html">vk10_offscreen</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk20_msaa_resolve/README.html">vk20_msaa_resolve</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv02_application/README.html">nv02_application</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx10_offscreen/README.html">dx10_offscreen</a></td></tr>
-</table>
+<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx20_msaa_resolve/README.html">dx20_msaa_resolve</a></td></tr>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>多样本绘制与 resolve 是两个步骤；MSAA 不消除所有纹理闪烁。</p>
 <p><a href="../../OpenGL/lessons/29_msaa/main.cpp#L33">OpenGL/lessons/29_msaa/main.cpp</a>，第 33—56 行：</p>
@@ -60,10 +60,12 @@
 } catch (const std::exception&amp; e) {
     return failure(e);</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
-<p>动态渲染指定 load/store；当前单样本离屏 blit 不等于完整后处理。</p>
-<p><a href="../../Vulkan/native/common/native_app.hpp#L363">Vulkan/native/common/native_app.hpp</a>，第 363—400 行：</p>
-<pre><code>            VkRenderingAttachmentInfo color{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-            color.imageView = targetView;
+<p>4x 颜色/深度与 dynamic rendering resolve，目标与管线样本数一致。</p>
+<p><a href="../../Vulkan/native/common/native_app.hpp#L416">Vulkan/native/common/native_app.hpp</a>，第 416—451 行：</p>
+<pre><code>                color.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+                color.resolveImageView = targetView;
+                color.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
             color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -81,8 +83,12 @@
             render.pColorAttachments = &amp;color;
             render.pDepthAttachment = &amp;depth;
             vkCmdBeginRendering(cmd, &amp;render);
-            if (swap.scene)
-                swap.scene-&gt;render(cmd, swap.extent, smoke ? 1.f : float(glfwGetTime()));
+            if (swap.scene) {
+                float time = smoke ? 1.f : float(glfwGetTime());
+                if (options.update)
+                    options.update(*swap.scene, time);
+                swap.scene-&gt;render(cmd, swap.extent, time);
+            }
             vkCmdEndRendering(cmd);
             if (mode == 10) {
                 barrier(cmd,
@@ -91,14 +97,6 @@
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        VK_PIPELINE_STAGE_2_BLIT_BIT,
-                        VK_ACCESS_2_TRANSFER_READ_BIT);
-                barrier(cmd,
-                        swap.images[imageIndex],
-                        VK_IMAGE_LAYOUT_UNDEFINED,
-                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_NONE,
-                        0,
                         VK_PIPELINE_STAGE_2_BLIT_BIT,</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>尺寸变化重建目标后，也要更新用于 UI 的 image view。</p>
@@ -112,39 +110,41 @@
         if (ImGui::IsKeyPressed(ImGuiKey_Escape))
             app-&gt;close();</code></pre>
 <h3>DirectX 12 · 已实现</h3>
-<p>先等 GPU 并释放旧 back buffer 引用，才能 ResizeBuffers。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L478">DirectX12/common/dx12_course.hpp</a>，第 478—511 行：</p>
-<pre><code>    void resize(int w, int h) {
-        if (width == w &amp;&amp; height == h)
-            return;
-        c.wait();
-        for (auto&amp; image : colors)
-            image.Reset();
-        depth.Reset();
-        offscreen.Reset();
-        dxCheck(swap-&gt;ResizeBuffers(2, UINT(w), UINT(h), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
-        width = w;
-        height = h;
-        for (UINT i = 0; i &lt; 2; ++i) {
-            dxCheck(swap-&gt;GetBuffer(i, IID_PPV_ARGS(&amp;colors[i])));
-            c.device-&gt;CreateRenderTargetView(colors[i].Get(), nullptr, rtv(i));
+<p>4x 目标经 ResolveSubresource 到单样本 back buffer。</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L643">DirectX12/common/dx12_course.hpp</a>，第 643—678 行：</p>
+<pre><code>            c.cmd-&gt;ResolveSubresource(
+                back.Get(), 0, multisample.Get(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+            auto restore = transition(multisample.Get(),
+                                      D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+                                      D3D12_RESOURCE_STATE_RENDER_TARGET);
+            c.cmd-&gt;ResourceBarrier(1, &amp;restore);
+            old = D3D12_RESOURCE_STATE_RESOLVE_DEST;
         }
-        D3D12_HEAP_PROPERTIES heap{};
-        heap.Type = D3D12_HEAP_TYPE_DEFAULT;
-        D3D12_RESOURCE_DESC desc{};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        desc.Width = UINT64(w);
-        desc.Height = UINT(h);
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = 1;
-        desc.Format = DXGI_FORMAT_D32_FLOAT;
-        desc.SampleDesc.Count = 1;
-        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        D3D12_CLEAR_VALUE clear{};
-        clear.Format = desc.Format;
-        clear.DepthStencil.Depth = 1;
-        dxCheck(c.device-&gt;CreateCommittedResource(&amp;heap,
-                                                  D3D12_HEAP_FLAG_NONE,
-                                                  &amp;desc,
-                                                  D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                                                  &amp;clear,</code></pre></main></html>
+        ComPtr&lt;ID3D12Resource&gt; readback;
+        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+        if (capturePath) {
+            auto b = transition(back.Get(), old, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            c.cmd-&gt;ResourceBarrier(1, &amp;b);
+            auto desc = back-&gt;GetDesc();
+            UINT rows;
+            UINT64 bytes, total;
+            c.device-&gt;GetCopyableFootprints(&amp;desc, 0, 1, 0, &amp;footprint, &amp;rows, &amp;bytes, &amp;total);
+            readback = c.buffer(total, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+            D3D12_TEXTURE_COPY_LOCATION src{}, dst{};
+            src.pResource = back.Get();
+            src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+            dst.pResource = readback.Get();
+            dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+            dst.PlacedFootprint = footprint;
+            c.cmd-&gt;CopyTextureRegion(&amp;dst, 0, 0, 0, &amp;src, nullptr);
+            old = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        }
+
+        // 呈现前把 back buffer 恢复到 PRESENT；CPU 读回则在 GPU 拷贝及 fence 完成后进行。
+        auto present = transition(back.Get(), old, D3D12_RESOURCE_STATE_PRESENT);
+        c.cmd-&gt;ResourceBarrier(1, &amp;present);
+        c.submit();
+        dxCheck(swap-&gt;Present(1, 0));
+        c.wait();
+        if (capturePath) {
+            void* p;</code></pre></main></html>

@@ -37,7 +37,7 @@ SceneVk 在原生路线和框架路线共享，这有意隔离“初始化与窗
 
 ## 迁移功能的正确顺序
 
-从静态模型开始，再加入材质纹理、自由相机、阴影、HDR 后处理、IBL，最后处理动画和帧资源优化。每次保留上一个可以运行的状态，增加对应的中间调试视图。先做功能对齐，再做性能对齐，最后才尝试共享更多实现。
+当前原生/DX12 已加入静态模型、图片/mip、轨道相机、MSAA 和双槽计算；后续补完整材质/自由相机、阴影、HDR/IBL、动画及多帧呈现。每次保留上一个可以运行的状态，增加对应的中间调试视图。先做功能对齐，再做性能对齐，最后才尝试共享更多实现。
 
 设备丢失恢复、bindless、ray tracing、多队列、多线程录制和完整渲染图可作为后续专题，但都不应因为 API 理论上支持就标记为本课程已经完成。功能矩阵把“已实现、仅设计、版本外”分开记录。
 
@@ -101,7 +101,7 @@ int main(int argc, char** argv) try {
 
 底层渲染器接收借用上下文，不负责创建窗口/交换链。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L192)，第 192—219 行：
+[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L196)，第 196—223 行：
 
 ```cpp
 class SceneVk {
@@ -119,19 +119,19 @@ public:
     VkPipelineLayout pipelineLayout{};
     VkPipeline pipeline{};
     VkBuffer overrideVertices{};
+    VkBuffer indirectArguments{};
+    bool halfScissor = false;
+    bool halfViewport = false;
+    std::optional<Frame> overrideFrame;
+    std::function<Frame(float, float, bool)> frameProvider;
+    std::vector<Draw> overrideDraws;
+    std::shared_ptr<void> extension;
     SceneVk(const VkContextRef& context,
             int lesson,
             VkFormat format,
-            const std::filesystem::path& shaders)
-        : c(context), mode(lesson), colorFormat(format), mesh(geometry(lesson)) {
-        if (mode >= 4) {
-            vertices.init(
-                c, mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-            vertices.upload(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
-            if (!mesh.indices.empty()) {
-                indices.init(c, mesh.indices.size() * 4, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-                indices.upload(mesh.indices.data(), mesh.indices.size() * 4);
-            }
+            const std::filesystem::path& shaders,
+            const Geometry* replacement = nullptr,
+            VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,
 ```
 
 ### Vulkan / nvpro_core2 · 已实现
@@ -182,7 +182,7 @@ public:
 
 独立 DxScene/DxWindow 先可解释，再考虑抽象统一 Renderer。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L235)，第 235—259 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L237)，第 237—261 行：
 
 ```cpp
 class DxScene {
@@ -196,18 +196,18 @@ public:
     ComPtr<ID3D12PipelineState> pipeline;
     D3D12_VERTEX_BUFFER_VIEW vb{};
     D3D12_INDEX_BUFFER_VIEW ib{};
-    DxScene(DxDevice& context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
-        if (mode >= 4) {
-            UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
-            vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-            void* mapped;
-            D3D12_RANGE empty{0, 0};
-            dxCheck(vertices->Map(0, &empty, &mapped));
-            std::memcpy(mapped, mesh.vertices.data(), size);
-            vertices->Unmap(0, nullptr);
-            vb = {vertices->GetGPUVirtualAddress(), size, sizeof(Vertex)};
-            if (!mesh.indices.empty()) {
-                UINT bytes = UINT(mesh.indices.size() * 4);
-                indices =
-                    c.buffer(bytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+    std::optional<Frame> overrideFrame;
+    std::function<Frame(float, float, bool)> frameProvider;
+    std::vector<Draw> overrideDraws;
+    bool halfScissor = false;
+    bool halfViewport = false;
+    ComPtr<ID3D12Resource> indirectArguments;
+    ComPtr<ID3D12CommandSignature> indirectSignature;
+    std::shared_ptr<void> extension;
+    DxScene(DxDevice& context,
+            int lesson,
+            const Geometry* replacement = nullptr,
+            UINT samples = 1,
+            D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE,
+            bool clampSampler = false,
 ```

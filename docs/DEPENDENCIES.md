@@ -15,3 +15,8 @@ Vulkan loader/import library、glslc 和系统 validation layer 来自安装的 
 根 LICENSE 为 Apache-2.0，根 NOTICE 保留 nvpro 示例结构来源说明。OpenGL 的详细第三方许可证见其 THIRD_PARTY.md，素材见 OpenGL/assets/LICENSE.txt。MIT、BSD、Apache、CC0 等各依赖保持原条款，不能因为外层代码采用 Apache 就删掉第三方声明。
 
 压缩包哈希写在各 CMakeLists/Dependencies.cmake，便于 fresh clone 验证下载内容。SDK 的二进制工具、构建产物、日志、备份和本机认证信息不进入 Git 历史。
+
+
+## 54 课扩展的资产依赖
+
+原生 Vulkan 和 DX12 新实验也使用已固定的 Assimp 5.4.3（只启用 OBJ/glTF）及 stb_image。预下载脚本的对应 Track 会准备 Assimp；构建把课程自制 assets 复制到 exe 旁，运行不依赖工作目录。没有新增需下载的外部商业模型或图片。

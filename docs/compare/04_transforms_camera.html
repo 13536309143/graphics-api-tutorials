@@ -1,20 +1,20 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>04 · 变换、相机、深度范围与坐标约定</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>04 · 变换、相机、深度范围与坐标约定</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>04 · 变换、相机、深度范围与坐标约定</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>04 · 变换、相机、深度范围与坐标约定</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#04_transforms_camera">交互式对照</a> · <a href="03_geometry_memory.html">上一章</a> · <a href="05_binding_constants.html">下一章</a></p>
 <p>换 API 时常见的“倒着、镜像、看不见”通常不是矩阵库坏了，而是把存储、乘法、坐标约定和 viewport 映射混成一件事。本章用同一个点走完数学链路。</p>
 <h2>从局部空间到屏幕</h2>
 <p>本仓库采用列向量记法：<code>clip = projection * view * model * local</code>。model 把模型局部点放到世界中；view 是相机世界变换的逆；projection 输出裁剪空间。裁剪之后还要除以 w 得到 NDC，最后经 viewport 映射为像素位置。CPU 不应该提前把所有位置除以 w 后再按普通三维位置传给标准管线。</p>
 <p>矩阵“按列存储”只描述连续内存如何排列；它不自动决定左乘/右乘或左右手空间。GLM 默认矩阵内存和 HLSL <code>column_major</code> 在本项目中保持一致，HLSL 使用 <code>mul(M, v)</code>。移植时同时核对数学记法、CPU 内存和 shader 声明，不能只随意加一次 transpose。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>项目中的约定</td><td>OpenGL</td><td>Vulkan / nvpro</td><td>DX12</td></tr>
 <tr><td>世界空间</td><td>右手</td><td>共享右手世界</td><td>共享右手世界</td></tr>
 <tr><td>NDC 深度</td><td>-1..1</td><td>0..1</td><td>0..1</td></tr>
 <tr><td>投影 Y 处理</td><td>原课程约定</td><td>正高度 viewport，投影 Y 翻转</td><td>不使用该次翻转</td></tr>
 <tr><td>常量矩阵访问</td><td>GLSL mat4</td><td>GLSL mat4</td><td>column_major float4x4</td></tr>
-</table>
+</table></div>
 <p>这里描述当前代码，不是断言 DX12 必须左手或 Vulkan 永远必须修改投影。Vulkan 也可采用其他合法 viewport/投影组合。关键是只做一次约定转换，并同步考虑 front-face、纹理方向和读回图像方向。</p>
 <h2>一个可手算的检查</h2>
 <p>先取局部点 <code>(1,0,0,1)</code>，model 只沿 X 平移 2，世界位置应为 <code>(3,0,0,1)</code>。如果先旋转再平移，与先平移再旋转一般不同。写出两个矩阵乘积并在 CPU 打印结果，比看到模型绕错轴后反复交换代码更容易定位。</p>
-<p>OpenGL 相机课在右键按下时更新 yaw/pitch，把俯仰角限制在接近 ±90° 以内。移动速度乘 dt，避免高帧率下走得更快。Vulkan/DX12 的共享场景目前主要采用固定相机和旋转模型；这不等于已移植 OpenGL 的完整自由相机交互。</p>
+<p>OpenGL 相机课在右键按下时更新 yaw/pitch，把俯仰角限制在接近 ±90° 以内。移动速度乘 dt，避免高帧率下走得更快。Vulkan/DX12 除固定场景外，新增 23 课轨道相机，并按实际 aspect 更新投影；这不等于已移植 OpenGL 的完整自由相机交互。</p>
 <h2>法线为什么不等同于位置</h2>
 <p>法线描述表面的垂直方向。模型存在非均匀缩放时，用 model 的左上 3×3 直接变换法线会破坏垂直关系，应使用逆转置并在片元阶段归一化。Vulkan 场景顶点 shader 使用该形式；DX12 目前场景仅有旋转和均匀缩放，因此采用简化形式。把非均匀缩放练习迁过去前，先修正这一约定。</p>
 <h2>实验与答案</h2>
@@ -26,13 +26,13 @@
 <p>抓帧时先看 VS 输出的 clip position，再看深度测试，最后看光照。这样可以把数学问题与材质问题分开。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/08_camera/README.html">08_camera</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>运动乘 dt；pitch 受限；view 与 projection 分别负责不同空间。</p>
 <p><a href="../../OpenGL/common/app.hpp#L333">OpenGL/common/app.hpp</a>，第 333—382 行：</p>
@@ -107,12 +107,17 @@ inline int failure(const std::exception&amp; e) {
 </code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>框架不改变 SceneVk 的数学约定；UI 调整的是材质参数。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L394">Vulkan/common/scene_vk.hpp</a>，第 394—413 行：</p>
+<p><a href="../../Vulkan/common/scene_vk.hpp#L411">Vulkan/common/scene_vk.hpp</a>，第 411—430 行：</p>
 <pre><code>    void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = frame(mode, float(size.width) / size.height, true);
+        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
+        if (frameProvider)
+            f = frameProvider(float(size.width) / size.height, time, true);
         uniform.upload(&amp;f, sizeof(f));
-        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkViewport viewport{
+            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
         VkRect2D scissor{{0, 0}, size};
+        if (halfScissor)
+            scissor.extent.width /= 2;
         vkCmdSetViewport(cmd, 0, 1, &amp;viewport);
         vkCmdSetScissor(cmd, 0, 1, &amp;scissor);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -122,12 +127,7 @@ inline int failure(const std::exception&amp; e) {
             VkBuffer vb = overrideVertices ? overrideVertices : vertices.buffer;
             VkDeviceSize offset = 0;
             vkCmdBindVertexBuffers(cmd, 0, 1, &amp;vb, &amp;offset);
-            if (indices.buffer)
-                vkCmdBindIndexBuffer(cmd, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-        }
-        for (auto d : draws(mode, time)) {
-            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
-            vkCmdPushConstants(cmd,</code></pre>
+            if (indices.buffer)</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>column_major / mul(M,v) 匹配 GLM；当前法线简化依赖旋转/均匀缩放。</p>
 <p><a href="../../DirectX12/shaders/scene.hlsl#L25">DirectX12/shaders/scene.hlsl</a>，第 25—41 行：</p>

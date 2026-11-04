@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>12 · 光照、PBR、IBL 与跨 API 画面对齐</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>12 · 光照、PBR、IBL 与跨 API 画面对齐</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>12 · 光照、PBR、IBL 与跨 API 画面对齐</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>12 · 光照、PBR、IBL 与跨 API 画面对齐</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#12_lighting_pbr_ibl">交互式对照</a> · <a href="11_models_animation.html">上一章</a> · <a href="13_multipass_effects.html">下一章</a></p>
 <p>光照公式主要属于材质和图形学层。三种 API 可以执行同一 BRDF，但仍可能因为坐标、贴图格式、采样或输出编码不同而产生不同画面。先统一这些输入，再讨论公式或驱动差异。</p>
 <h2>从 Phong 到微表面</h2>
@@ -6,13 +6,13 @@
 <p>对一束直接光，镜面项的结构是 <code>D * G * F / max(4 * NoV * NoL, epsilon)</code>。D 描述微表面法线分布；G 描述几何遮蔽；F 描述菲涅耳反射。diffuse 则按 <code>(1-F)*(1-metallic)</code> 分配，再乘 albedo/PI。最终还要乘光源辐射、NoL 及距离衰减。</p>
 <p>粗糙度影响高光形状，不是简单把最终颜色乘一个暗度系数。金属的镜面颜色趋向 albedo，普通介质的 F0 在此教学模型中约为 0.04。数值下限防止接近掠射角或低粗糙度时除零；它不能代替合法输入范围与法线归一化。</p>
 <h2>本仓库各路线的范围</h2>
-<table>
+<div class="table-scroll"><table>
 <tr><td>内容</td><td>OpenGL</td><td>Vulkan 原生 / nvpro</td><td>DX12</td></tr>
 <tr><td>直接光球阵列</td><td>23/24</td><td>vk09 / nv06</td><td>dx09</td></tr>
 <tr><td>PBR 贴图</td><td>24/模型材质</td><td>未完整迁移</td><td>未完整迁移</td></tr>
 <tr><td>IBL 预计算</td><td>25、Environment</td><td>未完整迁移</td><td>未完整迁移</td></tr>
 <tr><td>HDR/Bloom 合成</td><td>21/22</td><td>未完整迁移</td><td>未完整迁移</td></tr>
-</table>
+</table></div>
 <p>nv06 和 vk09 复用 SceneVk 的 shader，区别主要是上下文、目标和 UI。DX12 HLSL 与 Vulkan GLSL 的直接光球阵列采用相同共享几何和参数；OpenGL 原课程的场景、光源和 IBL 配置不同。四张图可用于理解效果，不能当作逐像素一致的后端回归基准。</p>
 <h2>IBL 为什么有三种预计算</h2>
 <p>OpenGL Environment 先把 HDR 经纬图转为 cubemap。漫反射半球积分输出 irradiance；不同粗糙度的镜面采样输出 prefilter 的 mip 链；BRDF LUT 把视角和粗糙度相关的一部分积分存成二维纹理。运行时将它们与材质参数组合，避免每像素重新采样大量环境方向。</p>
@@ -25,13 +25,13 @@
 <p>迁移 IBL 的验收应分别包含 cubemap 面方向、irradiance、各粗糙度 mip、BRDF LUT 和最终组合，而不是只提交一张最终球图。当前 Vulkan/DX12 的这一部分仍是扩展任务。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/25_ibl/README.html">25_ibl</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>OpenGL 同时有 IBL；先关闭环境项再与显式后端的直接光比较。</p>
 <p><a href="../../OpenGL/shaders/pbr.frag#L43">OpenGL/shaders/pbr.frag</a>，第 43—74 行：</p>

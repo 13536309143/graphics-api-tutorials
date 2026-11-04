@@ -59,11 +59,17 @@ scene.vert gl_InstanceIndex → SceneVk::render(instanceCount=25) → depth atta
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L363)，第 363—392 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L412)，第 412—441 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
             VkRenderingAttachmentInfo color{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-            color.imageView = targetView;
+            color.imageView =
+                options.samples == VK_SAMPLE_COUNT_1_BIT ? targetView : swap.multisample.view;
+            if (options.samples != VK_SAMPLE_COUNT_1_BIT) {
+                color.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+                color.resolveImageView = targetView;
+                color.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
             color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -81,17 +87,11 @@ scene.vert gl_InstanceIndex → SceneVk::render(instanceCount=25) → depth atta
             render.pColorAttachments = &color;
             render.pDepthAttachment = &depth;
             vkCmdBeginRendering(cmd, &render);
-            if (swap.scene)
-                swap.scene->render(cmd, swap.extent, smoke ? 1.f : float(glfwGetTime()));
-            vkCmdEndRendering(cmd);
-            if (mode == 10) {
-                barrier(cmd,
-                        target,
-                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        VK_PIPELINE_STAGE_2_BLIT_BIT,
+            if (swap.scene) {
+                float time = smoke ? 1.f : float(glfwGetTime());
+                if (options.update)
+                    options.update(*swap.scene, time);
+                swap.scene->render(cmd, swap.extent, time);
 ```
 
 ### 同主题跨 API 导航

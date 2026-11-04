@@ -1,10 +1,10 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>00 · 如何用同一套问题学习三种 API</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>00 · 如何用同一套问题学习三种 API</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>00 · 如何用同一套问题学习三种 API</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>00 · 如何用同一套问题学习三种 API</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#00_learning_path">交互式对照</a> · <a href="01_context_device.html">下一章</a></p>
 <p>这条对照路线面向“OpenGL 画得出来，但 Vulkan/DX12 只会照抄初始化”的阶段。每章先给出要解决的问题，再解释三种 API 把责任放在哪里，最后回到本仓库的真实实现和可复现实验。nvpro_core2 始终作为 Vulkan 的框架路线单独观察，它不是第四种图形 API。</p>
 <h2>先建立一张工作清单</h2>
 <p>一帧图像需要解决六件事：准备输入数据、声明着色器接口、配置管线、选择输出目标、提交 GPU 工作、保证结果在被读取前已经准备好。换 API 时，这些工作仍然存在，改变的是对象划分、状态保存位置和同步责任。</p>
 <p>不要一开始就背 <code>Vk*CreateInfo</code> 的所有字段。先为每个对象回答：谁创建、谁拥有、谁使用、依赖什么、什么时候允许销毁。例如 image view 不拥有图片像素，descriptor 也不会复制纹理；即使 C++ 函数已经返回，GPU 仍可能访问它们。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>学习阶段</td><td>本阶段产物</td><td>必须能解释的问题</td></tr>
 <tr><td>环境与窗口</td><td>能清屏、能退出、能打印设备信息</td><td>窗口、context、device、surface 有何不同？</td></tr>
 <tr><td>三角形与几何</td><td>能解释每个顶点来自哪里</td><td>顶点输入与 descriptor 为什么是两类接口？</td></tr>
@@ -12,7 +12,7 @@
 <tr><td>深度与同步</td><td>能画出正确遮挡并读回</td><td>谁写谁读，CPU/GPU 分别等待什么？</td></tr>
 <tr><td>模型与材质</td><td>能定位导入、变换和着色责任</td><td>模型格式、BRDF 和 API 哪些可以共享？</td></tr>
 <tr><td>多遍与工程</td><td>能画依赖图并定位错误</td><td>改为两帧并行后，哪些资源必须分开？</td></tr>
-</table>
+</table></div>
 <h2>本工程的基线不能混在一起</h2>
 <p>OpenGL 使用 3.3 Core 和 GLSL 330。原生 Vulkan 使用 C API、Vulkan 1.3、GLSL/SPIR-V、dynamic rendering 和 synchronization2。nvpro 路线使用固定提交的 nvpro_core2，按其要求使用 Vulkan 1.4。DX12 使用传统 resource barriers、D3DCompiler 和 Shader Model 5.1。这些是当前代码的选择，不代表各 API 的全部能力。</p>
 <p>你提供的 Vulkan 中文镜像介绍了原始 C API 路线；当前官方 <code>latest</code> 已采用不同的基线与工具组合。学习外部代码时先确认 Vulkan 版本、C API/Vulkan-Hpp、GLSL/Slang、render pass/dynamic rendering、binary/timeline semaphore 五项，不能只看章节标题相同就拼接实现。详见<a href="../REFERENCES.html">参考资料与版本差异</a>。</p>
@@ -21,16 +21,16 @@
 <p>每次实验写四行记录：修改前的预测、只改的一个变量、画面/日志证据、对预测的修正。遇到黑屏先退回固定颜色三角形；不要同时改矩阵、剔除和纹理绑定，否则无法知道哪个修改起作用。</p>
 <h2>完成标准</h2>
 <p>能画出正确图片只完成了一半。你还应能在源码中找到创建、更新、绑定、提交和释放位置；说明图像为什么正确；用一个受控修改改变结果；通过日志或抓帧证明自己的解释。程序无验证错误是必要证据，但不证明光照公式或相机坐标正确。</p>
-<p>本次新增内容主要加深讲解、源码对照和实验设计。当前仍有 60 个可执行课程；模型/IBL/SSAO 等只在 OpenGL 完成的功能会明确标为“迁移设计”，不会因为有理论章节就算成新的 Vulkan/DX12 实现。</p>
+<p>本次新增内容主要加深讲解、源码对照和实验设计。当前共有 148 个可执行实验；静态模型、mip、MSAA 等已补齐原生/DX12 实现；完整材质、IBL/SSAO 等未完成部分继续标明“迁移设计”，不会因为有理论章节就算成新的 Vulkan/DX12 实现。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>先读最短清屏路径，建立 CPU 帧循环。</p>
 <p><a href="../../OpenGL/lessons/01_window/main.cpp#L5">OpenGL/lessons/01_window/main.cpp</a>，第 5—15 行：</p>
@@ -52,7 +52,7 @@
     VkContextRef c;
     VkDebugUtilsMessengerEXT messenger{};
     VkSurfaceKHR surface{};
-    NativeDevice(GLFWwindow* window) {
+    NativeDevice(GLFWwindow* window, bool timeline = false) {
         uint32_t count = 0;
         std::vector&lt;const char*&gt; extensions;
         if (window) {
@@ -117,7 +117,7 @@
         VkContextRef c{context.getInstance(),</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>从 adapter、device、queue 看设备建立。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L59">DirectX12/common/dx12_course.hpp</a>，第 59—90 行：</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L61">DirectX12/common/dx12_course.hpp</a>，第 61—92 行：</p>
 <pre><code>struct DxDevice {
     ComPtr&lt;IDXGIFactory6&gt; factory;
     ComPtr&lt;ID3D12Device&gt; device;

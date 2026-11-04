@@ -1,15 +1,15 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>02 · 从三角形看管线与着色器</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>02 · 从三角形看管线与着色器</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>02 · 从三角形看管线与着色器</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>02 · 从三角形看管线与着色器</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#02_triangle_pipeline">交互式对照</a> · <a href="01_context_device.html">上一章</a> · <a href="03_geometry_memory.html">下一章</a></p>
 <p>把复杂模型暂时拿掉，只保留一个三角形，可以让“顶点输入错了”和“管线根本没有工作”分开。本章沿输入装配、顶点处理、裁剪、光栅化、片元/像素着色、深度和混合逐段检查。</p>
 <h2>三个顶点为什么变成一片颜色</h2>
 <p>顶点着色器为每个顶点输出裁剪空间位置和待插值数据。光栅化生成三角形覆盖的片段，并插值颜色、UV 等属性；片元着色器处理的是片段，不是原始的三个顶点。最终颜色还受到深度、模板、混合和颜色写掩码影响，因此“shader 返回红色”不保证屏幕上出现红色。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>配置</td><td>OpenGL</td><td>Vulkan</td><td>DX12</td></tr>
 <tr><td>着色器代码</td><td>GLSL 源码在运行时编译/链接</td><td>GLSL 由 glslc 生成 SPIR-V</td><td>HLSL 在运行时编译为 SM5.1 字节码</td></tr>
 <tr><td>管线对象</td><td>program 与分散的状态调用</td><td>graphics pipeline + pipeline layout</td><td>PSO + root signature</td></tr>
 <tr><td>绘制命令</td><td>glDrawArrays/Elements</td><td>vkCmdDraw/DrawIndexed</td><td>DrawInstanced/DrawIndexedInstanced</td></tr>
 <tr><td>可动态改变的状态</td><td>大量 context 状态</td><td>取决于 pipeline 的 dynamic state 声明</td><td>viewport/scissor 等通过命令设置</td></tr>
-</table>
+</table></div>
 <p>OpenGL <code>Shader</code> 将编译和链接分开检查。编译通过只说明单个阶段语法/类型成立；链接还检查跨阶段接口和程序可执行性。Vulkan shader module 也不等于完整管线，阶段入口、顶点布局、目标格式等在 pipeline 创建时组合。DX12 PSO 将着色器与固定功能状态组合，root signature 再声明访问资源的接口。</p>
 <h2>本仓库的三角形不完全同构</h2>
 <p>OpenGL 02 使用 VBO 和 VAO。vk03 使用专门的 <code>triangle.vert</code>，通过 <code>gl_VertexIndex</code> 生成位置和颜色；dx03 通过 <code>SV_VertexID</code> 做同样的事。nv03 把同一个底层 Vulkan 三角形输出到框架离屏视口。比较时应承认 OpenGL 多了顶点上传步骤，而不是把初始化行数当成 API 固有成本。</p>
@@ -30,13 +30,13 @@
 <p>旧 Vulkan 材料可能创建 render pass/framebuffer，本仓库使用 dynamic rendering。它省去了那组对象，不会省去附件格式、清除策略和同步要求。<a href="https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/02_Graphics_pipeline_basics/00_Introduction.html">官方管线介绍</a> 适合帮助定位各阶段，但具体字段应对照本项目使用的 API 基线。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>OpenGL 02 使用实际 VBO，和另两条程序生成顶点的路径有范围差别。</p>
 <p><a href="../../OpenGL/lessons/02_triangle/main.cpp#L5">OpenGL/lessons/02_triangle/main.cpp</a>，第 5—22 行：</p>
@@ -60,7 +60,7 @@
 }</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>动态渲染仍要求 pipeline 声明附件格式；还要设置 viewport/scissor。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L373">Vulkan/common/scene_vk.hpp</a>，第 373—404 行：</p>
+<p><a href="../../Vulkan/common/scene_vk.hpp#L391">Vulkan/common/scene_vk.hpp</a>，第 391—422 行：</p>
 <pre><code>        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
         gp.pNext = &amp;rendering;
         gp.stageCount = 2;
@@ -74,8 +74,7 @@
         gp.pColorBlendState = &amp;blend;
         gp.pDynamicState = &amp;dynamic;
         gp.layout = pipelineLayout;
-        VkResult result =
-            vkCreateGraphicsPipelines(c.device, VK_NULL_HANDLE, 1, &amp;gp, nullptr, &amp;pipeline);
+        VkResult result = vkCreateGraphicsPipelines(c.device, cache, 1, &amp;gp, nullptr, &amp;pipeline);
         vkDestroyShaderModule(c.device, vs, nullptr);
         vkDestroyShaderModule(c.device, ps, nullptr);
         vkCheck(result, &quot;Graphics pipeline&quot;);
@@ -83,16 +82,17 @@
 
     // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
     void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = frame(mode, float(size.width) / size.height, true);
+        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
+        if (frameProvider)
+            f = frameProvider(float(size.width) / size.height, time, true);
         uniform.upload(&amp;f, sizeof(f));
-        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkViewport viewport{
+            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
         VkRect2D scissor{{0, 0}, size};
+        if (halfScissor)
+            scissor.extent.width /= 2;
         vkCmdSetViewport(cmd, 0, 1, &amp;viewport);
-        vkCmdSetScissor(cmd, 0, 1, &amp;scissor);
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        vkCmdBindDescriptorSets(
-            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &amp;descriptor, 0, nullptr);
-        if (mode &gt;= 4) {</code></pre>
+        vkCmdSetScissor(cmd, 0, 1, &amp;scissor);</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>场景写入离屏 RenderTarget，最后才被 ImGui 采样。</p>
 <p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L130">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 130—171 行：</p>

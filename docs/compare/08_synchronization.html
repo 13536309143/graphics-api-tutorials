@@ -1,16 +1,16 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>08 · 同步：执行顺序、可见性与生命周期</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>08 · 同步：执行顺序、可见性与生命周期</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>08 · 同步：执行顺序、可见性与生命周期</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>08 · 同步：执行顺序、可见性与生命周期</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#08_synchronization">交互式对照</a> · <a href="07_targets_depth_msaa.html">上一章</a> · <a href="09_commands_frames.html">下一章</a></p>
 <p>这是显式 API 学习中最值得慢下来的一章。先写“生产者写什么、消费者读什么、在哪个队列、谁需要等待”，再选择 barrier、semaphore 或 fence；不要先找一个能让验证层安静的万能函数。</p>
 <h2>三个独立的问题</h2>
 <p>执行依赖决定后续操作什么时候可以开始。内存依赖让生产者的写入对消费者可见。生命周期保证资源及其存储在最后一次使用结束前不被释放或覆盖。它们相互关联，但不是一个布尔值。</p>
 <p>CPU 执行完录制命令，不表示 GPU 执行完命令。map 成功不表示 GPU 不在读取该内存。把 image layout 写成 SHADER_READ_ONLY，也不表示刚才的传输写入已建立了完整依赖。即使某块内存 coherent，也仍然不能随意与 GPU 并发覆盖。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>场景</td><td>OpenGL</td><td>Vulkan</td><td>DX12</td></tr>
 <tr><td>常规 API 上传后绘制</td><td>驱动按 API 规则协调</td><td>由资源用法和内存依赖保证</td><td>状态转换及队列执行顺序</td></tr>
 <tr><td>GPU 生产结果供后续 GPU 使用</td><td>按操作类型，部分需 memory barrier</td><td>pipeline barrier / semaphore 等</td><td>transition/UAV barrier、跨队列 fence</td></tr>
 <tr><td>CPU 等 GPU 完成</td><td>GLsync / 等待接口</td><td>fence，或适当的 timeline 等待</td><td>fence + event</td></tr>
 <tr><td>GPU 等另一个 GPU 提交</td><td>共享/同步规则</td><td>semaphore</td><td>queue Wait on fence</td></tr>
-</table>
+</table></div>
 <p>OpenGL 的“隐式”不代表没有同步成本，也不代表所有 shader 写入都自动对之后任意访问可见。本课程 OpenGL 基线是 3.3，不能直接把后续版本 compute/image store 的规则假设为当前已实现。</p>
 <h2>推导一次纹理上传</h2>
 <p>生产者是 copy 操作，访问是 transfer write；消费者是 fragment shader，访问是 sampled read。Vulkan 课程从 TRANSFER_DST_OPTIMAL 过渡到 SHADER_READ_ONLY_OPTIMAL，同时用 COPY/TRANSFER_WRITE 到 FRAGMENT_SHADER/SHADER_SAMPLED_READ 的 stage/access 配对。若换成顶点 shader 采样，消费者阶段也应相应改变。</p>
@@ -25,13 +25,13 @@
 <p>本课程为了清晰按帧等待，有意牺牲重叠。下一章讲如何设计多帧资源，而不是直接删除 wait。<a href="https://docs.vulkan.org/guide/latest/synchronization.html">Khronos 同步指南</a> 和 <a href="https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12">DX12 资源屏障</a> 用于核对规则，具体依赖应按实际访问重新推导。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/11_framebuffer/README.html">11_framebuffer</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk06_texture_descriptor/README.html">vk06_texture_descriptor</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>常规有序 FBO→采样由 GL 规则协调；不能推导成所有 GPU 写后读都自动安全。</p>
 <p><a href="../../OpenGL/lessons/11_framebuffer/main.cpp#L12">OpenGL/lessons/11_framebuffer/main.cpp</a>，第 12—43 行：</p>
@@ -69,7 +69,7 @@
     return failure(e);</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>屏障声明前后阶段、访问及布局；并非只修改一个枚举。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L129">Vulkan/common/scene_vk.hpp</a>，第 129—163 行：</p>
+<p><a href="../../Vulkan/common/scene_vk.hpp#L133">Vulkan/common/scene_vk.hpp</a>，第 133—167 行：</p>
 <pre><code>inline void barrier(VkCommandBuffer cmd,
                     VkImage image,
                     VkImageLayout before,
@@ -158,7 +158,7 @@ inline void immediate(const VkContextRef&amp; c, const std::function&lt;void(VkC
         readback.init(</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>CPU 等 fence 只解决完成条件；资源状态还要与实际访问一致。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L132">DirectX12/common/dx12_course.hpp</a>，第 132—145 行：</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L134">DirectX12/common/dx12_course.hpp</a>，第 134—147 行：</p>
 <pre><code>    void wait() {
         dxCheck(queue-&gt;Signal(fence.Get(), ++value));
         if (fence-&gt;GetCompletedValue() &lt; value) {

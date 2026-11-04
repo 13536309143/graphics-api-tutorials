@@ -1,0 +1,72 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx27_indirect_draw · 间接绘制</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx27_indirect_draw · 间接绘制</h1>
+<p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>目的与实际执行</h2>
+<p>D3D12_DRAW_ARGUMENTS 配合 command signature 的 DRAW 类型与 ByteStride，再由 ExecuteIndirect 解释。signature 可声明其他绑定变更，但本例只控制 draw 参数，不改 root arguments。</p>
+<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<h2>构建和运行</h2>
+<pre><code>cmake --preset dx12
+cmake --build --preset dx12-debug --target dx27_indirect_draw --parallel 4
+.\DirectX12\build\bin\Debug\dx27_indirect_draw.exe</code></pre>
+<h2>深入学习：数据、接口与执行</h2>
+<ul>
+<li><a href="../../chapters/51_indirect/README.html">第 51 课：间接参数、命令签名与可扩展提交</a></li>
+</ul>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../common/dx12_course.hpp#L443">DirectX12/common/dx12_course.hpp</a>，第 443—486 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>        if (mode &gt;= 4) {
+            cmd-&gt;IASetVertexBuffers(0, 1, &amp;vb);
+            if (indices)
+                cmd-&gt;IASetIndexBuffer(&amp;ib);
+        }
+        for (auto d : overrideDraws.empty() ? draws(mode, time) : overrideDraws) {
+            cmd-&gt;SetGraphicsRoot32BitConstants(1, 20, &amp;d, 0);
+            if (indirectArguments)
+                cmd-&gt;ExecuteIndirect(
+                    indirectSignature.Get(), 1, indirectArguments.Get(), 0, nullptr, 0);
+            else if (mode == 3)
+                cmd-&gt;DrawInstanced(3, 1, 0, 0);
+            else if (mode == 4)
+                cmd-&gt;DrawInstanced(UINT(mesh.vertices.size()), 1, 0, 0);
+            else
+                cmd-&gt;DrawIndexedInstanced(UINT(mesh.indices.size()), mode == 7 ? 25 : 1, 0, 0, 0);
+        }
+    }
+};
+struct DxRenderOptions {
+    const Geometry* mesh = nullptr;
+    D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE;
+    bool clampSampler = false, redOnly = false;
+    std::string captureStem;
+    UINT samples = 1;
+    std::function&lt;void(DxScene&amp;)&gt; setup;
+    std::function&lt;void(DxScene&amp;, float)&gt; update;
+    std::function&lt;void(DxScene&amp;, float)&gt; beforeFrame;
+};
+class DxWindow {
+public:
+    DxDevice c;
+    GLFWwindow* window;
+    int mode, width = 0, height = 0;
+    ComPtr&lt;IDXGISwapChain3&gt; swap;
+    ComPtr&lt;ID3D12DescriptorHeap&gt; rtvHeap, dsvHeap;
+    ComPtr&lt;ID3D12Resource&gt; colors[2], depth, offscreen, multisample;
+    DxRenderOptions options;
+    std::unique_ptr&lt;DxScene&gt; scene;
+    UINT rtvStride = 0;
+    DxWindow(GLFWwindow* w, int lesson, bool warp, DxRenderOptions settings = {})
+        : c(warp), window(w), mode(lesson), options(std::move(settings)) {
+        D3D12_DESCRIPTOR_HEAP_DESC heap{};
+        heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;</code></pre>
+<h3>同主题跨 API 导航</h3>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>程序</td></tr>
+<tr><td>DirectX 12</td><td><a href="README.html">dx27_indirect_draw</a></td></tr>
+<tr><td>对照后端</td><td><a href="../../../Vulkan/native/lessons/vk27_indirect_draw/README.html">vk27_indirect_draw</a></td></tr>
+</table></div>
+<h3>先预测，再验证</h3>
+<p>把 vertex count 改为零，预测为何应该没有三角形，并说明它与缓冲为空的区别。</p>
+<p>参考推导：合法参数要求零工作，与资源或绑定无效不是一回事。恢复 count 后应重新出现；错误句柄不应该被当作“禁用绘制”手段。</p>
+<h2>验证与边界</h2>
+<p>运行 <code>--smoke</code> 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。</p>
+<h2>实际画面</h2>
+<p><img alt="dx27_indirect_draw" src="../../../docs/previews/dx27_indirect_draw.png"></p></main></html>

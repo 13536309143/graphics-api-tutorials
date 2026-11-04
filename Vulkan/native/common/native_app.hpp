@@ -26,7 +26,7 @@ struct NativeDevice {
     VkContextRef c;
     VkDebugUtilsMessengerEXT messenger{};
     VkSurfaceKHR surface{};
-    NativeDevice(GLFWwindow* window) {
+    NativeDevice(GLFWwindow* window, bool timeline = false) {
         uint32_t count = 0;
         std::vector<const char*> extensions;
         if (window) {
@@ -83,10 +83,14 @@ struct NativeDevice {
                 continue;
             VkPhysicalDeviceVulkan13Features f13{
                 VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+            VkPhysicalDeviceVulkan12Features f12{
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+            f13.pNext = &f12;
             VkPhysicalDeviceFeatures2 f2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
             f2.pNext = &f13;
             vkGetPhysicalDeviceFeatures2(p, &f2);
-            if (!f13.dynamicRendering || !f13.synchronization2)
+            if (!f13.dynamicRendering || !f13.synchronization2 ||
+                (timeline && !f12.timelineSemaphore))
                 continue;
             uint32_t n;
             vkGetPhysicalDeviceQueueFamilyProperties(p, &n, nullptr);
@@ -118,6 +122,10 @@ struct NativeDevice {
         qi.queueCount = 1;
         qi.pQueuePriorities = &priority;
         VkPhysicalDeviceVulkan13Features f13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+        VkPhysicalDeviceVulkan12Features f12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+        f12.timelineSemaphore = timeline;
+        if (timeline)
+            f13.pNext = &f12;
         f13.dynamicRendering = VK_TRUE;
         f13.synchronization2 = VK_TRUE;
         VkDeviceCreateInfo device{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
@@ -150,6 +158,16 @@ struct NativeDevice {
 };
 
 // 交换链图像由实现分配；应用拥有它们的 image view、深度附件和呈现同步对象。
+struct NativeRenderOptions {
+    const Geometry* mesh = nullptr;
+    VkCullModeFlags cull = VK_CULL_MODE_NONE;
+    bool redOnly = false;
+    std::string captureStem;
+    VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+    std::function<void(SceneVk&)> setup;
+    std::function<void(SceneVk&, float)> update;
+};
+
 struct Swapchain {
     NativeDevice& device;
     GLFWwindow* window;
@@ -160,16 +178,19 @@ struct Swapchain {
     std::vector<VkImageView> views;
     // 每张交换链图像拥有独立的 present-wait 信号量。
     std::vector<VkSemaphore> presentReady;
-    VkImageResource depth, offscreen;
+    VkImageResource depth, offscreen, multisample;
+    NativeRenderOptions options;
     std::unique_ptr<SceneVk> scene;
     int mode;
-    Swapchain(NativeDevice& d, GLFWwindow* w, int lesson) : device(d), window(w), mode(lesson) {
+    Swapchain(NativeDevice& d, GLFWwindow* w, int lesson, NativeRenderOptions settings = {})
+        : device(d), window(w), options(std::move(settings)), mode(lesson) {
         recreate();
     }
     void cleanup() {
         vkDeviceWaitIdle(device.c.device);
         scene.reset();
         depth.reset();
+        multisample.reset();
         offscreen.reset();
         for (auto v : views)
             vkDestroyImageView(device.c.device, v, nullptr);
@@ -249,7 +270,17 @@ struct Swapchain {
                    extent,
                    VK_FORMAT_D32_SFLOAT,
                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                   VK_IMAGE_ASPECT_DEPTH_BIT);
+                   VK_IMAGE_ASPECT_DEPTH_BIT,
+                   1,
+                   options.samples);
+        if (options.samples != VK_SAMPLE_COUNT_1_BIT)
+            multisample.init(device.c,
+                             extent,
+                             format,
+                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                             VK_IMAGE_ASPECT_COLOR_BIT,
+                             1,
+                             options.samples);
         if (mode == 10)
             offscreen.init(device.c,
                            extent,
@@ -257,14 +288,23 @@ struct Swapchain {
                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                            VK_IMAGE_ASPECT_COLOR_BIT);
         if (mode >= 3)
-            scene = std::make_unique<SceneVk>(
-                device.c, mode, mode == 10 ? VK_FORMAT_R8G8B8A8_UNORM : format, nativeShaders);
+            scene = std::make_unique<SceneVk>(device.c,
+                                              mode,
+                                              mode == 10 ? VK_FORMAT_R8G8B8A8_UNORM : format,
+                                              nativeShaders,
+                                              options.mesh,
+                                              options.samples,
+                                              VK_NULL_HANDLE,
+                                              options.cull,
+                                              options.redOnly);
+        if (scene && options.setup)
+            options.setup(*scene);
     }
     ~Swapchain() {
         cleanup();
     }
 };
-inline int nativeMain(int argc, char** argv, int mode) {
+inline int nativeMain(int argc, char** argv, int mode, NativeRenderOptions options = {}) {
     bool smoke = false;
     for (int i = 1; i < argc; ++i)
         smoke |= std::strcmp(argv[i], "--smoke") == 0;
@@ -288,7 +328,7 @@ inline int nativeMain(int argc, char** argv, int mode) {
         throw std::runtime_error("Window creation failed");
     {
         NativeDevice d(window);
-        Swapchain swap(d, window, mode);
+        Swapchain swap(d, window, mode, options);
         VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
         pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         pi.queueFamilyIndex = d.c.family;
@@ -360,8 +400,23 @@ inline int nativeMain(int argc, char** argv, int mode) {
                         VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                     VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                     VK_IMAGE_ASPECT_DEPTH_BIT);
+            if (options.samples != VK_SAMPLE_COUNT_1_BIT)
+                barrier(cmd,
+                        swap.multisample.image,
+                        VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        VK_PIPELINE_STAGE_2_NONE,
+                        0,
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
             VkRenderingAttachmentInfo color{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-            color.imageView = targetView;
+            color.imageView =
+                options.samples == VK_SAMPLE_COUNT_1_BIT ? targetView : swap.multisample.view;
+            if (options.samples != VK_SAMPLE_COUNT_1_BIT) {
+                color.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+                color.resolveImageView = targetView;
+                color.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
             color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -379,8 +434,12 @@ inline int nativeMain(int argc, char** argv, int mode) {
             render.pColorAttachments = &color;
             render.pDepthAttachment = &depth;
             vkCmdBeginRendering(cmd, &render);
-            if (swap.scene)
-                swap.scene->render(cmd, swap.extent, smoke ? 1.f : float(glfwGetTime()));
+            if (swap.scene) {
+                float time = smoke ? 1.f : float(glfwGetTime());
+                if (options.update)
+                    options.update(*swap.scene, time);
+                swap.scene->render(cmd, swap.extent, time);
+            }
             vkCmdEndRendering(cmd);
             if (mode == 10) {
                 barrier(cmd,
@@ -492,7 +551,8 @@ inline int nativeMain(int argc, char** argv, int mode) {
                 void* p;
                 vkCheck(vkMapMemory(d.c.device, readback->memory, 0, readback->size, 0, &p));
                 capture(std::filesystem::path(argv[0]).parent_path() /
-                            ("native_" + std::to_string(mode) + ".ppm"),
+                            (options.captureStem.empty() ? "native_" + std::to_string(mode) + ".ppm"
+                                                         : options.captureStem + ".ppm"),
                         static_cast<uint8_t*>(p),
                         int(swap.extent.width),
                         int(swap.extent.height),

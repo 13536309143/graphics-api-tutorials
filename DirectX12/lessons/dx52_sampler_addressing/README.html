@@ -1,0 +1,72 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx52_sampler_addressing · 纹理寻址</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx52_sampler_addressing · 纹理寻址</h1>
+<p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>目的与实际执行</h2>
+<p>当前图形 root signature 使用 static sampler，寻址策略是创建接口的一部分。改变它通常涉及相应 root signature/PSO 组合；若需要频繁变化，可设计独立 sampler heap/table，而不是随意改纹理字节。</p>
+<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<h2>构建和运行</h2>
+<pre><code>cmake --preset dx12
+cmake --build --preset dx12-debug --target dx52_sampler_addressing --parallel 4
+.\DirectX12\build\bin\Debug\dx52_sampler_addressing.exe</code></pre>
+<h2>深入学习：数据、接口与执行</h2>
+<ul>
+<li><a href="../../chapters/36_samplers/README.html">第 36 课：采样器、过滤、寻址与 UV</a></li>
+</ul>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../common/dx12_course.hpp#L354">DirectX12/common/dx12_course.hpp</a>，第 354—397 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>        range.NumDescriptors = 1;
+        range.BaseShaderRegister = 0;
+        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        params[2].DescriptorTable = {1, &amp;range};
+        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        D3D12_STATIC_SAMPLER_DESC sampler{};
+        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        sampler.AddressU = sampler.AddressV = sampler.AddressW =
+            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.MaxLOD = D3D12_FLOAT32_MAX;
+        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        D3D12_ROOT_SIGNATURE_DESC root{};
+        root.NumParameters = 3;
+        root.pParameters = params;
+        root.NumStaticSamplers = 1;
+        root.pStaticSamplers = &amp;sampler;
+        root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        signature = rootSignature(c, root);
+        auto vs = compileHlsl(mode == 3 ? &quot;TriangleMain&quot; : &quot;VertexMain&quot;, &quot;vs_5_1&quot;),
+             ps = compileHlsl(&quot;PixelMain&quot;, &quot;ps_5_1&quot;);
+        D3D12_INPUT_ELEMENT_DESC elements[] = {{&quot;POSITION&quot;,
+                                                0,
+                                                DXGI_FORMAT_R32G32B32_FLOAT,
+                                                0,
+                                                0,
+                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                                                0},
+                                               {&quot;NORMAL&quot;,
+                                                0,
+                                                DXGI_FORMAT_R32G32B32_FLOAT,
+                                                0,
+                                                12,
+                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                                                0},
+                                               {&quot;TEXCOORD&quot;,
+                                                0,
+                                                DXGI_FORMAT_R32G32_FLOAT,
+                                                0,
+                                                24,
+                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                                                0}};
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC pso{};</code></pre>
+<h3>同主题跨 API 导航</h3>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>程序</td></tr>
+<tr><td>DirectX 12</td><td><a href="README.html">dx52_sampler_addressing</a></td></tr>
+<tr><td>对照后端</td><td><a href="../../../Vulkan/native/lessons/vk52_sampler_addressing/README.html">vk52_sampler_addressing</a></td></tr>
+</table></div>
+<h3>先预测，再验证</h3>
+<p>在 UV=0..4 的测试几何上比较 clamp 与 repeat，解释边缘拉伸来自哪里。</p>
+<p>参考推导：clamp 将越界坐标限制到边缘 texel，repeat 周期折回。两者都读取同一内容，区别来自寻址规则而非模型解析。</p>
+<h2>验证与边界</h2>
+<p>运行 <code>--smoke</code> 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。</p>
+<h2>实际画面</h2>
+<p><img alt="dx52_sampler_addressing" src="../../../docs/previews/dx52_sampler_addressing.png"></p></main></html>

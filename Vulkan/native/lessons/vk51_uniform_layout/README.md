@@ -1,0 +1,89 @@
+# vk51_uniform_layout · 常量字节布局
+
+[54 课目录](../../COURSE.md)
+
+## 目的与实际执行
+
+GLSL mat4 与 GLM 列主序配合，UBO 的布局必须与 C++ 实际偏移一致。动态偏移按 minUniformBufferOffsetAlignment 对齐，range 仍应覆盖具体内容且不越界。实验用 uvec4 参数让 GPU 数值验证解码。
+
+本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+
+## 构建和运行
+
+```powershell
+cmake --preset vulkan-native
+cmake --build --preset vulkan-native-debug --target vk51_uniform_layout --parallel 4
+.\Vulkan\native\build\bin\Debug\vk51_uniform_layout.exe
+```
+
+## 深入学习：数据、接口与执行
+
+- [第 28 课：常量结构、矩阵存储与对齐](../../chapters/28_uniform_layout/README.md)
+
+### 本课的真实源码切片
+
+来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L907)，第 907—950 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+    } else if (id == 51) {
+        static_assert(sizeof(Frame) == 64 && sizeof(Draw) == 80 && offsetof(Draw, settings) == 64);
+        ComputeKernel kernel(c);
+        kernel.execute(1, 128, 0, 0, 2);
+        auto r = readWords(kernel.output, 128);
+        for (uint32_t i = 0; i < 128; ++i)
+            require(r[i] == i * 7 + 13, "UBO layout mismatch");
+        std::cout
+            << "Verified Frame=64, Draw=80, settings offset=64 and GPU uniform vector decoding\n";
+    } else if (id == 54) {
+        capabilities(c);
+        stagingCopy(c);
+        GpuTexture mips(c, Pixels{64, 64, checker()}, true);
+        mips.verify();
+        frameRing(c);
+        std::cout << "Completed resource/texture/frame-slot acceptance suite\n";
+    } else
+        throw std::runtime_error("Unknown inspection id");
+}
+
+} // namespace
+int nativeLabMain(int argc, char** argv, int id) {
+    auto options = labOptions(argc, argv, id);
+    nativeShaders = options.directory / "shaders";
+    if (id == 17 || id == 19 || id == 20 || id == 21 || id == 22 || id == 23 || id == 27 ||
+        id == 29 || id == 34 || id == 35 || id == 36 || id == 41 || id == 43 || id == 49 ||
+        id == 50 || id == 52 || id == 53)
+        return graphicsLab(argc, argv, options);
+    validationErrors = 0;
+    if (id == 40) {
+        surfaceInspection();
+        return validationErrors ? 1 : 0;
+    }
+    {
+        NativeDevice owner(nullptr, id == 26);
+        const auto& c = owner.c;
+        if (id >= 37)
+            inspection(c, id);
+        else if (id == 11)
+            capabilities(c);
+        else if (id == 12) {
+            VkBufferResource b;
+            b.init(c, 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+            immediate(c, [&](VkCommandBuffer cmd) {
+```
+
+### 同主题跨 API 导航
+
+| 路线 | 程序 |
+| --- | --- |
+| Vulkan 原生 | [vk51_uniform_layout](README.md) |
+| 对照后端 | [dx51_uniform_layout](../../../../DirectX12/lessons/dx51_uniform_layout/README.md) |
+
+### 先预测，再验证
+
+在 CPU 打印 sizeof/offsetof，再通过 GPU 计算验证第三个常量槽的 factor/bias。
+
+参考推导：CPU 布局断言检查内存，GPU 结果检查接口选择与解码；两份证据互补。第三槽得到 i*7+13，才说明该范围被正确使用。
+
+## 验证与边界
+
+运行 `--smoke` 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。

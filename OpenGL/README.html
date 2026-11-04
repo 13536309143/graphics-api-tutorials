@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenGL 中文实战教程 · C++17 + CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>OpenGL 中文实战教程 · C++17 + CMake</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenGL 中文实战教程 · C++17 + CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>OpenGL 中文实战教程 · C++17 + CMake</h1>
 <p>这是一个本地可读、可编译、可修改的学习工程。以 <strong>OpenGL 3.3 Core</strong> 为基线，从第一个窗口到真实模型、三维相机、阴影、PBR/IBL、HDR、延迟渲染和骨骼动画。共 34 个独立可执行示例；每课有中文讲解、观察目标、练习和参考答案。无需预先理解图形学，但应先会 C++ 变量、函数、数组、类和基本指针。</p>
 <h2>现在就开始</h2>
 <p>双击合集根目录“开始学习.cmd”，选择 OpenGL 章节并点击运行。编译从<strong>合集根目录</strong>执行：</p>
@@ -8,7 +8,7 @@ cmake --build --preset opengl-debug --parallel 4
 <p>也可执行 <code>powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Track opengl -Test</code>。旧的 OpenGL/scripts/build.ps1 已转发到合集脚本；OpenGL/scripts/run.ps1 仍可在 OpenGL 目录内使用。</p>
 <p>首次配置下载固定依赖，之后可使用缓存离线构建。独立配置 OpenGL 子工程时请另用 build-local，不要覆盖根 preset 创建的缓存。各课运行/增量构建命令以 OpenGL 目录为当前目录时仍然适用。</p>
 <h2>按顺序学习</h2>
-<table>
+<div class="table-scroll"><table>
 <tr><td>课次</td><td>内容</td><td>CMake target / 运行参数</td></tr>
 <tr><td>01</td><td><a href="lessons/01_window/README.html">窗口与渲染循环</a></td><td><code>01_window</code></td></tr>
 <tr><td>02</td><td><a href="lessons/02_triangle/README.html">第一个彩色三角形</a></td><td><code>02_triangle</code></td></tr>
@@ -23,9 +23,9 @@ cmake --build --preset opengl-debug --parallel 4
 <tr><td>11</td><td><a href="lessons/11_framebuffer/README.html">离屏渲染与后处理</a></td><td><code>11_framebuffer</code></td></tr>
 <tr><td>12</td><td><a href="lessons/12_instancing/README.html">实例化绘制</a></td><td><code>12_instancing</code></td></tr>
 <tr><td>13</td><td><a href="lessons/13_shadows/README.html">阴影贴图</a></td><td><code>13_shadows</code></td></tr>
-</table>
+</table></div>
 <h2>进阶课程（14–34）</h2>
-<table>
+<div class="table-scroll"><table>
 <tr><td>课次</td><td>内容</td><td>CMake target / 运行参数</td></tr>
 <tr><td>14</td><td><a href="lessons/14_model_obj/README.html">Assimp 与 OBJ 模型</a></td><td><code>14_model_obj</code></td></tr>
 <tr><td>15</td><td><a href="lessons/15_model_gltf/README.html">glTF 场景与 PBR 材质</a></td><td><code>15_model_gltf</code></td></tr>
@@ -48,7 +48,7 @@ cmake --build --preset opengl-debug --parallel 4
 <tr><td>32</td><td><a href="lessons/32_particles/README.html">实例化粒子</a></td><td><code>32_particles</code></td></tr>
 <tr><td>33</td><td><a href="lessons/33_point_shadows/README.html">点光源全方向阴影</a></td><td><code>33_point_shadows</code></td></tr>
 <tr><td>34</td><td><a href="lessons/34_gallery/README.html">综合实战：PBR 模型展厅</a></td><td><code>34_gallery</code></td></tr>
-</table>
+</table></div>
 <p>建议每次学习一课：先运行观察，读讲解和 main.cpp，再修改练习，最后回答自测。基础阶段 01–08，光照与渲染入门 09–13，模型与表面 14–20，HDR/PBR/IBL 21–25，管线与进阶效果 26–33，综合实战 34。不要只复制代码：能画出数据从 CPU 到片段输出的路径，才算理解。</p>
 <h2>配套说明</h2>
 <ul>

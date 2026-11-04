@@ -14,7 +14,7 @@ target_compile_definitions(vk_course INTERFACE GLFW_INCLUDE_VULKAN GLM_FORCE_DEP
 if(MSVC)
     target_compile_options(vk_course INTERFACE /utf-8 /W4 /permissive- /wd4324)
 endif()
-set(shader_files triangle.vert scene.vert scene.frag square.comp)
+set(shader_files triangle.vert scene.vert scene.frag square.comp lab.comp particles.comp)
 foreach(shader IN LISTS shader_files)
     add_custom_command(
         OUTPUT "${CMAKE_BINARY_DIR}/spv/${shader}.spv"
@@ -36,12 +36,26 @@ add_custom_target(
     vk_runtime_assets COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/spv"
                               "${runtime_shader_dir}/shaders")
 add_dependencies(vk_runtime_assets vk_shaders)
+course_asset_dependencies()
+add_library(vk_advanced STATIC common/advanced_labs.cpp)
+target_link_libraries(vk_advanced PUBLIC vk_course assimp::assimp)
+target_include_directories(vk_advanced
+                           PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../OpenGL/third_party/stb")
+add_custom_target(
+    vk_advanced_assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/../../OpenGL/assets"
+            "${runtime_shader_dir}/assets")
+
 include(CTest)
 file(GLOB lessons CONFIGURE_DEPENDS "lessons/*")
 foreach(dir IN LISTS lessons)
     get_filename_component(name "${dir}" NAME)
     add_executable(${name} "${dir}/main.cpp")
     target_link_libraries(${name} PRIVATE vk_course)
+    if(EXISTS "${dir}/advanced.json")
+        target_link_libraries(${name} PRIVATE vk_advanced)
+        add_dependencies(${name} vk_advanced_assets)
+    endif()
     target_compile_definitions(${name} PRIVATE COURSE_SHADER_DIR="${CMAKE_BINARY_DIR}/spv")
     add_dependencies(${name} vk_runtime_assets)
     add_test(NAME ${name} COMMAND ${name} --smoke)

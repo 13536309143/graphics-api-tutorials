@@ -25,12 +25,26 @@ endif()
 add_custom_target(
     dx_runtime_assets COMMAND ${CMAKE_COMMAND} -E copy_directory
                               "${CMAKE_CURRENT_SOURCE_DIR}/shaders" "${runtime_shader_dir}/shaders")
+course_asset_dependencies()
+add_library(dx_advanced STATIC common/advanced_labs.cpp)
+target_link_libraries(dx_advanced PUBLIC dx_course assimp::assimp)
+target_include_directories(dx_advanced
+                           PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../OpenGL/third_party/stb")
+add_custom_target(
+    dx_advanced_assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/../OpenGL/assets"
+            "${runtime_shader_dir}/assets")
+
 include(CTest)
 file(GLOB lessons CONFIGURE_DEPENDS "lessons/*")
 foreach(dir IN LISTS lessons)
     get_filename_component(name "${dir}" NAME)
     add_executable(${name} "${dir}/main.cpp")
     target_link_libraries(${name} PRIVATE dx_course)
+    if(EXISTS "${dir}/advanced.json")
+        target_link_libraries(${name} PRIVATE dx_advanced)
+        add_dependencies(${name} dx_advanced_assets)
+    endif()
     add_dependencies(${name} dx_runtime_assets)
     add_test(NAME ${name} COMMAND ${name} --smoke)
     set_tests_properties(${name} PROPERTIES TIMEOUT 40 RUN_SERIAL TRUE)

@@ -111,7 +111,7 @@ struct Mesh {
 
 先满足 memoryTypeBits 与属性，再绑定资源；coherent 不等于执行同步。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L29)，第 29—73 行：
+[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L31)，第 31—75 行：
 
 ```cpp
 struct VkBufferResource {
@@ -194,10 +194,17 @@ struct VkImageResource {
 
 UPLOAD 顶点和 index buffer view 保持清楚，性能优化可再改 DEFAULT。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L246)，第 246—283 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L256)，第 256—293 行：
 
 ```cpp
-    DxScene(DxDevice& context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
+    DxScene(DxDevice& context,
+            int lesson,
+            const Geometry* replacement = nullptr,
+            UINT samples = 1,
+            D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE,
+            bool clampSampler = false,
+            bool redOnly = false)
+        : c(context), mode(lesson), mesh(replacement ? *replacement : geometry(mode)) {
         if (mode >= 4) {
             UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
             vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -228,11 +235,4 @@ UPLOAD 顶点和 index buffer view 保持清楚，性能优化可再改 DEFAULT�
         image.DepthOrArraySize = 1;
         image.MipLevels = 1;
         image.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        image.SampleDesc.Count = 1;
-        dxCheck(c.device->CreateCommittedResource(&hp,
-                                                  D3D12_HEAP_FLAG_NONE,
-                                                  &image,
-                                                  D3D12_RESOURCE_STATE_COPY_DEST,
-                                                  nullptr,
-                                                  IID_PPV_ARGS(&texture)));
 ```

@@ -46,7 +46,7 @@ nvapp 已有自己的帧循环和命令管理。课程自定义 SceneVk 却共�
 
 验收同时包含验证层零错误、重复 resize、固定输入画面稳定，以及计时中确实出现预期重叠。帧率变高但矩阵偶尔跳动不是成功。不能用 sleep 延迟来证明同步正确，CPU 调度变化会掩盖问题。
 
-[Microsoft 命令列表说明](https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles) 可核对录制对象与执行的区别。本章的多帧方案属于迁移设计，当前正式示例仍保留单帧教学契约。
+[Microsoft 命令列表说明](https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles) 可核对录制对象与执行的区别。新增 vk24/dx24 已实际验证两槽 GPU 计算提交与逐代读回；窗口呈现的完整资源环仍属于迁移设计，基础图形路径保留串行契约。
 
 <!-- generated-source-comparison -->
 
@@ -98,7 +98,7 @@ SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时�
 
 成功 acquire 后才 reset fence，避免无提交却等待已重置 fence。
 
-[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L325)，第 325—355 行：
+[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L365)，第 365—395 行：
 
 ```cpp
             vkCheck(vkWaitForFences(d.c.device, 1, &fence, VK_TRUE, UINT64_MAX));
@@ -159,7 +159,7 @@ inline int nvproMain(int argc, char** argv, int chapter) {
 
 allocator Reset 由前次 submit 的等待保护，多帧版本须改变该契约。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L120)，第 120—145 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L122)，第 122—147 行：
 
 ```cpp
     void begin() {

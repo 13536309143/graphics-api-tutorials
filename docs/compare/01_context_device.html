@@ -1,15 +1,15 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>01 · 窗口、上下文、设备和队列</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>01 · 窗口、上下文、设备和队列</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>01 · 窗口、上下文、设备和队列</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>01 · 窗口、上下文、设备和队列</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#01_context_device">交互式对照</a> · <a href="00_learning_path.html">上一章</a> · <a href="02_triangle_pipeline.html">下一章</a></p>
 <p>本章解决“为什么 OpenGL 创建窗口后就能调用绘图函数，而 Vulkan/DX12 还需要很多对象”。目标是能画出初始化依赖图，并区分窗口管理与 GPU 工作管理。</p>
 <h2>窗口不等于渲染设备</h2>
 <p>操作系统窗口提供可见区域和输入事件。OpenGL context 保存当前程序、VAO、纹理等状态；本仓库让 GLFW 同时创建窗口和 context。Vulkan 路线先要求 GLFW 不创建 OpenGL context，再创建 instance、surface 和逻辑设备。DX12 也使用无 OpenGL context 的窗口，通过原生 HWND 把 DXGI 交换链连接到它。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>问题</td><td>OpenGL</td><td>Vulkan 原生</td><td>DX12</td></tr>
 <tr><td>谁管理窗口和键盘鼠标？</td><td>GLFW</td><td>GLFW</td><td>GLFW / HWND</td></tr>
 <tr><td>谁决定可用功能？</td><td>context 版本与扩展</td><td>物理设备查询、特性启用</td><td>adapter、feature level、feature queries</td></tr>
 <tr><td>谁接收 GPU 工作？</td><td>当前 context 对应的驱动路径</td><td>创建的 VkQueue</td><td>ID3D12CommandQueue</td></tr>
 <tr><td>谁连接窗口与呈现？</td><td>context 的窗口系统绑定</td><td>SurfaceKHR 与 SwapchainKHR</td><td>DXGI swap chain</td></tr>
-</table>
+</table></div>
 <h2>顺着代码走一遍</h2>
 <p>OpenGL 的顺序是 <code>glfwInit → hints → glfwCreateWindow → glfwMakeContextCurrent → gladLoadGL</code>。GLAD 加载的是函数入口；没有正确的当前 context，找到函数地址也不代表可以合法使用对应功能。GPU 对象必须在 context 仍然存在时销毁，因此示例先创建 App，再创建 Shader 和 Mesh，利用局部对象的反向析构顺序。</p>
 <p>原生 Vulkan 的 <code>NativeDevice</code> 先列出窗口系统所需实例扩展，然后创建实例和可选 debug messenger。之后枚举物理设备，检查版本、dynamicRendering、synchronization2，以及队列族是否同时支持 graphics/compute；有窗口时还检查该 surface 的呈现支持。此代码采用同一队列族以减少所有权转移的复杂度，不保证是所有设备上的最优队列选择。</p>
@@ -27,13 +27,13 @@
 <p>初始化就失败时先看 GLFW/loader 错误，再看扩展、验证层和功能查询。链接器找不到库与运行时设备不满足特性属于两个阶段，不能靠反复复制 DLL 混着解决。<a href="https://www.glfw.org/docs/latest/vulkan_guide.html">GLFW Vulkan guide</a> 可用于核对窗口与 surface 的边界。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>先 current context，再加载 GL 入口；GPU 对象先于 context 销毁。</p>
 <p><a href="../../OpenGL/common/app.hpp#L25">OpenGL/common/app.hpp</a>，第 25—77 行：</p>
@@ -93,7 +93,7 @@
 <h3>Vulkan 原生 · 已实现</h3>
 <p>扩展属于实例或设备，队列族还要检查实际呈现支持。</p>
 <p><a href="../../Vulkan/native/common/native_app.hpp#L29">Vulkan/native/common/native_app.hpp</a>，第 29—70 行：</p>
-<pre><code>    NativeDevice(GLFWwindow* window) {
+<pre><code>    NativeDevice(GLFWwindow* window, bool timeline = false) {
         uint32_t count = 0;
         std::vector&lt;const char*&gt; extensions;
         if (window) {
@@ -172,7 +172,7 @@
         else {</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>在设备创建前启用调试层；WARP 是软件参考路径。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L69">DirectX12/common/dx12_course.hpp</a>，第 69—110 行：</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L71">DirectX12/common/dx12_course.hpp</a>，第 71—112 行：</p>
 <pre><code>    explicit DxDevice(bool warp = false) {
         UINT flags = 0;
         ComPtr&lt;ID3D12Debug&gt; debug;

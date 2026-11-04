@@ -1,0 +1,4248 @@
+{
+  "chapters": [
+    {
+      "slug": "01_architecture",
+      "title": "图形 API 的职责与课程地图",
+      "labs": [
+        11
+      ],
+      "reference": "01_Overview.html",
+      "comparison": "00_learning_path",
+      "common": [
+        "从“一个模型最终成为像素”倒推系统：资产只提供 CPU 数据，资源承载 GPU 可访问字节，管线解释这些字节，命令描述操作，队列异步执行，呈现把结果交给窗口系统。学习时为每个对象记录创建者、使用者与最后使用时间，才能把长初始化放回整体位置。",
+        "本主线以官方顺序建立依赖，但保留原有实验编号与链接。教材章号是学习次序，vk/dx 实验号是稳定入口，二者不要求相等。每后端有 54 章和 54 个独立程序；设备查询、计算和图形程序各有不同证据，不用一张图片证明所有内容。"
+      ],
+      "vk": "Instance 管理应用与实现的连接；PhysicalDevice 描述能力；Device 启用选择的能力；Queue 接收提交。本工程用 Vulkan 1.3 C API、dynamic rendering 和 sync2。参考教程中传统 RenderPass/Framebuffer 会对照解释，本工程不因此伪称使用了那套对象。",
+      "dx": "DXGI factory/adapter 处理平台与设备选择，ID3D12Device 创建资源与管线，CommandQueue 执行命令。root signature 描述资源接口，PSO 描述着色器与固定状态；它们不等价于整套 Renderer 或操作系统窗口。",
+      "nv": "把 nvvk::Context 对应到 instance/device/queue，把 nvapp::Application 对应到平台与帧循环；自定义 SceneVk 仍负责实际绘制。",
+      "task": "画出一个三角形所需的五类对象，并说明哪些对象保存字节、哪些只保存解释或引用。",
+      "answer": "Buffer/Image 保存内容，ImageView/descriptor/布局解释或引用内容，pipeline 约定执行方式；Queue 执行已录制工作。引用不会复制资源，也不会延长 GPU 资源的合法使用期。",
+      "error": "把所有初始化都理解成“创建窗口”，会使设备失败、目标失败和管线失败难以区分。先标注责任再看函数名。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "capabilities",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "capabilities",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "职责边界",
+          "Instance/Device/Queue",
+          "Factory/Device/CommandQueue",
+          "对象存在不代表已提交或已完成"
+        ],
+        [
+          "资源与引用",
+          "Buffer/Image 与 View/Set",
+          "Resource 与 View/Heap",
+          "引用不复制内容，不自动管理使用期"
+        ],
+        [
+          "验收维度",
+          "VUID + 数值/图像",
+          "InfoQueue + 数值/图像",
+          "API 合法与业务正确分别证明"
+        ]
+      ]
+    },
+    {
+      "slug": "02_environment",
+      "title": "工具链、SDK、依赖与可复现构建",
+      "labs": [
+        37
+      ],
+      "reference": "02_Development_environment.html",
+      "comparison": "01_context_device",
+      "common": [
+        "把配置、编译、链接和运行四个阶段分开。CMake configure 选择编译器与依赖；build 产生 CPU 程序和 shader 产物；链接解决符号；运行还依赖驱动、资源路径和设备能力。某一步成功不能证明后续全部成立。",
+        "本工程固定源码依赖与哈希，离线 HTML 不依赖 Python。首次可联网准备缓存，再按路线独立 preset 构建。不要用一个 build 目录混用根 CMake 与子目录 source root。Debug 用于断点和验证，Release 用于经过控制的性能测量。"
+      ],
+      "vk": "SDK 中的头文件、loader 导入库、glslc 与 validation layer 有不同用途。安装更高版本头文件不会升级驱动。程序枚举 loader 版本和实例扩展，再核对物理设备支持；glslc 产物使用 SPIR-V，不能拿 GLSL 文本直接创建 shader module。",
+      "dx": "Windows SDK 提供头文件/导入库；本课程 HLSL 使用 D3DCompiler/SM5.1，未切换 DXC/SM6。DXGI 枚举 adapter 能看到硬件与软件实现；运行时 feature query 才是功能选择依据，不能只看 Visual Studio 是否识别接口名称。",
+      "nv": "固定子模块提交和配套 Vulkan headers/Volk，按依赖文档准备。框架主分支的最新接口与本项目固定版本可能不同，不直接混接。",
+      "task": "故意在副本中改变运行工作目录，再从命令行启动程序，说明为何它仍应能找到 shader/assets。",
+      "answer": "资源以 executable 所在目录为起点，构建复制到旁边。若只有 IDE 中能运行，检查是否偷偷依赖了工作目录或本机绝对路径。",
+      "error": "链接缺库应查 CMake target 和架构；shader 缺文件查复制与路径；设备版本不足查驱动/能力。不要用复制任意 DLL 同时处理三类故障。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void inspection",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void inspection",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "CPU 工具链",
+          "C++20 / glslc / SPIR-V",
+          "C++20 / D3DCompiler / SM5.1",
+          "编译目标、运行产物和实际路径对应"
+        ],
+        [
+          "能力来源",
+          "loader 与 physical device 查询",
+          "DXGI 枚举与 feature query",
+          "头文件版本不升级 GPU 驱动"
+        ],
+        [
+          "构建隔离",
+          "vulkan-native preset",
+          "dx12 preset",
+          "各自 build 缓存，不混用 source root"
+        ]
+      ]
+    },
+    {
+      "slug": "03_lifetime",
+      "title": "应用结构、RAII 与 GPU 使用期",
+      "labs": [
+        31
+      ],
+      "reference": "03_Drawing_a_triangle/00_Setup/00_Base_code.html",
+      "comparison": "09_commands_frames",
+      "common": [
+        "CPU 对象的作用域与 GPU 工作的使用期是两条时间线。析构能够释放 C++ 拥有的资源，却不能自动证明最后一次提交已完成。先定义拥有关系，再把 GPU 完成标记作为回收前置条件。",
+        "本实验重复创建上传、设备和读回资源，每代提交完成并核对结果后再退出作用域。这是容易验证的安全基线，不是高吞吐延迟回收器。工程化时应把“本代资源 + 最后使用完成值”放入回收队列，等待完成值越过后回收。"
+      ],
+      "vk": "Buffer 销毁后才能释放它绑定的 memory；依赖 Device 的对象先于 Device 结束。command pool、descriptor pool 和 image view 也各有使用期。vkDeviceWaitIdle 可作为教学退出边界，但逐资源 fence/timeline 可以更精确地回收。",
+      "dx": "ComPtr 只控制 COM 引用计数；最后一个引用释放时若 GPU 还在用资源，仍然错误。UPLOAD 的 CPU 字节也不能在 copy 未完成时覆盖。fence 完成值同时保护 resource、descriptor 范围和 command allocator 的回收。",
+      "nv": "ResourceAllocator 的 destroyBuffer 仍要求调用方确保无在途引用。onDetach 应先等待 GPU，再释放依赖 allocator 的对象，最后 deinit allocator。",
+      "task": "将临时 upload 的回收点标到时间图上；指出“Execute/Submit 返回”之后还缺哪条证据。",
+      "answer": "需要该资源最后一次使用所对应的 GPU 完成条件。提交返回仅说明工作已交给执行系统，不说明 copy 或 draw 已读完。",
+      "error": "调试器里 C++ 指针不为空不能证明 GPU 句柄仍有效；某个驱动偶尔未崩溃也不能证明回收顺序合法。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void stagingCopy",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void stagingCopy",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "CPU 所有权",
+          "RAII 包装句柄",
+          "ComPtr 引用计数",
+          "CPU 析构不等于 GPU 完成"
+        ],
+        [
+          "回收条件",
+          "最后一次提交的 fence/timeline",
+          "最后使用的 fence value",
+          "完成后才回收 upload、descriptor、命令存储"
+        ],
+        [
+          "本实验范围",
+          "四代串行闭环",
+          "四代串行闭环",
+          "不是已实现异步垃圾回收器"
+        ]
+      ]
+    },
+    {
+      "slug": "04_instance_factory",
+      "title": "实例扩展与 DXGI 工厂",
+      "labs": [
+        37
+      ],
+      "reference": "03_Drawing_a_triangle/00_Setup/01_Instance.html",
+      "comparison": "01_context_device",
+      "common": [
+        "启动对象需要把应用需求与实现能力连接起来。先枚举再选择，可以解释失败原因；把网上扩展列表整体复制过来，会引入无关平台需求并降低可移植性。需求应来自实际使用路径。"
+      ],
+      "vk": "实例扩展用于窗口系统连接、debug utils 等实例层功能，设备扩展在创建设备时选择。glfwGetRequiredInstanceExtensions 返回当前平台 surface 所需扩展；无窗口计算不需要同一组 WSI 条件。pApplicationInfo 中的 apiVersion 不是“申请升级显卡”。",
+      "dx": "CreateDXGIFactory2 的调试 flag 与 D3D12 debug layer 是相关但不同的设置。factory 枚举 adapter 并创建窗口交换链，ID3D12Device 则用于具体 GPU 对象。选择硬件前先排除或明确允许软件 adapter。",
+      "nv": "ContextInitInfo 的 instanceExtensions 与 deviceExtensions 分开填写；框架自动创建不代表应用可以忽略扩展所属层次。",
+      "task": "把某个窗口相关要求从无窗口计算路径中移除，先说明哪些操作因此不再允许，再解释为什么计算仍能成立。",
+      "answer": "没有 surface/swapchain 便不能走窗口呈现，但 compute pipeline、buffer 和 queue submit 不依赖可见窗口。需求应与实际功能一致。",
+      "error": "扩展名拼写正确不代表当前实现支持；实例与设备扩展放错创建位置也不会因为同为字符串就生效。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void inspection",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void inspection",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "实例层需求",
+          "instanceExtensions",
+          "DXGI factory flags",
+          "要求与平台和实际功能匹配"
+        ],
+        [
+          "设备层需求",
+          "deviceExtensions / feature chain",
+          "feature level / feature queries",
+          "不可把扩展名放错层次"
+        ],
+        [
+          "无窗口路径",
+          "不需要 surface/swapchain",
+          "不需要 HWND/swapchain",
+          "compute 依赖设备，不依赖呈现"
+        ]
+      ]
+    },
+    {
+      "slug": "05_validation",
+      "title": "验证层、调试队列与诊断证据",
+      "labs": [
+        38,
+        33
+      ],
+      "reference": "03_Drawing_a_triangle/00_Setup/02_Validation_layers.html",
+      "comparison": "14_debug_performance",
+      "common": [
+        "API 验证负责检查使用约束，应用断言负责检查业务结果。画面正常但有同步错误仍不算通过；验证零错误也不证明法线空间或材质公式正确。本课用合法的信息消息验证诊断链路，不以故意破坏 API 当常规验收。"
+      ],
+      "vk": "枚举 layer 后创建 debug messenger，并按 severity/type 分类。实验额外注册 INFO 回调，提交应用信息并确认回调收到。外部 loader manifest 诊断与应用 VUID 分别记录。GPU 区域标签通过 debug-utils entry points 录制。",
+      "dx": "debug layer 要在 Device 创建前启用，InfoQueue 检查 ERROR/CORRUPTION。实验通过 AddApplicationMessage 验证信息通道并为 queue/list/allocator SetName。原始 BeginEvent 是工具层诊断接口；课程不直接伪造 PIX 事件载荷，嵌套 PIX 标记需接入其正式 helper。",
+      "nv": "Context 可启用 validation，但自定义资源的错误仍需由应用回调和日志检查。抓 nvapp 帧时区分场景 pass 与最后 UI pass。",
+      "task": "注入一条 INFO 应用消息，确认它会进入日志/回调而不会增加 API 错误计数。",
+      "answer": "消息严重度与错误计数策略独立。合法的应用信息用于测试诊断渠道，不应冒充 validation error 或通过清空错误队列让检查成功。",
+      "error": "先解决第一条根因。一个无效对象导致的后续数十条报错，通常不需要同时修改数十处代码。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void inspection",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void inspection",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "诊断创建时机",
+          "Instance 创建时接 callback",
+          "Device 前启用 debug layer",
+          "早期创建错误也能被观察"
+        ],
+        [
+          "合法测试消息",
+          "INFO + GENERAL",
+          "AddApplicationMessage(INFO)",
+          "信息投递不等于发生 API 错误"
+        ],
+        [
+          "GPU 调试命名",
+          "debug-utils region",
+          "SetName；PIX helper 为后续",
+          "不直接伪造工具事件载荷"
+        ]
+      ]
+    },
+    {
+      "slug": "06_physical_device",
+      "title": "物理设备、Adapter 与格式能力",
+      "labs": [
+        11
+      ],
+      "reference": "03_Drawing_a_triangle/00_Setup/03_Physical_devices_and_queue_families.html",
+      "comparison": "01_context_device",
+      "common": [
+        "选择设备不是仅比较显存大小。要检查任务所需的队列、格式、样本数、资源限制与特性，并报告不满足哪项。把“最贵的显卡”当成“符合当前契约的设备”会掩盖实际依赖。"
+      ],
+      "vk": "PhysicalDeviceProperties 提供 limits，MemoryProperties 描述 heap/type。格式还要单独查 optimal tiling features。实验检查 80 字节 Draw 的 push constant 容量及 D32 深度用途，同时输出 UBO 对齐、工作组限制和内存类型。",
+      "dx": "adapter 提供设备描述，feature query 提供具体能力。ResourceBindingTier、ResourceHeapTier、FORMAT_SUPPORT 和 MSAA quality levels 不是同一个等级。feature level 是一组基础要求，不能代替对可选能力的查询。",
+      "nv": "Context 的设备选择结果应与需求列表一起审查。框架选择到一个可用 device 后，新的效果仍可能要求额外格式或 sample count。",
+      "task": "写出本项目基础与 MSAA 实验各自的能力清单，并标明查询位置。",
+      "answer": "基础至少需要图形/计算、RGBA8、深度、常量范围；MSAA 还要颜色和深度共同支持同一样本数。单独颜色支持 4x 不足以建立匹配附件。",
+      "error": "能力查询失败时应报告具体条件，不能把“不支持”直接解释成文件或 shader 语法错误。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "capabilities",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "capabilities",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "小常量能力",
+          "maxPushConstantsSize >= 80",
+          "root signature 总成本合法",
+          "检查实际使用范围，而非只读设备名称"
+        ],
+        [
+          "格式支持",
+          "optimalTilingFeatures",
+          "FORMAT_SUPPORT / MSAA query",
+          "格式、用途和样本数共同成立"
+        ],
+        [
+          "内存属性",
+          "heap/type 与 flags",
+          "heap tier / type",
+          "GPU 型号或显存大小不是全部契约"
+        ]
+      ]
+    },
+    {
+      "slug": "07_queues",
+      "title": "队列族、命令队列与并行边界",
+      "labs": [
+        39
+      ],
+      "reference": "03_Drawing_a_triangle/00_Setup/03_Physical_devices_and_queue_families.html",
+      "comparison": "09_commands_frames",
+      "common": [
+        "队列描述可提交的操作和执行通道，不直接等价于硬件独立引擎。更多队列不保证更多并行；先以单队列建立正确依赖，再判断额外队列是否值得承担同步和所有权成本。"
+      ],
+      "vk": "queue family 具有 flags、queueCount 和 timestampValidBits。graphics/compute family 隐含支持传输，但 present support 需要对实际 surface 查询。跨 family 使用 EXCLUSIVE 资源还涉及所有权转移，不能只添加 semaphore。",
+      "dx": "DIRECT、COMPUTE、COPY 队列有不同可执行操作集合。当前课程以 DIRECT 为基线，输出 queue desc；跨队列需要 Signal/Wait 建立生产消费，resource state 仍要合法。本课的计数同步不冒充独立 copy engine 优化。",
+      "nv": "ContextInitInfo 中声明队列需求，getQueueInfo 返回 queue 与 familyIndex。自定义 helper 要使用对应 family 创建 pool，而不是默认所有 GPU 都是 family 0。",
+      "task": "说明为什么同一 queue 上顺序提交，仍可能需要资源内存屏障。",
+      "answer": "提交顺序不自动提供每一种访问之间所需的可见性或布局/状态变化。要从生产者与消费者推导依赖，不能用“排在后面”替代规则。",
+      "error": "把 queue index 与 queue family index 混淆，会使 command pool 与提交队列不匹配。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "vkGetPhysicalDeviceQueueFamilyProperties",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "GetDesc();",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "队列选择",
+          "queueFamilyIndex + flags",
+          "DIRECT/COMPUTE/COPY 类型",
+          "命令必须被支持该操作的队列执行"
+        ],
+        [
+          "命令存储归属",
+          "pool 关联 family",
+          "allocator/list type",
+          "不能提交不兼容命令"
+        ],
+        [
+          "并行能力",
+          "多个 queue 不保证独立硬件",
+          "多个 queue 不保证独立引擎",
+          "实际重叠需要计时证据"
+        ]
+      ]
+    },
+    {
+      "slug": "08_logical_device",
+      "title": "逻辑设备、特性链与基础完成条件",
+      "labs": [
+        1
+      ],
+      "reference": "03_Drawing_a_triangle/00_Setup/04_Logical_device_and_queues.html",
+      "comparison": "01_context_device",
+      "common": [
+        "能力查询与特性启用属于两个步骤。查询回答能做什么，创建回答本应用声明要做什么。C++ 结构清零、必要类型字段、链中对象的存活范围都属于正确初始化的一部分。"
+      ],
+      "vk": "设备创建只启用实际使用的 dynamicRendering/synchronization2；timeline 实验额外查询并启用 Vulkan 1.2 的 timelineSemaphore。pNext 链的结构必须正确且在调用期间有效。获取 Queue 后仍要创建命令和同步对象才能执行工作。",
+      "dx": "Device 创建后以 feature query 选择后续路径。CreateCommandQueue、CreateCommandAllocator、CreateCommandList 和 CreateFence 分别建立提交、命令存储、录制与完成计数。它们的存在不代表已经执行任何 GPU 指令。",
+      "nv": "Context 汇总这些创建步骤。阅读框架时关注需求到启用链的转换及错误处理，不要求逐次抄写所有结构体。",
+      "task": "在特性查询和启用处分别打断点，记录同一特性的两次值和来源。",
+      "answer": "查询结构的 true 来自驱动能力，启用结构的 true 来自应用选择；后者不能超出前者。直接把整个查询结果原样启用会扩大需求并模糊契约。",
+      "error": "复用一段过期 pNext 指针或忘记 sType，会在逻辑上尚未进入绘制之前就破坏调用参数。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/native_app.hpp",
+          "anchor": "NativeDevice(GLFWwindow",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "explicit DxDevice",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "查询与启用",
+          "features2 查询，create chain 启用",
+          "feature query 后选择路径",
+          "应用需求不能超出支持集合"
+        ],
+        [
+          "基础特性",
+          "dynamicRendering / synchronization2",
+          "D3D12 基础对象",
+          "新效果仍需额外能力判断"
+        ],
+        [
+          "计数同步特性",
+          "timelineSemaphore 按实验启用",
+          "fence 原生计数",
+          "Vulkan timeline 不替代 WSI binary 约定"
+        ]
+      ]
+    },
+    {
+      "slug": "09_surface",
+      "title": "窗口 Surface 与 HWND 连接",
+      "labs": [
+        40
+      ],
+      "reference": "03_Drawing_a_triangle/01_Presentation/00_Window_surface.html",
+      "comparison": "01_context_device",
+      "common": [
+        "窗口系统负责区域和输入，图形 API 的呈现连接负责让图像进入该窗口。离屏工作与可见呈现应拆成独立路径，使 compute 和自动验证不依赖桌面交互。"
+      ],
+      "vk": "GLFW 用平台扩展创建 SurfaceKHR；其支持条件依赖 physical device 与 queue family。实验创建隐藏窗口并查询 surface 能力与可用格式/模式，不会假定所有图形队列都可呈现。",
+      "dx": "通过 glfwGetWin32Window 取得 HWND，再创建 flip-discard 交换链。实验检查 buffer count 与 swap effect，并实际清屏/呈现一帧。窗口句柄不是 D3D12 resource，也不保存图像内容。",
+      "nv": "非 headless 的 Application 需要 surface/swapchain 扩展；headless 目标仍可使用 RenderTarget 与图像读回，无需 UI。",
+      "task": "把同一段 buffer compute 放到没有窗口的程序里，说明它与呈现路径共享哪些对象。",
+      "answer": "可以共享 device、queue、buffer、pipeline 和命令/同步原则；surface、swapchain 与平台输入不是必需条件。",
+      "error": "GLFW 默认创建 OpenGL context。显式 API 课程要设置 GLFW_NO_API，避免把两套上下文机制混在一起。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void surfaceInspection",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void surfaceInspection",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "平台句柄",
+          "GLFW 创建 SurfaceKHR",
+          "GLFW 提供 HWND",
+          "窗口不是纹理资源"
+        ],
+        [
+          "呈现支持",
+          "对实际 surface 查询 family",
+          "创建 DXGI window swapchain",
+          "graphics 能力不独自证明呈现成立"
+        ],
+        [
+          "生命周期",
+          "surface 晚于使用它的 swapchain",
+          "HWND 覆盖窗口使用期",
+          "先结束 GPU/呈现使用再释放依赖"
+        ]
+      ]
+    },
+    {
+      "slug": "10_swapchain",
+      "title": "交换链选择、格式与呈现模式",
+      "labs": [
+        2,
+        40
+      ],
+      "reference": "03_Drawing_a_triangle/01_Presentation/01_Swap_chain.html",
+      "comparison": "07_targets_depth_msaa",
+      "common": [
+        "交换链图像由呈现系统管理，其数量、尺寸和格式不是任意应用纹理的全部自由参数。先查询范围，再选择配置；零值或特殊 extent 往往具有约定含义，要按接口解释。"
+      ],
+      "vk": "检查 min/max image count、currentExtent、supportedUsageFlags、surface formats 与 present modes。maxImageCount=0 表示没有给出上限，不是零张图像。当前例子选择 FIFO，并要求读回/blit 用途；这会比只呈现的最小程序需求更多。",
+      "dx": "课程选择两个 RGBA8 flip-discard back buffer，GetCurrentBackBufferIndex 决定本帧目标。显示同步与 tearing 的支持/flag 要另行检查，不能仅把 Present 参数设为零就称作公平性能测试。",
+      "nv": "Application 管理交换链，用户 viewport 是另一组离屏目标。比较尺寸时区分外层窗口与 Viewport 实际像素区域。",
+      "task": "解释为何两帧 CPU 资源槽与三张交换链图像可以同时存在。",
+      "answer": "前者跟踪应用可变资源的在途使用期，后者由 acquire/呈现系统选择。两个索引各有复用条件，不能靠数值恰好相等统一。",
+      "error": "窗口最小化导致零尺寸时不要创建零大小投影或附件；先等待可用 framebuffer 尺寸再继续。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/native_app.hpp",
+          "anchor": "void recreate()",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "DxWindow(GLFWwindow",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "图像数量",
+          "min/max image count",
+          "BufferCount=2",
+          "Vulkan max=0 表示未给上限"
+        ],
+        [
+          "尺寸",
+          "currentExtent / min/max extent",
+          "ResizeBuffers 的宽高",
+          "最小化时不使用零尺寸目标"
+        ],
+        [
+          "本项目格式",
+          "RGBA8/BGRA8 根据 surface",
+          "RGBA8 flip-discard",
+          "管线目标格式跟随实际附件"
+        ]
+      ]
+    },
+    {
+      "slug": "11_image_views",
+      "title": "图像与 View：限定子资源访问",
+      "labs": [
+        41
+      ],
+      "reference": "03_Drawing_a_triangle/01_Presentation/02_Image_views.html",
+      "comparison": "06_textures_color",
+      "common": [
+        "资源是存储，view 是解释和访问范围。mip、array layer、aspect 与格式必须与资源创建约束一致。创建一个新的 view 不会产生一份新像素，也不会自动初始化它所指向的内容。"
+      ],
+      "vk": "普通交换链 view 指向一张图像的颜色面。扩展实验把可采样纹理的 view 限定到最后一级 mip，观察整体成为近似平均颜色；view 的 baseMipLevel 与 sampler LOD 是相关但不同的范围。",
+      "dx": "SRV 写入 descriptor heap，描述 MostDetailedMip、MipLevels 与格式。相同 resource 可有不同合法 view；本课程通过限定末级 mip 验证这个区别。RTV/DSV 则服务输出用途，不直接等同于 shader-visible SRV。",
+      "nv": "RenderTarget 产生图像和 view，ImTexture 引用供 UI 显示的 view。重建 target 后需要更新引用；旧 view 不会自动指向新分配。",
+      "task": "只把 view 的 mip 范围缩到最后一级，为什么资源的总分配大小没有随之缩小？",
+      "answer": "view 不拥有存储。原始纹理仍有完整 mip 链，只是当前接口暴露其中一段。",
+      "error": "把 sampler 的 LOD 当作资源绝对 mip 号，会在 view 已偏移 base mip 时再次偏移；先明确相对范围。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void attach(",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void attach(",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "访问范围",
+          "baseMipLevel / levelCount",
+          "MostDetailedMip / MipLevels",
+          "view 限定资源子集，不重分配像素"
+        ],
+        [
+          "访问类型",
+          "image view 的 aspect/type/format",
+          "SRV/RTV/DSV 各司其职",
+          "不能拿输出 view 当任意 shader 绑定"
+        ],
+        [
+          "末级例子",
+          "一个末级 view",
+          "一个末级 SRV",
+          "资源完整级数保持不变"
+        ]
+      ]
+    },
+    {
+      "slug": "12_pipeline_overview",
+      "title": "图形管线的组合与兼容性",
+      "labs": [
+        3
+      ],
+      "reference": "03_Drawing_a_triangle/02_Graphics_pipeline_basics/00_Introduction.html",
+      "comparison": "02_triangle_pipeline",
+      "common": [
+        "管线将可编程阶段与固定功能状态组合，使一次 draw 有明确解释。不要把“shader 编译成功”当成整个管线有效；输入布局、输出目标、深度和写掩码都可能改变最终结果。"
+      ],
+      "vk": "GraphicsPipelineCreateInfo 组合阶段、顶点输入、装配、viewport、raster、multisample、depth、blend、layout 和附件格式。dynamic state 只有声明后才能由相应命令设置。当前三角形用 gl_VertexIndex，故意不引入 VBO。",
+      "dx": "PSO 包含 VS/PS、input layout、raster/blend/depth、目标格式和 sample desc，root signature 提供资源接口。SV_VertexID 路径帮助先验证管线，再在顶点课增加输入资源。",
+      "nv": "框架提供命令与目标，不替你决定 SceneVk 的 shader、PSO 组合和格式兼容。onRender 仍需正确绑定和 draw。",
+      "task": "将片元/像素输出改为固定洋红，写出黑屏排查的最短路径。",
+      "answer": "先查 draw 是否提交，再查顶点裁剪坐标、viewport/scissor、剔除、深度与目标。固定色仍不出现时先不要研究纹理参数。",
+      "error": "动态渲染不是“动态创建所有管线状态”；附件格式和多样本配置仍须与管线兼容。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "VkGraphicsPipelineCreateInfo gp",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "D3D12_GRAPHICS_PIPELINE_STATE_DESC pso",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "执行阶段",
+          "VS/FS modules + pipeline",
+          "VS/PS bytecode + PSO",
+          "单阶段编译成功不证明整条管线可用"
+        ],
+        [
+          "目标兼容",
+          "PipelineRenderingCreateInfo",
+          "RTVFormats / DSVFormat",
+          "附件格式与样本数匹配"
+        ],
+        [
+          "最小三角形",
+          "gl_VertexIndex",
+          "SV_VertexID",
+          "此阶段先不引入顶点上传问题"
+        ]
+      ]
+    },
+    {
+      "slug": "13_shader_modules",
+      "title": "着色器编译、模块与反射",
+      "labs": [
+        42
+      ],
+      "reference": "03_Drawing_a_triangle/02_Graphics_pipeline_basics/01_Shader_modules.html",
+      "comparison": "02_triangle_pipeline",
+      "common": [
+        "编译产物是 CPU 侧可传给 API 的代码表示，完整执行环境还需要管线与绑定。保存源码、编译参数、入口和目标版本，可以让一次 shader 错误被重现，而不是依赖 IDE 缓存。"
+      ],
+      "vk": "glslc 生成 SPIR-V，模块创建要求长度与 word 对齐等合法条件。实验检查 magic、word 数和 module 创建。SPIR-V 的 ID bound 不是线程数量，模块也不决定最终 render target。",
+      "dx": "D3DCompiler 生成 SM5.1 字节码；实验通过反射确认 ComputeMain 的工作组为 64×1×1 并检查资源绑定。Debug 产物可能带不同调试数据，管线缓存重建应复用完全一致的字节码，不能假定同源码重编译必然字节相同。 本例使用 SM5.x 的 ID3D11ShaderReflection 反射接口，这不表示渲染后端改成了 D3D11。",
+      "nv": "使用项目固定 glslc 与路径，shader 与框架语言选择分开。最新官方 Slang 代码不能作为当前 GLSL 模块的直接输入。",
+      "task": "将 shader 的 local size 改为 32，但 host 的组数不改，预测覆盖范围和验证结果。",
+      "answer": "总调用数量减半，尾部不会按原契约写入。反射/声明、dispatch 组数、缓冲容量和 CPU 检查必须共同更新。",
+      "error": "修改 exe 旁的副本会被下次 build 覆盖；应修改源目录，再检查复制与编译时间。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "Wrong SPIR-V magic",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "D3DReflect",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "产物表示",
+          "SPIR-V uint32 words",
+          "DXBC / SM5.1",
+          "源码文本不是最终模块"
+        ],
+        [
+          "组大小证据",
+          "shader 声明/反汇编",
+          "GetThreadGroupSize 反射",
+          "host dispatch 与 shader 约定一致"
+        ],
+        [
+          "缓存输入",
+          "模块字节与 pipeline 状态",
+          "完全相同的 DXBC 字节",
+          "同源码 Debug 重编译未必字节相同"
+        ]
+      ]
+    },
+    {
+      "slug": "14_fixed_function",
+      "title": "固定功能、颜色掩码、视口与剔除",
+      "labs": [
+        43,
+        34,
+        49,
+        50
+      ],
+      "reference": "03_Drawing_a_triangle/02_Graphics_pipeline_basics/02_Fixed_functions.html",
+      "comparison": "02_triangle_pipeline",
+      "common": [
+        "viewport 把 NDC 映射到像素，scissor 限定允许写入的矩形；两者不是同一个裁剪操作。颜色写掩码可拒绝部分通道，深度/模板和剔除则影响哪些片段进入颜色处理。每次只改一种状态才能解释画面差异。",
+        "定义请核对 [Vulkan VkFrontFace](https://docs.vulkan.org/refpages/latest/refpages/source/VkFrontFace.html) 与 [Microsoft D3D12_RASTERIZER_DESC](https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_rasterizer_desc)。绕序与坐标变换一起分析，再用相同模型读回验收。"
+      ],
+      "vk": "分别运行 half-scissor、half-viewport、back-face culling 和 red-only 写掩码实验。viewport/scissor 是管线声明的 dynamic state，cull 与写掩码在本实现中仍是创建时配置。投影 Y 翻转也会影响屏幕绕序判断。 本实验共用外表面逆时针模型：Vulkan 使用 COUNTER_CLOCKWISE，DX12 显式设置 FrontCounterClockwise=TRUE；不可依赖两边零初始化得到同一正面。",
+      "dx": "RSSetViewports 与 RSSetScissorRects 负责动态矩形，RasterizerState.CullMode 和 RenderTargetWriteMask 在 PSO 内。缩窄 viewport 会改变映射比例；缩窄 scissor 则只遮住原画面的一部分。 本例使用 FrontCounterClockwise=TRUE 识别模型外表面；FALSE 会把本应可见的外面剔除，看到立方体内部。",
+      "nv": "同样由 SceneVk 处理这些状态。把目标放进 ImGui 并不会修复场景管线的 scissor 或 front-face 错误。",
+      "task": "先预测半视口与半裁剪的区别，再分别运行对应实验，检查模型宽高和可见区域。",
+      "answer": "半视口把整幅几何压进较窄映射，半裁剪保留原映射但屏蔽右侧。它们可能显示相同面积，却不是相同几何变换。",
+      "error": "只改窗口大小未更新 viewport；或把线性代数的左右手约定直接当成 front-face 设置，都会造成误判。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "attachment.colorWriteMask",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "RenderTargetWriteMask",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "映射范围",
+          "VkViewport",
+          "D3D12_VIEWPORT",
+          "半视口改变 NDC 到像素的映射"
+        ],
+        [
+          "写入限制",
+          "VkRect2D scissor",
+          "D3D12_RECT scissor",
+          "半 scissor 不压缩几何"
+        ],
+        [
+          "不可动态配置",
+          "本例 cull / colorWriteMask",
+          "本例 PSO cull / write mask",
+          "需匹配所创建的管线组合"
+        ],
+        [
+          "正面绕序",
+          "COUNTER_CLOCKWISE（零值）",
+          "FrontCounterClockwise=TRUE（显式）",
+          "读回图核对外表面；两边默认零值不等价"
+        ]
+      ]
+    },
+    {
+      "slug": "15_rendering_scope",
+      "title": "Render Pass、动态渲染与附件契约",
+      "labs": [
+        10
+      ],
+      "reference": "03_Drawing_a_triangle/02_Graphics_pipeline_basics/03_Render_passes.html",
+      "comparison": "07_targets_depth_msaa",
+      "common": [
+        "一段渲染范围需要明确读写哪些附件、以什么格式/样本数访问、开始时清除或保留、结束后是否保留。传统 render pass 与现代直接指定附件的方式不同，但这些问题始终存在。"
+      ],
+      "vk": "参考章节的 RenderPass/Framebuffer 需要理解；当前代码用 vkCmdBeginRendering，PipelineRenderingCreateInfo 声明格式。loadOp=CLEAR 与 storeOp=STORE 的意义分别是初始化和保留；UNDEFINED 旧布局表示不依赖旧内容，不适用于需要保留历史图像的 pass。",
+      "dx": "OMSetRenderTargets 绑定 RTV/DSV，Clear 调用执行清除，resource state 声明合法访问。当前使用 legacy barrier 与普通 command list，不将其写成 D3D12 render-pass API 示例。",
+      "nv": "RenderTargetState 可以填附件并开始 dynamic rendering，但调用者仍定义附件用途及后续读依赖。GENERAL layout 不代表无需同步。",
+      "task": "若下一个 pass 要采样本遍颜色，指出除“保存颜色”以外还需什么。",
+      "answer": "需要可采样用途/视图、正确绑定，以及颜色写入到 shader 读取的依赖和合适布局/状态。store 只处理保留意图，不完成全部连接。",
+      "error": "把 storeOp=DONT_CARE 的结果当成可靠输入，或把离屏 copy 当成可执行任意 shader 的后处理，会混淆契约。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/native_app.hpp",
+          "anchor": "if (mode == 10)",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "if (mode == 10)",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "开始策略",
+          "loadOp=CLEAR",
+          "显式 ClearRT/Depth",
+          "保留历史内容时不能随意丢弃"
+        ],
+        [
+          "结束策略",
+          "storeOp 决定保留",
+          "资源内容与后续命令",
+          "保存不等于自动连接下一 pass"
+        ],
+        [
+          "接口路线",
+          "dynamic rendering",
+          "普通 command list + legacy barriers",
+          "明确区别于参考材料的其他对象模型"
+        ]
+      ]
+    },
+    {
+      "slug": "16_pipeline_interface",
+      "title": "Pipeline Layout、根签名与小常量",
+      "labs": [
+        16
+      ],
+      "reference": "03_Drawing_a_triangle/02_Graphics_pipeline_basics/04_Conclusion.html",
+      "comparison": "05_binding_constants",
+      "common": [
+        "管线接口描述 shader 能访问什么及其布局，不存放整套数据。小块逐 draw/dispatch 参数适合轻量更新，大量场景/骨骼数据则应进入缓冲。接口形状要与编译代码一致。"
+      ],
+      "vk": "实验用 16 字节 push constants 传 mode/count/factor/bias。pipeline layout 的 range、stageFlags 与 vkCmdPushConstants 的更新范围必须兼容。即使数据很小，也不能忽略设备 maxPushConstantsSize。",
+      "dx": "四个 root constants 映射 b0，root UAV 映射 u0，root CBV 映射 b1。root parameter 的数组下标与 HLSL register 不是一套编号；更新 root constants 使用 DWORD 数而不是字节数。",
+      "nv": "Framework 不改变 pipeline layout 的二进制约定。nvpro 视口复用相同 SceneVk，学习时沿实际 push 更新进入 shader。",
+      "task": "把 factor/bias 改为 9/17，如何证明 GPU 确实收到了新常量？",
+      "answer": "逐项检查 result[i]=9*i+17，而不是只看 CPU 断点中的变量。结果错时核对参数顺序、大小、阶段和入口。",
+      "error": "把 16 字节误写为 16 个 DWORD，或用错阶段范围，会破坏接口；不要通过扩大所有范围掩盖错误。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void record(",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void record(",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "计算小常量",
+          "16 bytes push",
+          "4 DWORD root constants",
+          "参数顺序 mode/count/factor/bias 一致"
+        ],
+        [
+          "图形小常量",
+          "Draw 80 bytes",
+          "Draw 20 DWORD",
+          "不同 pipeline 接口不混用"
+        ],
+        [
+          "阶段/范围",
+          "stageFlags + byte range",
+          "root parameter + DWORD offset",
+          "范围正确且覆盖 shader 实际读取"
+        ]
+      ]
+    },
+    {
+      "slug": "17_targets",
+      "title": "帧缓冲、RTV/DSV 与尺寸相关资源",
+      "labs": [
+        20
+      ],
+      "reference": "03_Drawing_a_triangle/03_Drawing/00_Framebuffers.html",
+      "comparison": "07_targets_depth_msaa",
+      "common": [
+        "目标包括颜色、深度、样本数和尺寸，不仅是一张 color image。窗口变化时要重建依赖尺寸的附件，更新投影与 viewport，并让旧资源在 GPU 不再使用后再释放。"
+      ],
+      "vk": "dynamic rendering 不创建 VkFramebuffer，但每帧仍要选择正确 image view。MSAA 例子使用多样本颜色/深度，resolve 到单样本交换链图像；管线 sample count 与附件一致。",
+      "dx": "RTV/DSV 是 CPU 侧描述符，用 OMSetRenderTargets 录制。多样本颜色使用自己的 RTV，resolve 前切换源/目的状态。back buffer 不能凭空变成普通多样本目标。",
+      "nv": "RenderTarget::update 负责尺寸相关分配，之后 ImTexture 更新 view。新 view 的引用与旧 GPU 工作必须分别处理。",
+      "task": "列出 resize 影响的对象，并区分需要重建和只需更新参数的内容。",
+      "answer": "颜色/深度/离屏存储及其 view 常需重建；viewport/scissor/aspect 更新；固定格式未变时管线不一定重建，具体取决于其不可动态状态。",
+      "error": "只调整颜色附件而保留旧尺寸深度，或管线仍为单样本，都会使目标组合不一致。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/native_app.hpp",
+          "anchor": "VkRenderingAttachmentInfo color",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "ResolveSubresource",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "颜色与深度",
+          "相同 extent/sample count",
+          "相同 size/sample count",
+          "不能只更新颜色附件"
+        ],
+        [
+          "呈现目标",
+          "交换链图像单样本",
+          "DXGI back buffer 单样本",
+          "MSAA 先画独立目标再 resolve"
+        ],
+        [
+          "重建引用",
+          "image view/target 更新",
+          "RTV/DSV/resource 更新",
+          "无在途引用后才释放旧目标"
+        ]
+      ]
+    },
+    {
+      "slug": "18_command_storage",
+      "title": "命令池、Allocator 与安全重置",
+      "labs": [
+        44
+      ],
+      "reference": "03_Drawing_a_triangle/03_Drawing/01_Command_buffers.html",
+      "comparison": "09_commands_frames",
+      "common": [
+        "录制接口对象与保存命令的存储需要分别理解。重置可能覆盖 GPU 仍在读取的数据，因此要先建立完成条件。本课用四代不同结果确认重用没有读到旧命令。"
+      ],
+      "vk": "从与队列族匹配的 pool 分配 command buffer，完成后 reset pool，再录制新一代 fill。pool reset 与单独 buffer reset 的 flag/生命周期规则不同；本实验选择整池重置以展示最清楚的拥有关系。",
+      "dx": "CommandAllocator 保存录制存储，CommandList 提供录制接口。只有相关 GPU 使用结束后才能 reset allocator；command list 对象自身的 Reset 条件不应被误当成存储已安全复用。",
+      "nv": "Application 管理自己的命令，临时上传命令有另外的提交/等待接口。不要在自定义代码中随意 reset 框架正在使用的 pool/list。",
+      "task": "四次录制分别写 41、42、43、44，怎样验证重置与执行链路？",
+      "answer": "每代都等待其完成并核对全部结果，再允许下一次覆盖命令存储。仅最终值正确不能证明中间代次没有生命周期错误。",
+      "error": "以固定 sleep 替代 fence 并不能证明安全，换设备、驱动或调度后可能立即暴露竞态。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void commandReuse",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "allocator/list generations",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "命令使用期",
+          "pool/buffer 最后一次执行完成",
+          "allocator 关联执行完成",
+          "Reset 的安全条件来自 GPU 进度"
+        ],
+        [
+          "重置粒度",
+          "整 pool 或允许单 buffer reset",
+          "allocator 和 list 分开 reset",
+          "对象与存储的规则分别核对"
+        ],
+        [
+          "四代验证",
+          "填充 41/42/43/44",
+          "复制 41/42/43/44",
+          "每代核对，避免只看最后一代"
+        ]
+      ]
+    },
+    {
+      "slug": "19_record_submit",
+      "title": "命令录制、提交与可验证工作",
+      "labs": [
+        12
+      ],
+      "reference": "03_Drawing_a_triangle/03_Drawing/01_Command_buffers.html",
+      "comparison": "09_commands_frames",
+      "common": [
+        "命令录制发生在 CPU，执行发生在 GPU。为了不被可见窗口与光照干扰，本课先提交最小工作并验证完成标记，再把同样结构放回 draw。录制、关闭、提交、完成是四个独立节点。"
+      ],
+      "vk": "begin/end command buffer 建立合法录制范围，QueueSubmit 接收它并关联 fence。实验填充 64 个 word，经 transfer-write→host-read 依赖后逐项核对。命令池的 family 必须匹配提交队列。",
+      "dx": "CreateCommandList 初次返回可录制对象；提交前 Close。执行列表本身没有返回“工作已完成”的 HRESULT，因此要用队列 signal/fence 等待。实验检查空提交的完成条件，后续拷贝实验再检查数据。",
+      "nv": "createTempCmdBuffer 与 submitAndWaitTempCmdBuffer 适合初始化阶段的有限上传；循环中反复等待会牺牲重叠，应在掌握资源使用期后再优化。",
+      "task": "分别在录制结束、提交返回和完成等待之后设置 CPU 标记，说明哪一个允许读取结果。",
+      "answer": "只有对应 GPU 完成条件成立且读取依赖正确时允许读取。前两个标记描述 CPU 进度，不证明 GPU 已写完。",
+      "error": "漏掉 End/Close 或重用仍在执行的命令存储，应优先查看验证信息，而不是调整绘制几何。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "int nativeLabMain",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "int dxLabMain",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "录制范围",
+          "Begin/EndCommandBuffer",
+          "Reset/Close command list",
+          "提交前处于合法可执行状态"
+        ],
+        [
+          "提交动作",
+          "QueueSubmit",
+          "ExecuteCommandLists",
+          "返回不代表 GPU 工作完成"
+        ],
+        [
+          "结果完成",
+          "fence + host 可见依赖",
+          "queue Signal + fence wait",
+          "读取之前完成与可见性同时成立"
+        ]
+      ]
+    },
+    {
+      "slug": "20_present_sync",
+      "title": "获取、提交、呈现与完成标记",
+      "labs": [
+        48,
+        2
+      ],
+      "reference": "03_Drawing_a_triangle/03_Drawing/02_Rendering_and_presentation.html",
+      "comparison": "08_synchronization",
+      "common": [
+        "显示一帧涉及“图像可写”“渲染完成”“CPU 可以复用资源”三种条件。它们可能由不同同步对象表达。不要把交换链图像索引、帧资源槽和完成标记混成一个变量。"
+      ],
+      "vk": "acquire semaphore 让提交等待图像可用，render-finished semaphore 供 present 等待，fence 让 CPU 复用上一代资源。独立实验验证 signaled→reset→submit→complete；实际窗口路径只在成功 acquire 后 reset fence，避免错误分支留下永远不会完成的等待。",
+      "dx": "back buffer 在 PRESENT/COMMON 与渲染用途间转换，Present 与 queue fence 各司其职。DX12 fence 是单调计数，不能套用 Vulkan binary fence 的 reset 模型；实验连续推进完成值并检查。",
+      "nv": "Application 负责其呈现链路，但自定义 UBO/离屏目标需要明确复用规则。框架的完成对象与用户资源生命周期要一起检查。",
+      "task": "解释为何 Vulkan 在 reset 后遇到 OUT_OF_DATE 并直接 continue，可能让下一帧永久等待。",
+      "answer": "该轮没有提交去 signal 已重置 fence。正确顺序应先处理 acquire 的可恢复失败，再对确定会提交的路径重置。",
+      "error": "把 CPU fence 等待当成 present 已消费 binary semaphore 的通用证明，会使信号量复用条件错误。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "Initial fence not signaled",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "monotonic fence reuse",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "图像可用",
+          "acquire semaphore",
+          "当前 back buffer 与呈现规则",
+          "不能写仍由呈现系统使用的图像"
+        ],
+        [
+          "渲染完成",
+          "present 等待 render-finished",
+          "队列/呈现及 fence 规则",
+          "CPU 完成标记不机械等于呈现消费"
+        ],
+        [
+          "复用模型",
+          "binary fence 可 reset",
+          "fence value 单调推进",
+          "两种接口不一一替换"
+        ]
+      ]
+    },
+    {
+      "slug": "21_frames_in_flight",
+      "title": "两帧资源环与在途使用期",
+      "labs": [
+        24
+      ],
+      "reference": "03_Drawing_a_triangle/03_Drawing/03_Frames_in_flight.html",
+      "comparison": "09_commands_frames",
+      "common": [
+        "本实验隔离帧槽概念：两组独立缓冲、命令存储与完成标记交替处理八次工作，不在提交第一个槽后立即等待它才提交第二槽。每次重用槽前先等待并核对上一代数据，从结果证明没有覆盖在途资源。",
+        "这是实际的双槽 GPU 计算提交，不是已经完成多帧窗口渲染引擎。窗口 renderer 仍保留串行教学路径。将两槽设计推广到窗口时，还要处理交换链图像、depth/target、descriptor、upload 回收和 resize。"
+      ],
+      "vk": "每槽有独立 ComputeKernel 输出、command buffer 与 fence，slot=frameNumber%2。先等该槽再 reset/更新，GPU 仍可执行另一个槽的工作；最终检查每槽最后一代结果。",
+      "dx": "每槽保存 allocator、command list、资源和完成值。queue Signal 记录本槽提交，下一次重用前 waitValue；一个 ID3D12Fence 通过不同值表达多个完成点。",
+      "nv": "框架有自己的帧循环，但本课程 SceneVk 仍共用一份 UBO 并等待队列。不能因为 Application 支持调度就认为自定义资源已自动变成多帧安全。",
+      "task": "把槽数改为三，列出所有必须一起改变的数组和完成条件。",
+      "answer": "命令存储、可变缓冲、每槽记录与最终等待均需对应三份。交换链图像数量不必因此变三，imageIndex 仍来自呈现系统。",
+      "error": "只删除 wait 而保持单份 UBO/allocator，可能偶发闪烁或验证错误；延迟出现不代表问题只在最后一帧。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void frameRing",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void frameRing",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "槽数量",
+          "2 份 kernel/buffer/cmd/fence",
+          "2 份 resource/allocator/list/value",
+          "slot=frameNumber%2"
+        ],
+        [
+          "提交数量",
+          "8 次计算提交",
+          "8 次计算提交",
+          "第二槽提交不先全局等第一槽"
+        ],
+        [
+          "窗口边界",
+          "窗口仍串行",
+          "窗口仍串行",
+          "双槽计算不是完整多帧呈现引擎"
+        ]
+      ]
+    },
+    {
+      "slug": "22_swapchain_recreation",
+      "title": "窗口变化与交换链重建",
+      "labs": [
+        2,
+        40
+      ],
+      "reference": "03_Drawing_a_triangle/04_Swap_chain_recreation.html",
+      "comparison": "07_targets_depth_msaa",
+      "common": [
+        "重建是完整生命周期事件，不能只修改两个宽高变量。先保证旧资源不再被使用，再释放依赖旧图像的 view/附件，重新查询配置，更新投影和动态矩形。程序最小化时应等待有效尺寸。"
+      ],
+      "vk": "处理 OUT_OF_DATE/SUBOPTIMAL 以及 framebuffer 尺寸变化。cleanup 等 GPU 后释放 scene/depth/MSAA/view/semaphore，重新创建，并重新执行实验的资源配置回调。格式变化可能影响 pipeline，不能永远假定只有 extent 改变。",
+      "dx": "ResizeBuffers 前释放所有 back buffer 引用并等待相关 GPU 工作；随后重建 RTV/DSV、depth 与 MSAA/离屏目标。只释放一个局部 ComPtr 而仍有其他引用，不满足重建要求。",
+      "nv": "onResize 与 RenderTarget::update 提供明确接入点。target 变化后更新 ImTexture；若使用自己的缓存图像，也要给它同样的重建契约。",
+      "task": "普通交互模式下反复拖动、最小化、恢复窗口，记录会触发哪些重建路径。",
+      "answer": "应避免零尺寸分配/除零和旧图像引用。已有 smoke 检查有限帧输出，反复 resize 属于额外手动验收，不能混写成已自动覆盖所有组合。",
+      "error": "旧 descriptor/image view 仍指向被释放附件，或新尺寸深度与颜色不同，都是比投影参数更早的问题。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/native_app.hpp",
+          "anchor": "void recreate()",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "DxWindow(GLFWwindow",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "重建前置",
+          "GPU 不再用旧目标",
+          "GPU 完成且旧 backbuffer 引用释放",
+          "先断依赖，再分配新目标"
+        ],
+        [
+          "恢复参数",
+          "extent / views / projection",
+          "size / RTV/DSV / projection",
+          "viewport 与 aspect 也要更新"
+        ],
+        [
+          "错误分支",
+          "OUT_OF_DATE / SUBOPTIMAL",
+          "ResizeBuffers/HRESULT",
+          "可恢复失败不留下不可完成等待"
+        ]
+      ]
+    },
+    {
+      "slug": "23_vertex_input",
+      "title": "顶点语义、Stride 与 Offset",
+      "labs": [
+        53
+      ],
+      "reference": "04_Vertex_buffers/00_Vertex_input_description.html",
+      "comparison": "03_geometry_memory",
+      "common": [
+        "把 CPU 顶点按字节画出来：position 三 float、normal/颜色三 float、UV 两 float，共 32 字节。stride 决定下一顶点起点，offset 决定本顶点属性位置。正确地址与正确解释是两项条件。"
+      ],
+      "vk": "binding 描述 stride 与每顶点/每实例速率，attribute 描述 location、format、offset。本例位置/颜色/UV 偏移 0/12/24。输入 location 不是 descriptor binding，二者服务不同路径。",
+      "dx": "VBV 给 GPU 地址、大小和 stride，input layout 用 POSITION/NORMAL/TEXCOORD 连接 HLSL 输入。语义名称与偏移分别检查，不能因为名字相同就忽略格式。实例数据还要声明独立的输入分类/步进。",
+      "nv": "VMA 改变分配方式，不改变 Vertex 的字节布局。把 GPU storage buffer 同时当顶点缓冲时，更需要核对两种接口的 stride。",
+      "task": "把某一个属性偏移故意改错，先预测影响的是形状、颜色还是 UV，再用 mesh viewer 查字节。",
+      "answer": "位置错会改变几何，颜色/法线错影响插值或光照，UV 错影响采样。一次只改一项才能判断其责任。",
+      "error": "导入模型扩展 joints/weights 后仍套用 32 字节布局，或把整数 joint 当浮点 attribute，会产生完全错误的输入。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "VkVertexInputBindingDescription bind",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "D3D12_INPUT_ELEMENT_DESC elements",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "顶点尺寸",
+          "Vertex=32 bytes",
+          "Vertex=32 bytes",
+          "position/normal/UV 连续契约"
+        ],
+        [
+          "属性偏移",
+          "0/12/24",
+          "0/12/24",
+          "format 与 stride 一起正确"
+        ],
+        [
+          "输入编号",
+          "attribute location",
+          "semantic + input layout",
+          "与 descriptor/register 是不同系统"
+        ]
+      ]
+    },
+    {
+      "slug": "24_vertex_buffer",
+      "title": "创建顶点资源与上传最小路径",
+      "labs": [
+        4
+      ],
+      "reference": "04_Vertex_buffers/01_Vertex_buffer_creation.html",
+      "comparison": "03_geometry_memory",
+      "common": [
+        "先用直接 CPU 可写资源建立最短的数据证据，再引入 device-local staging。确认容量是顶点数乘 stride，draw 的顶点数不是字节数；缓冲必须活过 GPU 的最后读取。"
+      ],
+      "vk": "基础例子用 HOST_VISIBLE|HOST_COHERENT，Map 后 memcpy，再作为 vertex buffer 绑定。coherent 简化缓存操作，不消除 CPU/GPU 执行冲突。buffer 创建和 memory 分配/绑定是分开的 API 步骤。",
+      "dx": "基础 VBV 指向 UPLOAD resource，Map 的空读范围表示 CPU 不读取它。UPLOAD 必须处于 GENERIC_READ；静态几何可以进一步拷贝到 DEFAULT，本章不把教学路径宣称为显卡最佳带宽路径。",
+      "nv": "ResourceAllocator/StagingUploader 可以让最终缓冲 device-local。先核对基础例的字节正确，再比较 helper 替代了哪些手动步骤。",
+      "task": "记录顶点数、stride、总字节数与 draw 参数，并指出哪些可以直接比较、哪些单位不同。",
+      "answer": "容量按字节，stride 按字节，draw count 按顶点或索引。把 sizeof(vector) 当成其元素数据总大小是另一类常见错误。",
+      "error": "上传成功但缓冲绑定到错误 slot，仍会读到错误数据；先看实际 draw 的绑定而不只看创建调用。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "struct VkBufferResource",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "DxScene(DxDevice",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "内容容量",
+          "vertex count * stride",
+          "VBV SizeInBytes",
+          "draw count 不是字节数"
+        ],
+        [
+          "教学内存",
+          "HOST_VISIBLE / COHERENT",
+          "UPLOAD / GENERIC_READ",
+          "易追踪不等于最优静态带宽"
+        ],
+        [
+          "更新保护",
+          "GPU 读完前不覆盖",
+          "GPU 读完前不覆盖",
+          "Map 不提供执行同步"
+        ]
+      ]
+    },
+    {
+      "slug": "25_memory",
+      "title": "内存类型、Heap 与分配要求",
+      "labs": [
+        47,
+        14
+      ],
+      "reference": "04_Vertex_buffers/01_Vertex_buffer_creation.html",
+      "comparison": "03_geometry_memory",
+      "common": [
+        "资源逻辑大小、分配大小和偏移对齐不是同一个数字。API 可能要求更大或对齐后的存储。可被 CPU 访问也不等于最适合 GPU 高频读取，统一内存设备与独立显卡更不能凭经验写死同一选择。"
+      ],
+      "vk": "memoryTypeBits 是资源允许的类型集合，propertyFlags 是内存属性。实验为 257 字节缓冲查询实际 size/alignment/type bits，再在允许集合中选择所需属性。non-coherent 的 flush/invalidate 还需符合原子尺寸对齐。",
+      "dx": "GetResourceAllocationInfo 解释实际分配大小/对齐，UPLOAD/DEFAULT/READBACK 表达常见用途。GetCustomHeapProperties 可以帮助理解架构映射，但不能随意绕过 heap/resource 规则。CBV 的 256 字节地址对齐与普通 buffer 分配对齐也不是同一要求。",
+      "nv": "VMA 从重复分配逻辑中抽象出 allocator，但 flags、访问目标与释放时机仍由调用方决定。不要把 allocator 当成无条件允许 Map 的通行证。",
+      "task": "比较请求 257 字节、返回的 allocation size、常量槽 stride 三者，解释不同来源。",
+      "answer": "257 是应用内容大小，allocation size 来自内存分配约束，常量 stride 来自接口偏移对齐。三者可以不同而同时正确。",
+      "error": "先分配“看起来够大”的字节再忽略 memoryTypeBits，或把 GPU 可写默认纹理直接 Map，都是层次混淆。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "vkGetBufferMemoryRequirements",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "GetResourceAllocationInfo",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "逻辑与实际大小",
+          "buffer size 与 MemoryRequirements",
+          "resource size 与 AllocationInfo",
+          "实际分配可能大于请求"
+        ],
+        [
+          "选择约束",
+          "memoryTypeBits 与属性交集",
+          "heap/resource 兼容规则",
+          "不能仅按类型编号猜位置"
+        ],
+        [
+          "接口对齐",
+          "设备 UBO offset alignment",
+          "CBV 256 bytes",
+          "不同于一般 allocation alignment"
+        ]
+      ]
+    },
+    {
+      "slug": "26_staging",
+      "title": "暂存上传、设备资源与读回闭环",
+      "labs": [
+        13
+      ],
+      "reference": "04_Vertex_buffers/02_Staging_buffer.html",
+      "comparison": "03_geometry_memory",
+      "common": [
+        "本课用 257 个确定整数做完整闭环：CPU 写 upload，中转到 GPU 设备资源，再复制到 readback，等待完成并逐项核对。奇数长度帮助发现把字节数、元素数或范围截断的错误。"
+      ],
+      "vk": "源/目标分别声明 TRANSFER_SRC/DST，设备缓冲选择 device-local。第一次 copy 的写入通过 buffer barrier 对第二次 transfer read 可见，最后 copy 写入经 host-read 依赖供 CPU 检查。",
+      "dx": "UPLOAD 固定 GENERIC_READ，DEFAULT 先 COPY_DEST，完成第一份 copy 后转 COPY_SOURCE，READBACK 固定 COPY_DEST。不能因为都叫 BufferRegion 就省掉资源状态；临时 upload 在 fence 前保持存活。",
+      "nv": "StagingUploader 的 append 与 cmdUploadAppended 对应准备和录制；submitAndWait 后才可以 deinit 临时上传器。框架不使 CPU 数据地址永久有效。",
+      "task": "若最终只检查一个元素，哪些错误可能漏掉？",
+      "answer": "尾部未拷贝、偏移偏一、局部范围错误仍可能让首元素正确。闭环应核对全部元素和容量，再把路径用于顶点或纹理。",
+      "error": "上传后立刻释放/覆盖 upload，或用错误的 consumer access/stage，可能在轻负载下偶然正确。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void stagingCopy",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void stagingCopy",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "闭环容量",
+          "257 个 uint32",
+          "257 个 uint32",
+          "每项 i*17+9 可独立核对"
+        ],
+        [
+          "中间存储",
+          "device-local buffer",
+          "DEFAULT resource",
+          "upload/readback 与设备资源分离"
+        ],
+        [
+          "依赖链",
+          "copy-write→copy-read→host-read",
+          "COPY_DEST→COPY_SOURCE→readback",
+          "临时 upload 活到完成后"
+        ]
+      ]
+    },
+    {
+      "slug": "27_indices",
+      "title": "索引绘制与顶点复用边界",
+      "labs": [
+        5
+      ],
+      "reference": "04_Vertex_buffers/03_Index_buffer.html",
+      "comparison": "03_geometry_memory",
+      "common": [
+        "索引指向整套顶点属性，不是只指向空间位置。立方体八个几何角点在不同面需要不同法线/UV，因此常有 24 个属性顶点和 36 个索引。复用率与 cache locality 影响性能，但首先要正确解释类型和范围。"
+      ],
+      "vk": "绑定 index buffer 时选择 VK_INDEX_TYPE_UINT32，与 CPU 的 uint32_t 元素匹配。DrawIndexed 的 indexCount 是索引个数；vertexOffset 是应用到索引解释后的顶点偏移，不能当成缓冲字节地址。",
+      "dx": "IBV 包含 GPU 地址、字节大小和 DXGI_FORMAT_R32_UINT，DrawIndexedInstanced 分开指定 index count、instance count 与偏移。VBV 和 IBV 不能互相替代。",
+      "nv": "共用同一 Geometry/SceneVk，框架分配并不改变索引意义。模型合并时要把局部索引加上新增顶点的 base。",
+      "task": "合并两个 mesh 的顶点和索引，写出第二个 mesh 索引的修正规则。",
+      "answer": "第二份局部索引加上第一份累计顶点数；若每 mesh 单独绑定或使用 base vertex，则按自己的约定处理，不能重复加两次。",
+      "error": "CPU 存 uint32 却绑定 uint16，或把 count 传成字节数，会导致错连、越界或部分几何消失。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "VkDescriptorSetLayoutBinding bindings",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "D3D12_ROOT_PARAMETER params",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "属性复用",
+          "24 顶点 / 36 索引立方体",
+          "同一共享几何",
+          "索引指向完整属性集合"
+        ],
+        [
+          "索引类型",
+          "VK_INDEX_TYPE_UINT32",
+          "DXGI_FORMAT_R32_UINT",
+          "CPU 元素宽度必须匹配"
+        ],
+        [
+          "索引数量",
+          "DrawIndexed indexCount",
+          "DrawIndexedInstanced IndexCount",
+          "不是索引缓冲总字节数"
+        ]
+      ]
+    },
+    {
+      "slug": "28_uniform_layout",
+      "title": "常量结构、矩阵存储与对齐",
+      "labs": [
+        51,
+        14
+      ],
+      "reference": "05_Uniform_buffers/00_Descriptor_set_layout_and_buffer.html",
+      "comparison": "05_binding_constants",
+      "common": [
+        "跨 CPU/shader 的二进制契约应可检查：Frame=64 字节，Draw=80 字节，settings 偏移=64。矩阵存储顺序、成员对齐、接口范围与偏移对齐分别证明，不靠 alignas 一词概括所有规则。"
+      ],
+      "vk": "GLSL mat4 与 GLM 列主序配合，UBO 的布局必须与 C++ 实际偏移一致。动态偏移按 minUniformBufferOffsetAlignment 对齐，range 仍应覆盖具体内容且不越界。实验用 uvec4 参数让 GPU 数值验证解码。",
+      "dx": "HLSL column_major 与 mul(M,v) 配合 GLM。root CBV 的 GPU 地址需要 256 字节对齐，实际帧矩阵仍只有 64 字节；根常量按 DWORD 更新。不要把所有 C++ struct 都假定与 cbuffer 打包自动一致。",
+      "nv": "共享 Frame/Draw 与相同 shader，没有另一种框架专用矩阵规则。增加骨骼或其他常量时仍需新的布局与容量验证。",
+      "task": "在 CPU 打印 sizeof/offsetof，再通过 GPU 计算验证第三个常量槽的 factor/bias。",
+      "answer": "CPU 布局断言检查内存，GPU 结果检查接口选择与解码；两份证据互补。第三槽得到 i*7+13，才说明该范围被正确使用。",
+      "error": "用 vec3/float3 扩展结构却不复查 padding，或认为 transpose 能同时修复存储与数学语义，会造成隐蔽错误。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "Frame=64",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "Frame=64",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "二进制布局",
+          "Frame=64 / Draw=80",
+          "Frame=64 / Draw=80",
+          "settings 偏移=64"
+        ],
+        [
+          "矩阵约定",
+          "GLM 列主序 / mat4",
+          "column_major / mul(M,v)",
+          "存储与乘法记法分别核对"
+        ],
+        [
+          "常量偏移",
+          "动态 offset 按设备对齐",
+          "root CBV 地址 256 对齐",
+          "alignas(16) 不覆盖全部接口规则"
+        ]
+      ]
+    },
+    {
+      "slug": "29_descriptor_layout",
+      "title": "描述符布局与资源接口声明",
+      "labs": [
+        5,
+        16
+      ],
+      "reference": "05_Uniform_buffers/00_Descriptor_set_layout_and_buffer.html",
+      "comparison": "05_binding_constants",
+      "common": [
+        "接口声明说明需要哪些资源、在哪个阶段、数量和类型；实际绑定说明此刻引用哪一份内容。布局通常可复用，资源引用会变化，数据字节又按自己的频率更新。"
+      ],
+      "vk": "DescriptorSetLayoutBinding 连接 shader binding 与资源类型/阶段；PipelineLayout 组合 set layout 和 push range。它不是 descriptor pool，也不拥有 buffer。绑定错误不能通过只更新 buffer 内容修复。",
+      "dx": "root signature 组合 root constants、root descriptor 和 descriptor table。parameter 2 可以指 t0，register space 又是独立维度。显式说明接口约定，才能检查 shader 与调用是否兼容。",
+      "nv": "SceneVk 使用原生 layout/set；Context 与 Application 不自动推导自定义 shader 的资源接口。",
+      "task": "为一个每帧相机、每材质纹理、每对象 model 的场景设计更新频率划分。",
+      "answer": "按帧更新 Frame，按材质选择纹理引用，按 draw 更新 model 小常量。不要每 draw 重建全部布局，也不把大型场景数据塞进 push/root constants。",
+      "error": "把 binding location、root parameter、HLSL register 和 heap offset 当成同一个整数系统，会产生看似相近却错误的绑定。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "VkDescriptorSetLayoutBinding bindings",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "D3D12_ROOT_PARAMETER params",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "接口形状",
+          "set layout / pipeline layout",
+          "root signature",
+          "不会复制资源内容"
+        ],
+        [
+          "实际引用",
+          "allocated descriptor set",
+          "root descriptor / table",
+          "绑定选择与数据更新分开"
+        ],
+        [
+          "更新频率",
+          "帧 / 材质 / 对象分组",
+          "同样按频率分组",
+          "不每 draw 重建全部长期对象"
+        ]
+      ]
+    },
+    {
+      "slug": "30_descriptor_instances",
+      "title": "描述符池、Heap 与资源引用更新",
+      "labs": [
+        45
+      ],
+      "reference": "05_Uniform_buffers/01_Descriptor_pool_and_sets.html",
+      "comparison": "05_binding_constants",
+      "common": [
+        "本实验先让输出指向资源 A，完成后改为 B，再证明 A 保持原值而 B 得到新结果。这样把资源本身、访问引用和更新时机三层拆开，而不是只检查一次创建是否返回成功。"
+      ],
+      "vk": "pool 按描述符类型与数量提供分配容量，set 从 pool 分配。update 替换 binding 0 的 storage buffer，必须等原使用完成并遵循更新规则；普通 descriptor set 不能在 GPU 使用期间随意改写。",
+      "dx": "计算实验用 root UAV 地址替换资源引用，纹理实验则通过 shader-visible heap 与 descriptor table 展示 heap 模型。二者不是同一接口，课程明确标注；CPU descriptor 的构建与 GPU handle 的绑定各有位置。",
+      "nv": "VMA 管理资源内存，不管理所有自定义 descriptor 更新。即使 helper 分配了 set，pool、set 和被引用资源仍有各自生命周期。",
+      "task": "修改绑定到 B 后，为什么还要检查 A？",
+      "answer": "这能发现 CPU 误写旧资源、错误绑定或读回来源混淆。只看 B 的某个值可能被旧内容偶然满足。",
+      "error": "把 descriptor update 当成数据 copy，或在旧提交仍读取同一描述符槽时覆盖它，会破坏接口与时间契约。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "Updated descriptor points",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "Root UAV replacement",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "替换顺序",
+          "完成 A 后更新 set 指 B",
+          "完成 A 后 root UAV 指 B",
+          "普通绑定不能在使用期间任意改写"
+        ],
+        [
+          "完整证据",
+          "A 不变 / B 得新结果",
+          "A 不变 / B 得新结果",
+          "排除误写和读错资源"
+        ],
+        [
+          "分配边界",
+          "pool 类型/数量与 maxSets",
+          "heap 槽位与 root 机制",
+          "内存分配与 descriptor 分配分层"
+        ]
+      ]
+    },
+    {
+      "slug": "31_dynamic_offsets",
+      "title": "动态 UBO 与 Root CBV 地址选择",
+      "labs": [
+        15
+      ],
+      "reference": "05_Uniform_buffers/01_Descriptor_pool_and_sets.html",
+      "comparison": "05_binding_constants",
+      "common": [
+        "将三份参数放在同一缓冲的对齐槽中，切换访问范围而不复制整份内容。必须同时检查 base offset、dynamic offset、range、对齐和缓冲总容量，不能只看槽编号。"
+      ],
+      "vk": "使用 UNIFORM_BUFFER_DYNAMIC，bind 时传一个动态偏移。三个槽使用设备要求的 stride，descriptor range 保持 16 字节；shader 读取每槽不同 factor/bias，逐项验证结果。",
+      "dx": "同一 UPLOAD buffer 中每槽 256 字节，以 root CBV GPU 地址加 slot*256 选择。没有 Vulkan 式 dynamic descriptor type，但要解决相同的对齐、范围和在途更新问题。",
+      "nv": "框架路径仍可使用原生 dynamic descriptor；不要假定 allocator 已自动把任意应用偏移变成合法对齐。",
+      "task": "把三个槽的参数互换而不改变 shader，预测结果应如何变化。",
+      "answer": "输出应随绑定范围改变。若 CPU 内容变了而输出仍来自旧槽，检查实际 bind offset/address，而不是重新编译 shader。",
+      "error": "range=WHOLE_SIZE 后再添加动态偏移可能越过缓冲末端。对齐正确也不代表范围自动合法。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void record(",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void record(",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "常量槽",
+          "3 个对齐范围",
+          "3 个 256-byte 范围",
+          "每槽保存 16-byte 参数"
+        ],
+        [
+          "参数取值",
+          "(2,3) / (5,11) / (7,13)",
+          "相同参数",
+          "输出 i*factor+bias 验证实际选择"
+        ],
+        [
+          "最终地址",
+          "base + dynamic offset",
+          "GPU base + slot*256",
+          "offset+range 不越过缓冲"
+        ]
+      ]
+    },
+    {
+      "slug": "32_per_draw_constants",
+      "title": "Push/Root Constants 的单位与边界",
+      "labs": [
+        16
+      ],
+      "reference": "05_Uniform_buffers/01_Descriptor_pool_and_sets.html",
+      "comparison": "05_binding_constants",
+      "common": [
+        "小常量适合频繁、少量的对象参数，而不是无限容量的快捷数据通道。本实验用数值计算验证顺序、大小和更新频率，再回到 model/settings 的绘制数据。"
+      ],
+      "vk": "push 常量使用字节 offset/size，并与 pipeline layout 的阶段范围相容。已有图形 Draw 为 80 字节，计算 Operation 为 16 字节；两个 layout 可以有不同约定，不应混用。",
+      "dx": "root constants 使用 32 位值数量与偏移，对应 HLSL cbuffer。20 DWORD 的 Draw 与 4 DWORD 的 Operation 不同；root signature 总成本也限制接口设计。",
+      "nv": "SceneVk 与 nvpro 使用相同 push 布局；如果换自定义 shader，需要自己维护接口兼容，不由 UI 参数自动生成。",
+      "task": "加入第二个对象，仅改变它的 model，说明不需要重建哪些长期对象。",
+      "answer": "静态几何、纹理、layout 和同一兼容 pipeline 可以复用，只在对应 draw 前更新小常量。更改不可动态状态或 shader 才可能要求另一 pipeline。",
+      "error": "字节与 DWORD 单位混淆、更新到错误 root parameter，或只更新结构前半段却读取后半段，都会留下错误数据。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void record(",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void record(",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "参数单位",
+          "字节 size/offset",
+          "DWORD count/offset",
+          "16 bytes = 4 DWORD"
+        ],
+        [
+          "测试公式",
+          "factor=9 / bias=17",
+          "相同公式",
+          "全量结果而非 CPU 变量作证"
+        ],
+        [
+          "容量界限",
+          "maxPushConstantsSize",
+          "root signature 成本限制",
+          "大骨骼/场景数组放缓冲"
+        ]
+      ]
+    },
+    {
+      "slug": "33_image_decode",
+      "title": "真实图片、通道与资产路径",
+      "labs": [
+        17
+      ],
+      "reference": "06_Texture_mapping/00_Images.html",
+      "comparison": "06_textures_color",
+      "common": [
+        "图片文件不是 GPU 纹理。先解码为明确的 width/height/channel 字节，再选择 GPU 格式和上传策略。本课程固定输出 RGBA8，资源路径相对 executable，避免工作目录和原图通道数影响实验。"
+      ],
+      "vk": "stb_image 解码后写入 staging，最终 image 使用 optimal tiling。这里只展示普通 2D 图片，压缩 GPU 格式、流式加载和完整材质导入是进一步工作，不因 PNG 成功就宣称全部资产格式已支持。",
+      "dx": "解码结果按 footprint 行距复制进 UPLOAD buffer，再用 CopyTextureRegion 写入 texture。GPU 资源格式与字节布局要匹配；需要四通道时不能按原图三通道长度拷贝。",
+      "nv": "框架可提供额外资产工具，但本教程的原生图片路径独立于框架；对照时分开查看解码和 GPU 上传两层。",
+      "task": "把图片换成带透明通道的四象限测试图，先检查方向与字节数，再讨论混合。",
+      "answer": "图像 RGBA 内容正确与 blending 状态正确是两件事。透明字节上传成功不代表自动启用了透明渲染。",
+      "error": "读取失败先看路径与解码；周期错行先看通道/row pitch；整体明暗再看 sRGB，不用同一个“翻转图片”操作解决所有问题。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "struct GpuTexture",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "struct GpuTexture",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "解码输出",
+          "RGBA8 连续像素",
+          "相同 CPU 结果",
+          "width*height*4 字节"
+        ],
+        [
+          "相对路径",
+          "exe/assets/...",
+          "exe/assets/...",
+          "不依赖 IDE 工作目录"
+        ],
+        [
+          "用途分类",
+          "颜色/数据格式另选",
+          "颜色/数据 view 另选",
+          "PNG 扩展名不决定 sRGB"
+        ]
+      ]
+    },
+    {
+      "slug": "34_image_upload",
+      "title": "图像存储、Footprint 与拷贝",
+      "labs": [
+        17,
+        13
+      ],
+      "reference": "06_Texture_mapping/00_Images.html",
+      "comparison": "06_textures_color",
+      "common": [
+        "图像通常有适合 GPU 的内部布局，CPU 线性像素需要通过合法传输进入它。上传描述包含行、切片、层与 mip，单层例子只是最小情况。临时存储要保持到 copy 完成。"
+      ],
+      "vk": "Image 创建声明 usage/format/extent/mip，MemoryRequirements 决定绑定存储。BufferImageCopy 描述缓冲到子资源的映射；先处于 TRANSFER_DST，再允许采样。创建 view 或更新 descriptor 不会替代 copy。",
+      "dx": "GetCopyableFootprints 返回 Offset、RowPitch 和各行信息，逐行填充后录制 CopyTextureRegion。texture resource 的宽高不是 upload buffer 的紧密内存布局；mip/array 各自是子资源。",
+      "nv": "StagingUploader 简化收集和拷贝录制，但输入数据、用途与完成回收仍要解释。当前 nv04 的 VMA 演示重点是顶点，不能写成已迁移全部图片管线。",
+      "task": "解释一次 memcpy(width*height*4) 为什么不总能正确填 texture upload。",
+      "answer": "API 可能要求更大的对齐行距或子资源起点。正确内容应逐行写到 footprint 的 Offset+y*RowPitch，再按有效宽度复制。",
+      "error": "只分配有效像素字节数却按对齐 row pitch 写，会越界；分配足够但使用错误 pitch，也会造成图像错行。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "struct GpuTexture",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "struct GpuTexture",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "线性中转",
+          "BufferImageCopy",
+          "PlacedSubresourceFootprint",
+          "CPU 字节与最优图像布局分层"
+        ],
+        [
+          "行定位",
+          "按拷贝描述解释",
+          "Offset + y*RowPitch",
+          "row pitch 可能大于有效行字节"
+        ],
+        [
+          "上传结束",
+          "copy 完成后回收 staging",
+          "fence 后回收 UPLOAD",
+          "view 创建不代表上传完成"
+        ]
+      ]
+    },
+    {
+      "slug": "35_image_dependencies",
+      "title": "图像布局、资源状态与读写依赖",
+      "labs": [
+        13,
+        18
+      ],
+      "reference": "06_Texture_mapping/00_Images.html",
+      "comparison": "08_synchronization",
+      "common": [
+        "为每次访问写下生产者与消费者：谁写、谁读、在哪个队列、读写范围是什么。布局/状态表示合法用途的一部分，执行顺序与可见性还要通过同步规则建立。"
+      ],
+      "vk": "copy-write 到 fragment-sampled-read 需要对应 stage/access 和布局转换。mip 生成逐级把前一级从 transfer-dst 切成 transfer-src，最终各级转 shader-read；不能仅在整个流程结束后随意改一个枚举。",
+      "dx": "legacy transition barrier 表达 COPY_DEST、UAV、shader resource 等用途转换。compute mip 每级有自己的 subresource state；UAV 写后下级采样的依赖由对应转换建立。跨队列还需 fence Signal/Wait。",
+      "nv": "GENERAL→GENERAL 也可能需要依赖。RenderTarget 与 ImGui 的颜色写后采样正是布局不变而访问变化的例子。",
+      "task": "把纹理消费者从 pixel/fragment 改为 compute，哪些同步描述也要一起改变？",
+      "answer": "消费者阶段/访问或 state 应反映 compute 读取。直接复用只针对片元的依赖不一定覆盖新的使用者。",
+      "error": "coherent、Map 成功、descriptor 中的 layout 或 CPU 提交顺序，任何一个都不能独自证明完整 GPU 写后读关系。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void stagingCopy",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void stagingCopy",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "生产者",
+          "COPY/BLIT write",
+          "COPY_DEST 或 UAV write",
+          "写入来源决定依赖"
+        ],
+        [
+          "消费者",
+          "fragment/compute sampled read",
+          "pixel/non-pixel shader read",
+          "按真实使用者选择范围"
+        ],
+        [
+          "每级状态",
+          "逐 mip layout/access",
+          "逐 subresource state",
+          "不假定全纹理始终同一状态"
+        ]
+      ]
+    },
+    {
+      "slug": "36_samplers",
+      "title": "采样器、过滤、寻址与 UV",
+      "labs": [
+        52
+      ],
+      "reference": "06_Texture_mapping/01_Image_view_and_sampler.html",
+      "comparison": "06_textures_color",
+      "common": [
+        "图像保存 texel，sampler 决定过滤、寻址和 LOD。repeat/clamp 只影响越界访问，不会修复错误上传；linear/nearest 只改变插值，不会生成 mip。本课将 UV 放大到原范围之外，让寻址差异真正可观察。"
+      ],
+      "vk": "sampler 指定 addressMode、min/magFilter、mipmapMode 和 maxLod；组合 descriptor 同时引用 sampler/image view，但二者仍是独立对象。各向异性另有特性与限制，本例不假装已经启用。",
+      "dx": "当前图形 root signature 使用 static sampler，寻址策略是创建接口的一部分。改变它通常涉及相应 root signature/PSO 组合；若需要频繁变化，可设计独立 sampler heap/table，而不是随意改纹理字节。",
+      "nv": "同样受 Vulkan sampler 规则约束。ImGui 显示采样与场景材质采样是不同用途，不能把 UI 的设置当成场景 sampler 已更新。",
+      "task": "在 UV=0..4 的测试几何上比较 clamp 与 repeat，解释边缘拉伸来自哪里。",
+      "answer": "clamp 将越界坐标限制到边缘 texel，repeat 周期折回。两者都读取同一内容，区别来自寻址规则而非模型解析。",
+      "error": "只有 UV 在 0..1 时，切换寻址可能几乎看不出变化；应选择能激活该状态差异的受控输入。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "addressModeU",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "sampler.AddressU",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "UV 范围",
+          "0..4 激活越界寻址",
+          "0..4 激活越界寻址",
+          "测试输入要暴露机制差异"
+        ],
+        [
+          "寻址规则",
+          "REPEAT / CLAMP_TO_EDGE",
+          "WRAP / CLAMP",
+          "不修复错误 row pitch"
+        ],
+        [
+          "采样器位置",
+          "独立 VkSampler",
+          "本例 static sampler",
+          "接口变化与数据变化分别管理"
+        ]
+      ]
+    },
+    {
+      "slug": "37_texture_binding",
+      "title": "图像、采样器与 Shader 资源连接",
+      "labs": [
+        6
+      ],
+      "reference": "06_Texture_mapping/02_Combined_image_sampler.html",
+      "comparison": "06_textures_color",
+      "common": [
+        "完成上传只是准备了内容，还要把访问方式连接到 shader。核对资源、view、sampler、接口编号、实际绑定与消费者阶段，才能解释一次纹理读取。名称相似不代表它们存放同样的内容。"
+      ],
+      "vk": "组合 image sampler descriptor 引用 imageView、sampler 和约定 imageLayout；layout binding 1 与 GLSL 一致。vkUpdateDescriptorSets 更新引用，不录制布局转换，也不复制 texel。set/pool 和图像各有生命周期。",
+      "dx": "SRV 在 shader-visible heap 中描述纹理，SetDescriptorHeaps 后用 GPU handle 设置 root descriptor table；static sampler 对应 s0。CPU handle 用于写 descriptor，GPU handle 用于绑定，不能互换或按指针算像素地址。",
+      "nv": "SceneVk 管理自定义材质 descriptor，ImTexture 管理 UI 显示引用。两套绑定服务不同 shader，不因指向同一图像就可以任意替换。",
+      "task": "为什么 descriptor/SRV 看起来正确，纹理仍然可能全黑？",
+      "answer": "内容未上传、错误子资源、布局/状态或同步错误、UV/颜色空间错误都可能存在。先查看资源 texel，再看绑定与 shader 结果。",
+      "error": "只查 C++ 成员句柄而不查实际 draw 的 GPU 绑定，会错过被后续命令覆盖的 table/set。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "auto data = checker",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "读取资源",
+          "combined image sampler",
+          "SRV table + static sampler",
+          "图像/采样器都与 shader 一致"
+        ],
+        [
+          "绑定编号",
+          "binding 1",
+          "t0 / s0 与 root table",
+          "不同编号系统不可混同"
+        ],
+        [
+          "写入视图",
+          "update set 引用",
+          "CPU handle 写 SRV",
+          "不复制 texel、不建立同步"
+        ]
+      ]
+    },
+    {
+      "slug": "38_color_space",
+      "title": "sRGB、线性光照与显示编码",
+      "labs": [
+        35,
+        17
+      ],
+      "reference": "06_Texture_mapping/02_Combined_image_sampler.html",
+      "comparison": "06_textures_color",
+      "common": [
+        "颜色编码是整个数据链路的约定。albedo 通常从 sRGB 解码到线性参与光照，normal/roughness/metallic/AO 是线性数据；最终显示再编码一次。文件扩展名不决定纹理用途。"
+      ],
+      "vk": "对比相同图片的 UNORM 与 SRGB image view/format 路径，shader 参与线性计算后手动显示编码。GPU blit 对 sRGB 格式的颜色处理也应与规范和参考值一致；数值 mip 实验使用 UNORM 以便逐 texel 对照。",
+      "dx": "需要合法的 typeless resource/typed view 组合才能解释同一格式族；本课 sRGB SRV 与普通 UNORM 是不同读取约定。sRGB mip 的 CPU 参考先解码、平均再编码，不能直接平均已编码 RGB；alpha 仍是线性数据。",
+      "nv": "框架的 UI 显示与场景输出可能各有编码假设。比对时先固定目标格式和最终编码，避免场景先 gamma、UI 又 gamma。",
+      "task": "给粗糙度贴图使用 sRGB 读取，能否靠 normalize 或调曝光恢复正确粗糙度？",
+      "answer": "不能。输入标量被非线性改写，曝光只改变输出，不能还原材质参数。先纠正数据格式与用途。",
+      "error": "把所有 PNG 都当颜色、对 HDR 中间结果提前 tone-map，或最终重复编码，会让跨 API 亮度比较失去意义。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "struct GpuTexture",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "struct GpuTexture",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "albedo",
+          "SRGB 解码",
+          "SRGB SRV 解码",
+          "在线性空间光照"
+        ],
+        [
+          "数据贴图",
+          "UNORM/float 线性",
+          "UNORM/float 线性",
+          "normal/MR/AO 不做颜色 gamma"
+        ],
+        [
+          "mip 颜色",
+          "按格式正确处理",
+          "sRGB CPU 先解码再编码",
+          "alpha 不跟 RGB 做同一 gamma"
+        ]
+      ]
+    },
+    {
+      "slug": "39_depth_formats",
+      "title": "深度格式、用途与样本支持",
+      "labs": [
+        46
+      ],
+      "reference": "07_Depth_buffering.html",
+      "comparison": "07_targets_depth_msaa",
+      "common": [
+        "深度数据与颜色一样需要正确格式、使用方式和支持查询。选择 D32 并不是保证所有其他深度/模板方案都可用；加入模板或 MSAA 后要重新检查相关条件。"
+      ],
+      "vk": "查询 D32、D24S8、D16 的 optimal tiling features，检查 DEPTH_STENCIL_ATTACHMENT。view 的 aspect 要与实际使用一致；若包含 stencil，不能无条件只按纯 depth 格式处理所有布局与 view。",
+      "dx": "FORMAT_SUPPORT 的 depth-stencil 支持与 MULTISAMPLE_QUALITY_LEVELS 分别查询。DSV 的格式/维度和 PSO 的 DSVFormat、sample count 要一致，resource flags 还需允许深度用途。",
+      "nv": "RenderTarget::CreateInfo 中 depthFormat 也是明确需求。框架替你分配附件，不代表任意格式和 sample count 组合都成立。",
+      "task": "为颜色和深度选择共同支持的样本数，写出如何取合法交集。",
+      "answer": "Vulkan 检查颜色/深度 sample flags 的交集并结合实际格式；DX12 分别查询对应格式的指定样本数，只有两者支持才能组合。",
+      "error": "颜色支持 4x、深度仅单样本，却仍创建一个 MSAA pipeline，是目标一致性问题而不是光照公式问题。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "depth format=",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "depth format=",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "深度支持",
+          "format features 查询",
+          "FORMAT_SUPPORT 查询",
+          "用途成立后才选择格式"
+        ],
+        [
+          "模板条件",
+          "aspect 与格式一致",
+          "DSV 格式与资源一致",
+          "纯 depth 与 depth/stencil 不混同"
+        ],
+        [
+          "多样本交集",
+          "颜色/深度都支持",
+          "两种格式 quality>0",
+          "pipeline/PSO 附件同时匹配"
+        ]
+      ]
+    },
+    {
+      "slug": "40_depth_test",
+      "title": "遮挡、清除、比较与写入",
+      "labs": [
+        7
+      ],
+      "reference": "07_Depth_buffering.html",
+      "comparison": "07_targets_depth_msaa",
+      "common": [
+        "深度正确需要存储、测试启用、比较函数、写入策略和清除值同时匹配投影。当前普通 0..1 深度使用 clear=1、LESS；reversed-Z 则要一起改变整套约定，不能只换一个比较枚举。"
+      ],
+      "vk": "深度附件转到合适布局，早/晚深度阶段的写访问与后续用途建立依赖。实例化场景帮助观察 draw 顺序与几何遮挡分工；深度附件不由 vertex buffer 自动产生。",
+      "dx": "PSO DepthEnable/DepthWriteMask/DepthFunc 配合 DSV 与 ClearDepthStencilView。关闭写但保留测可以服务某些透明路径，却不适合不加区分地替换所有不透明绘制。",
+      "nv": "视口 target 的 depth 与颜色尺寸共同变化。UI 能显示纹理不证明场景内部深度状态正确，应查看离屏 depth 或对应事件。",
+      "task": "固定几何和相机，只把 clear 改为零而继续 LESS，预测结果。",
+      "answer": "大部分普通非负深度不小于零，会被拒绝。若要反向深度，应连同投影、比较和其他深度公式一起设计。",
+      "error": "前一遍关闭 depth write 后未恢复，或忘记每帧清除，可能让问题随帧累积，看起来像随机闪烁。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/native_app.hpp",
+          "anchor": "VkRenderingAttachmentInfo depth",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "pso.DepthStencilState",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "普通投影",
+          "0..1 深度",
+          "0..1 深度",
+          "当前 clear=1 / LESS"
+        ],
+        [
+          "写入与测试",
+          "独立 depthWrite/test",
+          "独立 write mask / enable",
+          "保留测试不等于会写深度"
+        ],
+        [
+          "历史清理",
+          "每帧初始化 depth",
+          "ClearDepthStencilView",
+          "不依赖上一帧残留"
+        ]
+      ]
+    },
+    {
+      "slug": "41_obj_models",
+      "title": "OBJ 导入、索引与几何归一化",
+      "labs": [
+        21
+      ],
+      "reference": "08_Loading_models.html",
+      "comparison": "11_models_animation",
+      "common": [
+        "模型文件解析与 GPU 后端是两层。CPU 解析得到 mesh、indices、normal、UV，后端再上传和绘制。本实验使用课程自制 vase.obj，三角化后合并几何并核对顶点/索引数量。"
+      ],
+      "vk": "staticAsset 将节点变换应用到顶点，以正确法线矩阵变换 normal，再把 Geometry 交给 SceneVk。原生缓冲、布局和索引路径可复用；模型不需要一套全新的绘图 API。",
+      "dx": "同一 Geometry 进入 DxScene 的 VBV/IBV 与 input layout。归一化 bbox 便于固定相机观察，但它改变资产单位，不能在工程中无记录地用于物理、灯光或动画尺度。",
+      "nv": "资产解析、VMA 上传、descriptor 和 scene hierarchy 应分别设计。本轮框架路线保留六个基础例，提供接入点对照，不把原生 Assimp 导入算成已完成的 nvpro 模型播放器。",
+      "task": "只加载模型位置并用固定色画出，再分阶段恢复 normal/UV，说明这种顺序的作用。",
+      "answer": "它把解析/索引/相机问题与材质问题分开。轮廓都不正确时，先不要调灯光或寻找缺失贴图。",
+      "error": "只取第一个 mesh、遗漏索引 base 或使用不匹配的 stride，会使模型残缺、错连或重叠。",
+      "sources": {
+        "vk": {
+          "file": "shared/advanced.hpp",
+          "anchor": "inline Geometry staticAsset",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "shared/advanced.hpp",
+          "anchor": "inline Geometry staticAsset",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "静态导入",
+          "Assimp → Geometry",
+          "同一 CPU Geometry",
+          "文件解析与 GPU 上传分开"
+        ],
+        [
+          "合并索引",
+          "局部索引 + 顶点 base",
+          "相同规则",
+          "避免第二 mesh 错连"
+        ],
+        [
+          "尺度处理",
+          "bbox 中心/尺度归一化",
+          "相同处理",
+          "记录变更，不能无声改变工程单位"
+        ]
+      ]
+    },
+    {
+      "slug": "42_gltf_nodes",
+      "title": "glTF 节点层级、法线与静态姿态",
+      "labs": [
+        22
+      ],
+      "reference": "08_Loading_models.html",
+      "comparison": "11_models_animation",
+      "common": [
+        "glTF 将 node、mesh、material、image 和 skin 分开。局部坐标要经父子变换累计到场景空间；同一个 mesh 还可能被多个节点引用。成功解码文件不等于完整重现场景。"
+      ],
+      "vk": "本实验递归 parent*local，变换每个节点引用的网格并合并索引，实际绘制 robot.gltf。normal 使用逆转置，随后 bbox 归一化。本实现展平静态姿态，不是完整材质/skin/动画系统。",
+      "dx": "使用相同 CPU 场景结果，后端差异集中于资源与管线。这里使用教学纹理/光照，不宣称完整还原 glTF 的每个材质扩展、透明模式或动画插值。",
+      "nv": "可将共享 CPU 层接到 ResourceAllocator/StagingUploader，但还需按 node/material 组织 GPU 对象和 draw。不要直接把 OpenGL ImportedMesh 类换名前缀。",
+      "task": "给 glTF 的父节点增加平移，预测所有后代是否一起移动，并说明法线如何处理非均匀缩放。",
+      "answer": "后代 global 包含父变换，因此一起移动；法线使用线性部分的逆转置。单纯把 mesh 放原点会破坏层级关系。",
+      "error": "重复应用 meshGlobal、忽略父变换或把 inverse bind pose 当节点当前姿态，是不同问题，先用无动画静态场景隔离。",
+      "sources": {
+        "vk": {
+          "file": "shared/advanced.hpp",
+          "anchor": "inline Geometry staticAsset",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "shared/advanced.hpp",
+          "anchor": "inline Geometry staticAsset",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "节点组合",
+          "global=parent*local",
+          "相同 CPU 节点算法",
+          "变换只应用一次"
+        ],
+        [
+          "法线",
+          "逆转置并归一化",
+          "相同 CPU 处理",
+          "非均匀缩放下保持垂直关系"
+        ],
+        [
+          "实现范围",
+          "静态展平，不含完整 skin",
+          "静态展平，不含完整 skin",
+          "材质/动画扩展另行验收"
+        ]
+      ]
+    },
+    {
+      "slug": "43_mip_generation",
+      "title": "GPU Mip 链生成与逐级验收",
+      "labs": [
+        18
+      ],
+      "reference": "09_Generating_Mipmaps.html",
+      "comparison": "06_textures_color",
+      "common": [
+        "mip 链是预先缩小的图像集合，层数通常到 1×1。资源级数、上传内容、每级状态、view 和 sampler LOD 必须一起更新。本课不仅创建多个级别，还逐 texel 读回并与 CPU 参考比较。"
+      ],
+      "vk": "查询格式的 blit/filter 支持，上传 level 0，逐级 transition 和 linear blit，再把所有级别转成 shader-read。每次只读取已经完成的前一级，最后复制每级结果用于校验。数值参考使用线性 UNORM。",
+      "dx": "GPU 计算使用 SRV 指前一级、UAV 指后一级，8×8 工作组平均四个 texel。每级 descriptor 与 subresource state 分开管理，最后转可采样。sRGB 材质链另用正确线性平均的 CPU 路径，未把编码值简单平均冒充正确颜色 mip。",
+      "nv": "框架可能提供更多图像辅助，但应用必须确定支持格式、子资源范围与生成依赖。native mip helper 的规则可直接用于对照分析。",
+      "task": "把基图改为棋盘或分区整数颜色，为什么比任意照片更适合作为 mip 数值验收？",
+      "answer": "可手算局部平均，并发现级数、偏移或尾部错误。图像“看着模糊了”不足以证明每一级都正确。",
+      "error": "只设置 sampler 最大 LOD 却没有生成内容，或用全资源错误 before state 覆盖各级不同状态，会产生未初始化读取。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "vkCmdBlitImage",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/shaders/lab.hlsl",
+          "anchor": "void MipMain",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "默认基图",
+          "64x64 线性 checker",
+          "相同输入",
+          "7 级到 1x1"
+        ],
+        [
+          "GPU 生成",
+          "逐级 linear blit",
+          "SRV→UAV 8x8 compute",
+          "每级写后下一层读有依赖"
+        ],
+        [
+          "验收",
+          "每 texel 对 CPU 参考",
+          "每 texel 对 CPU 参考",
+          "允许有限量化差异，不只看末级"
+        ]
+      ]
+    },
+    {
+      "slug": "44_mip_sampling",
+      "title": "LOD、子资源视图与三线性过滤",
+      "labs": [
+        19,
+        41
+      ],
+      "reference": "09_Generating_Mipmaps.html",
+      "comparison": "06_textures_color",
+      "common": [
+        "生成 mip 与选择 mip 是两件事。采样器根据梯度/LOD 及 view 范围决定读取，三线性过滤在相邻级别之间插值。最高级别不等于一定被使用，必须选择能激活缩小采样的场景。"
+      ],
+      "vk": "ImageView 覆盖完整级数、sampler mipmapMode=LINEAR 且 maxLod 合法。另一个实验只暴露最后一级 view，明确展示 view 范围改变而资源存储不变。",
+      "dx": "SRV 的 MostDetailedMip/MipLevels 与 static sampler 的 LOD 范围共同生效。descriptor 不生成图像；正确 GPU mip 链的上传/生成结果仍需先验证。",
+      "nv": "ImGui 展示纹理时的采样方式不等于三维场景的导数和 LOD；要在 SceneVk 材质 draw 中检查实际 shader 读取。",
+      "task": "固定相机观察远处小物体，比较单级、完整 mip 与末级 view，并记录哪些差异来自范围、哪些来自过滤。",
+      "answer": "末级 view 强制只见低分辨率平均图；完整 mip 按采样尺度选择；单级可能高频闪烁。不能把三者都解释为“纹理没加载”。",
+      "error": "UV 从不缩小或 sampler 仍限制在 level 0 时，增加 mip 不一定有可见效果；实验输入要能触发目标机制。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "VkSamplerCreateInfo si",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void attach(",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "View 范围",
+          "完整 mip 或限定末级",
+          "完整 SRV 或末级 SRV",
+          "相对 LOD 在可见级数内"
+        ],
+        [
+          "过滤",
+          "LINEAR mipmap mode",
+          "MIN_MAG_MIP_LINEAR",
+          "不会补出未生成级别"
+        ],
+        [
+          "可见输入",
+          "缩小采样/末级 view",
+          "相同实验",
+          "区分范围限制与过滤效果"
+        ]
+      ]
+    },
+    {
+      "slug": "45_msaa",
+      "title": "多重采样、匹配附件与 Resolve",
+      "labs": [
+        20
+      ],
+      "reference": "10_Multisampling.html",
+      "comparison": "07_targets_depth_msaa",
+      "common": [
+        "MSAA 增加覆盖采样而非把全部 shader 计算自动变成更高分辨率。先检查颜色/深度格式共同支持，再创建匹配目标与管线，最终 resolve 到可呈现的单样本图像。"
+      ],
+      "vk": "多样本颜色和深度为 4x，graphics pipeline sample count 同样 4x；dynamic rendering 的 resolve attachment 写单样本交换链目标。输入与输出的用途和布局均要正确。",
+      "dx": "PSO SampleDesc、深度与颜色目标保持一致，ResolveSubresource 前把 MSAA 源转 RESOLVE_SOURCE、back buffer 转 RESOLVE_DEST，再恢复各自后续状态。普通 CopyResource 不能替代多样本 resolve。",
+      "nv": "RenderTarget 的样本管理需与自定义 pipeline 和最终 UI 可采样目标匹配。框架对照着重列出这些依赖，不声称现有 nv03 默认已经开启 4x。",
+      "task": "在斜边放大观察单样本与 4x，同时说明为什么纹理莫尔纹仍可能存在。",
+      "answer": "MSAA 主要改善几何覆盖边缘；纹理缩小和 shader 高频还需要 mip、过滤或其他策略。不要把所有走样归为同一个环节。",
+      "error": "颜色 4x、深度 1x、PSO/pipeline 1x 的任一混搭都不满足目标契约，先修正一致性再讨论视觉效果。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/native_app.hpp",
+          "anchor": "VkRenderingAttachmentInfo color",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "ResolveSubresource",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "样本数",
+          "4x color/depth/pipeline",
+          "4x color/depth/PSO",
+          "三者必须一致"
+        ],
+        [
+          "目标转换",
+          "dynamic resolve 到单样本",
+          "RESOLVE_SOURCE→DEST",
+          "不是普通 image/resource copy"
+        ],
+        [
+          "质量边界",
+          "覆盖边缘抗锯齿",
+          "覆盖边缘抗锯齿",
+          "不自动消除纹理/材质高频"
+        ]
+      ]
+    },
+    {
+      "slug": "46_compute",
+      "title": "计算管线、线程组与全局索引",
+      "labs": [
+        8
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "10_compute_readback",
+      "common": [
+        "compute 不经过光栅化，可处理缓冲或图像。先计算 local size×group count 的覆盖范围，再确认每个 invocation 负责哪个元素。输出证据应是完整数值验证，不是仅打印 GPU 名。"
+      ],
+      "vk": "compute pipeline 使用独立 shader stage，复用 descriptor/pipeline layout 概念。原课以 64×4 组计算 256 项 i*i+1；buffer 写入经 host 可见依赖并等待完成后读取。",
+      "dx": "compute PSO、root signature 和 UAV 组成同类路径，Dispatch 参数是工作组数量，不是总线程数。DEFAULT 输出再复制到 READBACK，Map 不会自动等待 GPU。",
+      "nv": "nv05 由 Context 提供设备/队列并复用 computeSquares。它不创建普通窗口循环，成功结果在运行输出中查看。",
+      "task": "为什么 shader 用组内索引而不是全局索引，会让四组写到同一段数据？",
+      "answer": "每组的组内索引都从零开始；必须组合 group 与 local，或使用全局内建，才能覆盖完整数组。",
+      "error": "把 dispatch(256,1,1) 当成 256 个线程，在 local size=64 时实际发出 16384 个调用，若无边界检查会越界。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "inline void computeSquares",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "inline void dxCompute",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "工作范围",
+          "64 线程 × 4 组",
+          "相同 64×4",
+          "256 项公式逐项验证"
+        ],
+        [
+          "可写接口",
+          "storage buffer descriptor",
+          "root UAV",
+          "不走光栅化阶段"
+        ],
+        [
+          "读回完成",
+          "host-read 依赖 + fence",
+          "copy READBACK + fence",
+          "Map 不触发自动 GPU 等待"
+        ]
+      ]
+    },
+    {
+      "slug": "47_storage_tail",
+      "title": "Storage/UAV、边界与 257 项实验",
+      "labs": [
+        28
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "10_compute_readback",
+      "common": [
+        "非整组元素数是比整齐 256 更有效的范围测试。N=257、local=64 需要五组，最后一组只有一个有效元素。容量、组数、shader guard 和 CPU 检查必须共同改变。"
+      ],
+      "vk": "storage buffer range 覆盖足够字节，shader 以 i<count 防止尾部写越界。host 用向上取整组数并逐项核对 affine 公式。buffer 的 usage、descriptor 类型与 shader 声明必须相容。",
+      "dx": "RWStructuredBuffer<uint> 的结构元素大小与资源容量匹配；root UAV 选择地址但不会携带自动上界保护。即使资源足够大，逻辑上未写的元素也不能当成正确结果。",
+      "nv": "Context 不改变边界算法；将相同 count/dispatch 约定带入框架路径即可比较初始化层差异。",
+      "task": "只把 CPU 验证改成 257 而仍分配 256 项，会产生什么问题？",
+      "answer": "可能读取越界；只扩容量却不扩组数则尾项未写。正确验收不能用忽略最后一项来让测试通过。",
+      "error": "首元素正确或进程未崩溃不证明范围正确。保留全量参考函数和错误返回值，让脚本能识别失败。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void record(",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void record(",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "尾部范围",
+          "ceil(257/64)=5 组",
+          "相同 5 组",
+          "最后仅一项有效"
+        ],
+        [
+          "安全条件",
+          "i<count guard",
+          "i<count guard",
+          "容量、组数、guard、CPU 检查一起更新"
+        ],
+        [
+          "读回证据",
+          "全部 257 项",
+          "全部 257 项",
+          "首元素正确不足以证明覆盖"
+        ]
+      ]
+    },
+    {
+      "slug": "48_compute_graphics",
+      "title": "计算生成顶点并直接绘制",
+      "labs": [
+        29
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "10_compute_readback",
+      "common": [
+        "96 个粒子各生成三个顶点，GPU 计算写入后直接作为 vertex input 读取。位置不经 CPU 读回再上传，这是真正的 compute→graphics 数据链路；CPU 只提供时间和数量。"
+      ],
+      "vk": "同一 buffer 具有 STORAGE_BUFFER 和 VERTEX_BUFFER usage。计算写入通过 compute-storage-write→vertex-attribute-read 依赖连接绘制。scalar 形式的 storage Vertex 与输入 32 字节 stride 一致，避免 std430 vec3 对齐误配。 直接裁剪坐标在绘制的 Frame 里显式翻转 Y，使数学粒子位置与 DX12 视口映射一致；GPU 生成的数据仍保持同一布局。",
+      "dx": "同一 DEFAULT resource 允许 UAV，计算后转 VERTEX_AND_CONSTANT_BUFFER，VBV 直接引用其地址。计算提交在窗口 renderer 重置 allocator 前完成，当前路径显式等待，未宣称已做异步 compute 重叠。",
+      "nv": "框架可提供分配和调度，但必须与自定义 vertex storage 的使用期协调。不能只把 compute 插入 onRender 而不核对命令与资源复用。",
+      "task": "把粒子数改为 97，需要检查哪些容量与 dispatch/guard？",
+      "answer": "顶点数变为 291，GPU buffer 与 CPU 侧 draw count 元数据都要扩大；组数向上取整，shader 以 count*3 为上界。位置仍由 GPU 生成。",
+      "error": "buffer 转为可绘制用途并不意味着内存布局自动相同；vec3 填充与结构化 stride 错误会使粒子变成刺状几何。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "struct ParticleKernel",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "struct ParticleKernel",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "GPU 输出布局",
+          "8 scalar float = 32 bytes",
+          "Structured Vertex = 32 bytes",
+          "storage 与 vertex stride 一致"
+        ],
+        [
+          "粒子规模",
+          "96×3=288 顶点 / 5 组",
+          "相同数量",
+          "GPU 生成，CPU 不重传位置"
+        ],
+        [
+          "消费依赖",
+          "compute write→vertex read",
+          "UAV→vertex resource state",
+          "当前等待路径不冒充 async compute"
+        ]
+      ]
+    },
+    {
+      "slug": "49_group_shared",
+      "title": "组共享内存、归约与屏障一致性",
+      "labs": [
+        30
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "10_compute_readback",
+      "common": [
+        "将 1..257 的值按 64 线程一组求和，各组输出一个部分和，CPU 最后累计并核对 257*258/2。所有 invocation 都必须到达组屏障，包括尾部无有效元素的 lane；无效 lane 写零参与归约。"
+      ],
+      "vk": "shared 数组在组内可见，barrier 保证迭代间写入/读取顺序。不同工作组没有可直接互相等待的全局 barrier，本课把跨组聚合留到独立阶段。",
+      "dx": "groupshared 与 GroupMemoryBarrierWithGroupSync 承担相同算法职责。线程在屏障前非一致 return 可能造成未定义结果或卡住，因此边界检查只改变贡献值，不让部分 lane 跳过同步。",
+      "nv": "框架不改变工作组执行语义；使用原生或 nvpro 都要满足相同的一致控制流要求。",
+      "task": "若尾部 lane 在第一个 barrier 前直接 return，为什么不是一种安全优化？",
+      "answer": "组中部分线程仍在等待完整同步，屏障的控制流条件不再成立。应让它们贡献零并继续参与屏障。",
+      "error": "将组内同步误当成全 dispatch 的同步，会导致多组数据依赖错误。需要拆 dispatch 并建立全局资源依赖。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/shaders/lab.comp",
+          "anchor": "void main()",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/shaders/lab.hlsl",
+          "anchor": "void ComputeMain",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "组共享",
+          "shared[64]",
+          "groupshared[64]",
+          "每组局部存储独立"
+        ],
+        [
+          "尾部贡献",
+          "无效 lane 写零继续同步",
+          "相同策略",
+          "不能提前 return 绕过组 barrier"
+        ],
+        [
+          "归约结果",
+          "5 个部分和 → 33153",
+          "相同数学结果",
+          "组内同步不等于全 dispatch 同步"
+        ]
+      ]
+    },
+    {
+      "slug": "50_timeline",
+      "title": "Timeline、Fence 计数与生产消费链",
+      "labs": [
+        26
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "08_synchronization",
+      "common": [
+        "本章是官方 compute 后的工程扩展。用单调完成值表示多个进度点，比把所有工作压进一个“是否完成”的布尔状态更便于资源回收与多提交协调。数值必须对应真实 GPU 顺序。"
+      ],
+      "vk": "设备额外查询并启用 timelineSemaphore。第一次提交 signal=1，第二次 wait=1/signal=2，host 等到 2 并读取 counter。使用 submit2 的阶段范围明确，不把 timeline semaphore 当作交换链 binary semaphore 的直接替代。",
+      "dx": "ID3D12Fence 本来就是计数模型，queue Signal/Wait 建立生产消费，CPU 再等待完成值。相同队列链路用于验证语义；跨队列还需合法 resource state 与访问依赖，不声称此例展示独立引擎并行加速。",
+      "nv": "Context 特性需求需要包含所用 timeline 能力；Application 自身的帧调度与用户完成值应有明确边界。",
+      "task": "说明 host 等 counter=2 与 GPU queue 等 counter=1 的区别。",
+      "answer": "前者阻塞 CPU 到某进度，后者让 GPU 工作在依赖成立后执行，CPU 可以继续录制其他工作。等待对象相同不意味着阻塞同一执行主体。",
+      "error": "CPU 提前 signal 一个并非真实 GPU 完成的值来“解锁”，会让后续生命周期证明失效。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void timelineCounter",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "Verified queue producer",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "GPU 链",
+          "signal1 → wait1/signal2",
+          "queue Signal/Wait → 2",
+          "值对应真实执行进度"
+        ],
+        [
+          "CPU 等待",
+          "WaitSemaphores(value=2)",
+          "fence/event 等 2",
+          "与 GPU 等待不是同一阻塞主体"
+        ],
+        [
+          "范围边界",
+          "同队列语义实验",
+          "同队列语义实验",
+          "不作为独立硬件引擎并行证据"
+        ]
+      ]
+    },
+    {
+      "slug": "51_indirect",
+      "title": "间接参数、命令签名与可扩展提交",
+      "labs": [
+        27
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "09_commands_frames",
+      "common": [
+        "indirect 将 draw 参数放在 GPU 可访问缓冲，调用命令读取它。它与“顶点来自 buffer”不同：这里缓冲控制绘制数量和起始位置。当前参数由 CPU 填充；GPU 剔除和生成命令是后续扩展，不冒充已完成。"
+      ],
+      "vk": "VkDrawIndirectCommand 的四个 uint 字段与 stride 匹配，缓冲包含 INDIRECT_BUFFER usage，vkCmdDrawIndirect 读取参数。若以后 compute 写参数，需要 compute-write→draw-indirect-read 的依赖。",
+      "dx": "D3D12_DRAW_ARGUMENTS 配合 command signature 的 DRAW 类型与 ByteStride，再由 ExecuteIndirect 解释。signature 可声明其他绑定变更，但本例只控制 draw 参数，不改 root arguments。",
+      "nv": "相同 SceneVk 可以接入 indirectArguments，框架仍负责外围目标/帧循环。不能只创建一个 indirect buffer 而继续走普通 Draw 就算完成该特性。",
+      "task": "把 vertex count 改为零，预测为何应该没有三角形，并说明它与缓冲为空的区别。",
+      "answer": "合法参数要求零工作，与资源或绑定无效不是一回事。恢复 count 后应重新出现；错误句柄不应该被当作“禁用绘制”手段。",
+      "error": "结构字节布局、offset 对齐或 command signature stride 错误，会让 GPU 解释错误命令。先核对参数字节，再考虑 GPU-driven 调度。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/common/scene_vk.hpp",
+          "anchor": "vkCmdDrawIndirect",
+          "count": 44,
+          "lead": 8
+        },
+        "dx": {
+          "file": "DirectX12/common/dx12_course.hpp",
+          "anchor": "ExecuteIndirect",
+          "count": 44,
+          "lead": 8
+        }
+      },
+      "contracts": [
+        [
+          "间接字节",
+          "DrawIndirectCommand 4 uint",
+          "DRAW_ARGUMENTS 4 uint",
+          "16-byte 参数布局"
+        ],
+        [
+          "解释接口",
+          "vkCmdDrawIndirect",
+          "command signature + ExecuteIndirect",
+          "stride/type 与资源内容一致"
+        ],
+        [
+          "生产者范围",
+          "当前 CPU 写参数",
+          "当前 CPU 写参数",
+          "GPU 剔除/命令生成尚未接入"
+        ]
+      ]
+    },
+    {
+      "slug": "52_camera_material",
+      "title": "相机、法线与直接光 PBR 对齐",
+      "labs": [
+        23,
+        9
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "12_lighting_pbr_ibl",
+      "common": [
+        "本章是基础教程之后的材质/场景扩展。轨道相机按时间绕模型，投影根据当前 aspect 更新；PBR 对照则固定几何、灯光、metal/roughness 和显示编码。先统一输入，再比较 API 差异。"
+      ],
+      "vk": "共享右手世界与 0..1 深度，正高度 viewport 下投影 Y 翻转。SceneVk 支持按实际尺寸提供相机矩阵。PBR shader 采用 GGX/Schlick 直接光模型；当前显式后端没有完整 IBL 预计算或动画材质系统。",
+      "dx": "相同 GLM 列主序与 HLSL mul(M,v) 连接；当前场景的简化法线变换只用于旋转/均匀缩放。导入静态层级时已在 CPU 用逆转置处理节点法线；新增非均匀模型变换仍需正确 shader 约定。",
+      "nv": "nv06 的 roughness UI 与原生 PBR 共享 shader，但视口尺寸/UI 成本不同。对照实验先固定倍率和目标大小。",
+      "task": "先输出 N，再输出 NoL，最后加入 D/G/F，说明这样如何定位亮度不一致。",
+      "answer": "法线不同先查空间与布局；法线一致而高光形状不同查 roughness/BRDF；整体比例不同查灯光、衰减、tone mapping/gamma。不要靠任意曝光隐藏输入错误。",
+      "error": "把现有截图当逐像素回归或把轨道相机称为完整自由相机，都会夸大当前实现。实验输入和交互范围要写清楚。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "scene.frameProvider",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "scene.frameProvider",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "相机",
+          "按实际 aspect 提供 Frame",
+          "相同右手数学",
+          "Vulkan 投影 Y 转换明确"
+        ],
+        [
+          "PBR 输入",
+          "metal/roughness / direct lights",
+          "相同共享参数",
+          "先统一输入再比较公式"
+        ],
+        [
+          "未完成部分",
+          "完整 IBL/材质/skin 待扩展",
+          "相同范围",
+          "不靠最终图模糊实现边界"
+        ]
+      ]
+    },
+    {
+      "slug": "53_measure_cache",
+      "title": "GPU 时间戳、管线缓存与测量边界",
+      "labs": [
+        25,
+        32
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "14_debug_performance",
+      "common": [
+        "这是工程扩展。时间戳观察 GPU 某段工作，CPU 调用耗时观察录制/提交；二者不能互相替代。缓存实验验证序列化和重建后结果一致，不以一次运行就宣称某 API 更快。"
+      ],
+      "vk": "timestampValidBits 与 timestampPeriod 决定计时解释；本例记录填充操作前后时间并处理有效位。pipeline cache 在同一设备/驱动条件下保存并重建 compute pipeline，实际执行后再核对数值。",
+      "dx": "queue timestamp frequency 将 query ticks 转成时间，结果经 ResolveQueryData/readback 等待后读取。缓存 PSO 重建复用完全相同的编译字节码；Debug 重编译可能引入变化，不能仅凭源码相同断言 cache 一定兼容。",
+      "nv": "UI、离屏与框架调度应从场景 pass 测量中区分。工具抓帧的额外开销也不等于发布版正常帧成本。",
+      "task": "列出一个公平跨 API 性能实验至少需要固定的六项条件。",
+      "answer": "工作量、分辨率、shader/材质、场景/相机、采样/呈现策略、构建配置；还应预热、重复采样并报告 CPU/GPU/整帧时间及波动。",
+      "error": "把 Debug smoke 的总秒数、垂直同步限制的 FPS 或一次最小值当成 API 性能排名，均缺少可比前提。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "void timestamps",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "void timestamps",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "计时单位",
+          "有效 bits + period",
+          "ticks / queue frequency",
+          "分别解释 GPU 与 CPU 耗时"
+        ],
+        [
+          "缓存输入",
+          "相容 pipeline 与 cache bytes",
+          "相同 DXBC 与 PSO 描述",
+          "不是所有版本/驱动可通用数据"
+        ],
+        [
+          "结论范围",
+          "单操作/重建验证",
+          "单操作/重建验证",
+          "不是跨 API benchmark"
+        ]
+      ]
+    },
+    {
+      "slug": "54_capstone",
+      "title": "综合场景、验收与工程化边界",
+      "labs": [
+        36,
+        54
+      ],
+      "reference": "11_Compute_Shader.html",
+      "comparison": "15_framework_architecture",
+      "common": [
+        "毕业任务分为可见综合场景和自动资源验收。前者组合静态 glTF 节点、图片、颜色链路、mip、轨道相机和 4x MSAA；后者检查能力、设备拷贝、所有 mip texel 和两槽提交数据。两种证据覆盖不同层次。"
+      ],
+      "vk": "综合例通过 SceneVk 的显式配置连接资产、纹理与目标，保持可追踪资源拥有者。resize 重建时配置回调重建所需引用。当前窗口仍按帧等待，计算资源环证明两槽原则而非替代完整多帧呈现引擎。",
+      "dx": "同样的 CPU 几何进入独立后端，texture view、MSAA resolve 和 CBV/PSO 使用期由 DX12 规则维护。CPU 生成正确 sRGB mip 与线性 GPU compute mip 是两条明确路径，不能混称同一种算法。",
+      "nv": "作为逐课框架对照，给出 Context/Allocator/Application/RenderTarget 接入责任；六个 nvpro 例仍独立可用。本轮没有将原生 54 个实验重新包装成另一套已完成框架程序。",
+      "task": "选择阴影、IBL 或骨骼动画之一，先写资源表、pass 依赖图、中间调试视图和验收条件，再实现。",
+      "answer": "原生/DX12 当前完成静态模型、mip/MSAA、直接光 PBR 和计算扩展；完整 glTF 材质、skin/动画、IBL、SSAO 等仍需单独工程实现与验证。清楚标记边界比扩大功能名列表更有价值。",
+      "error": "最终图正确不证明所有中间资源、同步和重建组合都正确。保留自动数值检查、图像读回、人工抓帧与功能矩阵四份证据。",
+      "sources": {
+        "vk": {
+          "file": "Vulkan/native/common/advanced_labs.cpp",
+          "anchor": "int graphicsLab",
+          "count": 44,
+          "lead": 0
+        },
+        "dx": {
+          "file": "DirectX12/common/advanced_labs.cpp",
+          "anchor": "int graphicsLab",
+          "count": 44,
+          "lead": 0
+        }
+      },
+      "contracts": [
+        [
+          "可见综合",
+          "静态节点+图片+mip+MSAA",
+          "同类固定输入场景",
+          "检查图像并说明场景范围"
+        ],
+        [
+          "自动验收",
+          "能力/拷贝/mip/两槽",
+          "同类数据闭环",
+          "数值与图像证据分别保留"
+        ],
+        [
+          "工程下一步",
+          "完整材质/skin/IBL/多帧呈现",
+          "相同阶段边界",
+          "先定义资源表与 pass 依赖再扩代码"
+        ]
+      ]
+    }
+  ],
+  "experiments": {
+    "1": {
+      "vk": {
+        "name": "vk01_instance_device",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk01_instance_device"
+      },
+      "dx": {
+        "name": "dx01_device",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx01_device"
+      }
+    },
+    "2": {
+      "vk": {
+        "name": "vk02_swapchain",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk02_swapchain"
+      },
+      "dx": {
+        "name": "dx02_swapchain",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx02_swapchain"
+      }
+    },
+    "3": {
+      "vk": {
+        "name": "vk03_triangle",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk03_triangle"
+      },
+      "dx": {
+        "name": "dx03_triangle",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx03_triangle"
+      }
+    },
+    "4": {
+      "vk": {
+        "name": "vk04_vertex_buffer",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk04_vertex_buffer"
+      },
+      "dx": {
+        "name": "dx04_vertex_buffer",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx04_vertex_buffer"
+      }
+    },
+    "5": {
+      "vk": {
+        "name": "vk05_indexed_uniform",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk05_indexed_uniform"
+      },
+      "dx": {
+        "name": "dx05_indexed_cbv",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx05_indexed_cbv"
+      }
+    },
+    "6": {
+      "vk": {
+        "name": "vk06_texture_descriptor",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk06_texture_descriptor"
+      },
+      "dx": {
+        "name": "dx06_texture_srv",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx06_texture_srv"
+      }
+    },
+    "7": {
+      "vk": {
+        "name": "vk07_depth_instancing",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk07_depth_instancing"
+      },
+      "dx": {
+        "name": "dx07_depth_instancing",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx07_depth_instancing"
+      }
+    },
+    "8": {
+      "vk": {
+        "name": "vk08_compute_readback",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk08_compute_readback"
+      },
+      "dx": {
+        "name": "dx08_compute_uav",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx08_compute_uav"
+      }
+    },
+    "9": {
+      "vk": {
+        "name": "vk09_pbr",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk09_pbr"
+      },
+      "dx": {
+        "name": "dx09_pbr",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx09_pbr"
+      }
+    },
+    "10": {
+      "vk": {
+        "name": "vk10_offscreen",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk10_offscreen"
+      },
+      "dx": {
+        "name": "dx10_offscreen",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx10_offscreen"
+      }
+    },
+    "11": {
+      "vk": {
+        "name": "vk11_capabilities",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk11_capabilities"
+      },
+      "dx": {
+        "name": "dx11_capabilities",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx11_capabilities"
+      }
+    },
+    "12": {
+      "vk": {
+        "name": "vk12_queue_submit",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk12_queue_submit"
+      },
+      "dx": {
+        "name": "dx12_queue_submit",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx12_queue_submit"
+      }
+    },
+    "13": {
+      "vk": {
+        "name": "vk13_staging_copy",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk13_staging_copy"
+      },
+      "dx": {
+        "name": "dx13_staging_copy",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx13_staging_copy"
+      }
+    },
+    "14": {
+      "vk": {
+        "name": "vk14_constant_alignment",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk14_constant_alignment"
+      },
+      "dx": {
+        "name": "dx14_constant_alignment",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx14_constant_alignment"
+      }
+    },
+    "15": {
+      "vk": {
+        "name": "vk15_dynamic_binding",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk15_dynamic_binding"
+      },
+      "dx": {
+        "name": "dx15_dynamic_binding",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx15_dynamic_binding"
+      }
+    },
+    "16": {
+      "vk": {
+        "name": "vk16_push_constants",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk16_push_constants"
+      },
+      "dx": {
+        "name": "dx16_push_constants",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx16_push_constants"
+      }
+    },
+    "17": {
+      "vk": {
+        "name": "vk17_image_file",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk17_image_file"
+      },
+      "dx": {
+        "name": "dx17_image_file",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx17_image_file"
+      }
+    },
+    "18": {
+      "vk": {
+        "name": "vk18_mip_chain",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk18_mip_chain"
+      },
+      "dx": {
+        "name": "dx18_mip_chain",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx18_mip_chain"
+      }
+    },
+    "19": {
+      "vk": {
+        "name": "vk19_texture_lod",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk19_texture_lod"
+      },
+      "dx": {
+        "name": "dx19_texture_lod",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx19_texture_lod"
+      }
+    },
+    "20": {
+      "vk": {
+        "name": "vk20_msaa_resolve",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk20_msaa_resolve"
+      },
+      "dx": {
+        "name": "dx20_msaa_resolve",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx20_msaa_resolve"
+      }
+    },
+    "21": {
+      "vk": {
+        "name": "vk21_obj_model",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk21_obj_model"
+      },
+      "dx": {
+        "name": "dx21_obj_model",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx21_obj_model"
+      }
+    },
+    "22": {
+      "vk": {
+        "name": "vk22_gltf_scene",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk22_gltf_scene"
+      },
+      "dx": {
+        "name": "dx22_gltf_scene",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx22_gltf_scene"
+      }
+    },
+    "23": {
+      "vk": {
+        "name": "vk23_orbit_camera",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk23_orbit_camera"
+      },
+      "dx": {
+        "name": "dx23_orbit_camera",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx23_orbit_camera"
+      }
+    },
+    "24": {
+      "vk": {
+        "name": "vk24_frame_ring",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk24_frame_ring"
+      },
+      "dx": {
+        "name": "dx24_frame_ring",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx24_frame_ring"
+      }
+    },
+    "25": {
+      "vk": {
+        "name": "vk25_timestamps",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk25_timestamps"
+      },
+      "dx": {
+        "name": "dx25_timestamps",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx25_timestamps"
+      }
+    },
+    "26": {
+      "vk": {
+        "name": "vk26_timeline_counter",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk26_timeline_counter"
+      },
+      "dx": {
+        "name": "dx26_timeline_counter",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx26_timeline_counter"
+      }
+    },
+    "27": {
+      "vk": {
+        "name": "vk27_indirect_draw",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk27_indirect_draw"
+      },
+      "dx": {
+        "name": "dx27_indirect_draw",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx27_indirect_draw"
+      }
+    },
+    "28": {
+      "vk": {
+        "name": "vk28_compute_tail",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk28_compute_tail"
+      },
+      "dx": {
+        "name": "dx28_compute_tail",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx28_compute_tail"
+      }
+    },
+    "29": {
+      "vk": {
+        "name": "vk29_gpu_particles",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk29_gpu_particles"
+      },
+      "dx": {
+        "name": "dx29_gpu_particles",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx29_gpu_particles"
+      }
+    },
+    "30": {
+      "vk": {
+        "name": "vk30_shared_reduce",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk30_shared_reduce"
+      },
+      "dx": {
+        "name": "dx30_shared_reduce",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx30_shared_reduce"
+      }
+    },
+    "31": {
+      "vk": {
+        "name": "vk31_retire_resources",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk31_retire_resources"
+      },
+      "dx": {
+        "name": "dx31_retire_resources",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx31_retire_resources"
+      }
+    },
+    "32": {
+      "vk": {
+        "name": "vk32_pipeline_cache",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk32_pipeline_cache"
+      },
+      "dx": {
+        "name": "dx32_pipeline_cache",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx32_pipeline_cache"
+      }
+    },
+    "33": {
+      "vk": {
+        "name": "vk33_debug_labels",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk33_debug_labels"
+      },
+      "dx": {
+        "name": "dx33_debug_labels",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx33_debug_labels"
+      }
+    },
+    "34": {
+      "vk": {
+        "name": "vk34_dynamic_scissor",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk34_dynamic_scissor"
+      },
+      "dx": {
+        "name": "dx34_dynamic_scissor",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx34_dynamic_scissor"
+      }
+    },
+    "35": {
+      "vk": {
+        "name": "vk35_srgb_view",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk35_srgb_view"
+      },
+      "dx": {
+        "name": "dx35_srgb_view",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx35_srgb_view"
+      }
+    },
+    "36": {
+      "vk": {
+        "name": "vk36_integration",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk36_integration"
+      },
+      "dx": {
+        "name": "dx36_integration",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx36_integration"
+      }
+    },
+    "37": {
+      "vk": {
+        "name": "vk37_instance_extensions",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk37_instance_extensions"
+      },
+      "dx": {
+        "name": "dx37_instance_extensions",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx37_instance_extensions"
+      }
+    },
+    "38": {
+      "vk": {
+        "name": "vk38_diagnostic_delivery",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk38_diagnostic_delivery"
+      },
+      "dx": {
+        "name": "dx38_diagnostic_delivery",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx38_diagnostic_delivery"
+      }
+    },
+    "39": {
+      "vk": {
+        "name": "vk39_queue_properties",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk39_queue_properties"
+      },
+      "dx": {
+        "name": "dx39_queue_properties",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx39_queue_properties"
+      }
+    },
+    "40": {
+      "vk": {
+        "name": "vk40_surface_support",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk40_surface_support"
+      },
+      "dx": {
+        "name": "dx40_surface_support",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx40_surface_support"
+      }
+    },
+    "41": {
+      "vk": {
+        "name": "vk41_subresource_view",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk41_subresource_view"
+      },
+      "dx": {
+        "name": "dx41_subresource_view",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx41_subresource_view"
+      }
+    },
+    "42": {
+      "vk": {
+        "name": "vk42_shader_inspection",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk42_shader_inspection"
+      },
+      "dx": {
+        "name": "dx42_shader_inspection",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx42_shader_inspection"
+      }
+    },
+    "43": {
+      "vk": {
+        "name": "vk43_color_write_mask",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk43_color_write_mask"
+      },
+      "dx": {
+        "name": "dx43_color_write_mask",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx43_color_write_mask"
+      }
+    },
+    "44": {
+      "vk": {
+        "name": "vk44_command_reuse",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk44_command_reuse"
+      },
+      "dx": {
+        "name": "dx44_command_reuse",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx44_command_reuse"
+      }
+    },
+    "45": {
+      "vk": {
+        "name": "vk45_descriptor_update",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk45_descriptor_update"
+      },
+      "dx": {
+        "name": "dx45_descriptor_update",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx45_descriptor_update"
+      }
+    },
+    "46": {
+      "vk": {
+        "name": "vk46_depth_formats",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk46_depth_formats"
+      },
+      "dx": {
+        "name": "dx46_depth_formats",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx46_depth_formats"
+      }
+    },
+    "47": {
+      "vk": {
+        "name": "vk47_allocation_requirements",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk47_allocation_requirements"
+      },
+      "dx": {
+        "name": "dx47_allocation_requirements",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx47_allocation_requirements"
+      }
+    },
+    "48": {
+      "vk": {
+        "name": "vk48_fence_lifecycle",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk48_fence_lifecycle"
+      },
+      "dx": {
+        "name": "dx48_fence_lifecycle",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx48_fence_lifecycle"
+      }
+    },
+    "49": {
+      "vk": {
+        "name": "vk49_viewport_mapping",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk49_viewport_mapping"
+      },
+      "dx": {
+        "name": "dx49_viewport_mapping",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx49_viewport_mapping"
+      }
+    },
+    "50": {
+      "vk": {
+        "name": "vk50_backface_culling",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk50_backface_culling"
+      },
+      "dx": {
+        "name": "dx50_backface_culling",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx50_backface_culling"
+      }
+    },
+    "51": {
+      "vk": {
+        "name": "vk51_uniform_layout",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk51_uniform_layout"
+      },
+      "dx": {
+        "name": "dx51_uniform_layout",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx51_uniform_layout"
+      }
+    },
+    "52": {
+      "vk": {
+        "name": "vk52_sampler_addressing",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk52_sampler_addressing"
+      },
+      "dx": {
+        "name": "dx52_sampler_addressing",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx52_sampler_addressing"
+      }
+    },
+    "53": {
+      "vk": {
+        "name": "vk53_vertex_layout",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk53_vertex_layout"
+      },
+      "dx": {
+        "name": "dx53_vertex_layout",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx53_vertex_layout"
+      }
+    },
+    "54": {
+      "vk": {
+        "name": "vk54_acceptance_suite",
+        "folder": "Vulkan/native",
+        "path": "Vulkan/native/lessons/vk54_acceptance_suite"
+      },
+      "dx": {
+        "name": "dx54_acceptance_suite",
+        "folder": "DirectX12",
+        "path": "DirectX12/lessons/dx54_acceptance_suite"
+      }
+    }
+  },
+  "sources": {
+    "1": {
+      "vk": {
+        "file": "Vulkan/native/common/native_app.hpp",
+        "anchor": "NativeDevice(GLFWwindow",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "explicit DxDevice",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "2": {
+      "vk": {
+        "file": "Vulkan/native/common/native_app.hpp",
+        "anchor": "void recreate()",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "DxWindow(GLFWwindow",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "3": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "VkGraphicsPipelineCreateInfo gp",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "D3D12_GRAPHICS_PIPELINE_STATE_DESC pso",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "4": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "struct VkBufferResource",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "DxScene(DxDevice",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "5": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "VkDescriptorSetLayoutBinding bindings",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "D3D12_ROOT_PARAMETER params",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "6": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "auto data = checker",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "7": {
+      "vk": {
+        "file": "Vulkan/native/common/native_app.hpp",
+        "anchor": "VkRenderingAttachmentInfo depth",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "pso.DepthStencilState",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "8": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "inline void computeSquares",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "inline void dxCompute",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "9": {
+      "vk": {
+        "file": "Vulkan/common/shaders/scene.frag",
+        "anchor": "vec3 pbr",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/shaders/scene.hlsl",
+        "anchor": "float3 PBR",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "10": {
+      "vk": {
+        "file": "Vulkan/native/common/native_app.hpp",
+        "anchor": "if (mode == 10)",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "if (mode == 10)",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "11": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "capabilities",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "capabilities",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "12": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "int nativeLabMain",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "int dxLabMain",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "13": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void stagingCopy",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void stagingCopy",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "14": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "struct ComputeKernel",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "struct ComputeKernel",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "15": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void record(",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void record(",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "16": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void record(",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void record(",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "17": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "struct GpuTexture",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "struct GpuTexture",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "18": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "vkCmdBlitImage",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/shaders/lab.hlsl",
+        "anchor": "void MipMain",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "19": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "VkSamplerCreateInfo si",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void attach(",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "20": {
+      "vk": {
+        "file": "Vulkan/native/common/native_app.hpp",
+        "anchor": "VkRenderingAttachmentInfo color",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "ResolveSubresource",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "21": {
+      "vk": {
+        "file": "shared/advanced.hpp",
+        "anchor": "inline Geometry staticAsset",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "shared/advanced.hpp",
+        "anchor": "inline Geometry staticAsset",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "22": {
+      "vk": {
+        "file": "shared/advanced.hpp",
+        "anchor": "inline Geometry staticAsset",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "shared/advanced.hpp",
+        "anchor": "inline Geometry staticAsset",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "23": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "scene.frameProvider",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "scene.frameProvider",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "24": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void frameRing",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void frameRing",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "25": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void timestamps",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void timestamps",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "26": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void timelineCounter",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "Verified queue producer",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "27": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "vkCmdDrawIndirect",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "ExecuteIndirect",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "28": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void record(",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void record(",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "29": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "struct ParticleKernel",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "struct ParticleKernel",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "30": {
+      "vk": {
+        "file": "Vulkan/common/shaders/lab.comp",
+        "anchor": "void main()",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/shaders/lab.hlsl",
+        "anchor": "void ComputeMain",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "31": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void stagingCopy",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void stagingCopy",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "32": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "VkPipelineCacheCreateInfo info",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "Verified cached PSO",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "33": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "vkCmdBeginDebugUtilsLabelEXT",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "SetName(L\"Course Graphics Queue\"",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "34": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "halfScissor",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "RSSetScissorRects",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "35": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "struct GpuTexture",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "struct GpuTexture",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "36": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "int graphicsLab",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "int graphicsLab",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "37": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void inspection",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void inspection",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "38": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void inspection",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void inspection",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "39": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "vkGetPhysicalDeviceQueueFamilyProperties",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "GetDesc();",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "40": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void surfaceInspection",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void surfaceInspection",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "41": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void attach(",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "void attach(",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "42": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "Wrong SPIR-V magic",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "D3DReflect",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "43": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "attachment.colorWriteMask",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "RenderTargetWriteMask",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "44": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "void commandReuse",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "allocator/list generations",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "45": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "Updated descriptor points",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "Root UAV replacement",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "46": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "depth format=",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "depth format=",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "47": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "vkGetBufferMemoryRequirements",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "GetResourceAllocationInfo",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "48": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "Initial fence not signaled",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "monotonic fence reuse",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "49": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "VkViewport viewport",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "D3D12_VIEWPORT viewport",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "50": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "raster.cullMode",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "RasterizerState.CullMode",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "51": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "Frame=64",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "Frame=64",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "52": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "addressModeU",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "sampler.AddressU",
+        "count": 44,
+        "lead": 8
+      }
+    },
+    "53": {
+      "vk": {
+        "file": "Vulkan/common/scene_vk.hpp",
+        "anchor": "VkVertexInputBindingDescription bind",
+        "count": 44,
+        "lead": 0
+      },
+      "dx": {
+        "file": "DirectX12/common/dx12_course.hpp",
+        "anchor": "D3D12_INPUT_ELEMENT_DESC elements",
+        "count": 44,
+        "lead": 0
+      }
+    },
+    "54": {
+      "vk": {
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "Completed resource/texture/frame-slot",
+        "count": 44,
+        "lead": 8
+      },
+      "dx": {
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "Completed buffer/texture/frame-slot",
+        "count": 44,
+        "lead": 8
+      }
+    }
+  }
+}

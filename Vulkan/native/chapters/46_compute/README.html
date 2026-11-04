@@ -1,0 +1,94 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 46 课 · 计算管线、线程组与全局索引 · Vulkan 原生</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 46 课 · 计算管线、线程组与全局索引 · Vulkan 原生</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../../docs/compare/10_compute_readback.html">对照精讲</a> · <a href="../45_msaa/README.html">上一课</a> · <a href="../47_storage_tail/README.html">下一课</a></p>
+<h2>本课目标与先修</h2>
+<p>学习目标：解释“计算管线、线程组与全局索引”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
+<h2>为什么需要这一层</h2>
+<p>compute 不经过光栅化，可处理缓冲或图像。先计算 local size×group count 的覆盖范围，再确认每个 invocation 负责哪个元素。输出证据应是完整数值验证，不是仅打印 GPU 名。</p>
+<h2>Vulkan 原生 的对象、参数与执行推导</h2>
+<p>compute pipeline 使用独立 shader stage，复用 descriptor/pipeline layout 概念。原课以 64×4 组计算 256 项 i*i+1；buffer 写入经 host 可见依赖并等待完成后读取。</p>
+<h2>对照 DirectX 12：相同问题的另一种分工</h2>
+<p>compute PSO、root signature 和 UAV 组成同类路径，Dispatch 参数是工作组数量，不是总线程数。DEFAULT 输出再复制到 READBACK，Map 不会自动等待 GPU。</p>
+<h2>关键参数与可检查不变量</h2>
+<div class="table-scroll"><table>
+<tr><td>检查项</td><td>Vulkan 表达</td><td>DX12 表达</td><td>不变量 / 证据</td></tr>
+<tr><td>工作范围</td><td>64 线程 × 4 组</td><td>相同 64×4</td><td>256 项公式逐项验证</td></tr>
+<tr><td>可写接口</td><td>storage buffer descriptor</td><td>root UAV</td><td>不走光栅化阶段</td></tr>
+<tr><td>读回完成</td><td>host-read 依赖 + fence</td><td>copy READBACK + fence</td><td>Map 不触发自动 GPU 等待</td></tr>
+</table></div>
+<p>先为每项指出源码中的创建/绑定位置，以及证明它成立的实际日志、字节或图像。数值中的设备限制以查询为准；固定实验尺寸不当作所有设备的上限。</p>
+<h2>nvpro_core2 框架对照</h2>
+<p>nv05 由 Context 提供设备/队列并复用 computeSquares。它不创建普通窗口循环，成功结果在运行输出中查看。</p>
+<p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>运行与实际检查</h2>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>实际实验</td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
+</table></div>
+<p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
+<pre><code>cmake --preset vulkan-native
+cmake --build --preset vulkan-native-debug --target vk08_compute_readback --parallel 4
+.\Vulkan\native\build\bin\Debug\vk08_compute_readback.exe
+ctest --preset vulkan-native-debug -R &quot;^vk08_compute_readback$&quot; --output-on-failure</code></pre>
+<p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
+<h2>关键实现：从当前源码定位</h2>
+<p>来自 <a href="../../../common/scene_vk.hpp#L466">Vulkan/common/scene_vk.hpp</a>，第 466—509 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>inline void computeSquares(const VkContextRef&amp; c, const std::filesystem::path&amp; shaders) {
+    VkBufferResource storage;
+    storage.init(c, 256 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    VkDescriptorSetLayoutBinding binding{
+        0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
+    VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    li.bindingCount = 1;
+    li.pBindings = &amp;binding;
+    VkDescriptorSetLayout layout;
+    vkCheck(vkCreateDescriptorSetLayout(c.device, &amp;li, nullptr, &amp;layout));
+    VkPipelineLayoutCreateInfo pl{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    pl.setLayoutCount = 1;
+    pl.pSetLayouts = &amp;layout;
+    VkPipelineLayout pipelineLayout;
+    vkCheck(vkCreatePipelineLayout(c.device, &amp;pl, nullptr, &amp;pipelineLayout));
+    VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1};
+    VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    pool.maxSets = 1;
+    pool.poolSizeCount = 1;
+    pool.pPoolSizes = &amp;size;
+    VkDescriptorPool descriptorPool;
+    vkCheck(vkCreateDescriptorPool(c.device, &amp;pool, nullptr, &amp;descriptorPool));
+    VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    ai.descriptorPool = descriptorPool;
+    ai.descriptorSetCount = 1;
+    ai.pSetLayouts = &amp;layout;
+    VkDescriptorSet set;
+    vkCheck(vkAllocateDescriptorSets(c.device, &amp;ai, &amp;set));
+    VkDescriptorBufferInfo bi{storage.buffer, 0, 256 * 4};
+    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    write.dstSet = set;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    write.pBufferInfo = &amp;bi;
+    vkUpdateDescriptorSets(c.device, 1, &amp;write, 0, nullptr);
+    VkShaderModule cs = shaderModule(c.device, shaders / &quot;square.comp.spv&quot;);
+    VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
+    ci.stage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    ci.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    ci.stage.module = cs;
+    ci.stage.pName = &quot;main&quot;;
+    ci.layout = pipelineLayout;
+    VkPipeline pipeline;
+    vkCheck(vkCreateComputePipelines(c.device, {}, 1, &amp;ci, nullptr, &amp;pipeline));</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+<h2>受控修改实验</h2>
+<p>为什么 shader 用组内索引而不是全局索引，会让四组写到同一段数据？</p>
+<p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>
+<h3>参考推导与通过标准</h3>
+<p>每组的组内索引都从零开始；必须组合 group 与 local，或使用全局内建，才能覆盖完整数组。</p>
+<h2>常见失败与排查顺序</h2>
+<p>把 dispatch(256,1,1) 当成 256 个线程，在 local size=64 时实际发出 16384 个调用，若无边界检查会越界。</p>
+<p>先看第一条错误和当前执行路径，再看实际数据/绑定，最后看 shader 与画面。需要 GPU 证据时抓取正常交互帧；仅四帧的 smoke 适合自动检查，不适合手动抓帧。</p>
+<h2>自测与本课交付</h2>
+<p>能否不看源码回答：为什么 shader 用组内索引而不是全局索引，会让四组写到同一段数据？</p>
+<p>提交一份简短记录：输入与假设、唯一修改、预期、实际证据、原因、是否恢复基线。如果只能复述函数名而说不清何时允许访问/释放，先回到本课的数据流。</p>
+<h2>官方阅读位置与当前工程差异</h2>
+<p><a href="https://docs.vulkan.net.cn/tutorial/latest/11_Compute_Shader.html">指定 Vulkan 教程对应位置</a>。DX12 路线按同一概念顺序建立映射，其对象与约束以 Microsoft 文档和本后端代码为准。49—54 课包含在基础/compute 之后加入的工程扩展。</p>
+<p><a href="../../../../docs/REFERENCES.html">版本与资料说明</a> · <a href="../../../../docs/DEBUGGING.html">调试</a> · <a href="../../../../docs/FEATURE_MATRIX.html">功能完成度</a></p></main></html>

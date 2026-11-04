@@ -43,3 +43,57 @@ function(course_dependencies)
             CACHE INTERNAL "")
     endif()
 endfunction()
+
+# Shared asset decoding for the native Vulkan and DirectX 12 advanced labs.
+function(course_asset_dependencies)
+    if(TARGET assimp::assimp)
+        return()
+    endif()
+    set(BUILD_SHARED_LIBS
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_TESTS
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_ASSIMP_TOOLS
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_INSTALL
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_WARNINGS_AS_ERRORS
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_OBJ_IMPORTER
+        ON
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_GLTF_IMPORTER
+        ON
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_NO_EXPORT
+        ON
+        CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_ZLIB
+        ON
+        CACHE BOOL "" FORCE)
+    if(POLICY CMP0175)
+        set(CMAKE_POLICY_DEFAULT_CMP0175 OLD)
+    endif()
+    set(asset_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../OpenGL")
+    if(EXISTS "${asset_root}/third_party/assimp/CMakeLists.txt")
+        add_subdirectory("${asset_root}/third_party/assimp" "${CMAKE_BINARY_DIR}/assimp"
+                         EXCLUDE_FROM_ALL)
+    else()
+        FetchContent_Declare(
+            assimp
+            URL https://codeload.github.com/assimp/assimp/zip/refs/tags/v5.4.3
+            URL_HASH SHA256=795c29716f4ac123b403e53b677e9f32a8605c4a7b2d9904bfaae3f4053b506d)
+        FetchContent_MakeAvailable(assimp)
+    endif()
+endfunction()

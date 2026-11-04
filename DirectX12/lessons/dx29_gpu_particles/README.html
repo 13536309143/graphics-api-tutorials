@@ -1,0 +1,72 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx29_gpu_particles · GPU 生成顶点与绘制</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx29_gpu_particles · GPU 生成顶点与绘制</h1>
+<p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>目的与实际执行</h2>
+<p>同一 DEFAULT resource 允许 UAV，计算后转 VERTEX_AND_CONSTANT_BUFFER，VBV 直接引用其地址。计算提交在窗口 renderer 重置 allocator 前完成，当前路径显式等待，未宣称已做异步 compute 重叠。</p>
+<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<h2>构建和运行</h2>
+<pre><code>cmake --preset dx12
+cmake --build --preset dx12-debug --target dx29_gpu_particles --parallel 4
+.\DirectX12\build\bin\Debug\dx29_gpu_particles.exe</code></pre>
+<h2>深入学习：数据、接口与执行</h2>
+<ul>
+<li><a href="../../chapters/48_compute_graphics/README.html">第 48 课：计算生成顶点并直接绘制</a></li>
+</ul>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../common/advanced_labs.cpp#L449">DirectX12/common/advanced_labs.cpp</a>，第 449—492 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>struct ParticleKernel {
+    DxDevice&amp; c;
+    ComPtr&lt;ID3D12Resource&gt; vertices;
+    ComPtr&lt;ID3D12RootSignature&gt; signature;
+    ComPtr&lt;ID3D12PipelineState&gt; pipeline;
+    D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    ParticleKernel(DxDevice&amp; context, const LabOptions&amp; options) : c(context) {
+        vertices = c.buffer(96 * 3 * sizeof(Vertex),
+                            D3D12_HEAP_TYPE_DEFAULT,
+                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        D3D12_ROOT_PARAMETER params[2]{};
+        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+        params[0].Descriptor.ShaderRegister = 1;
+        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        params[1].Constants = {2, 0, 2};
+        D3D12_ROOT_SIGNATURE_DESC desc{};
+        desc.NumParameters = 2;
+        desc.pParameters = params;
+        signature = rootSignature(c, desc);
+        auto shader = labShader(options, &quot;ParticleMain&quot;);
+        D3D12_COMPUTE_PIPELINE_STATE_DESC info{};
+        info.pRootSignature = signature.Get();
+        info.CS = {shader-&gt;GetBufferPointer(), shader-&gt;GetBufferSize()};
+        dxCheck(c.device-&gt;CreateComputePipelineState(&amp;info, IID_PPV_ARGS(&amp;pipeline)));
+    }
+    void execute(float time) {
+        struct Tick {
+            float time;
+            uint32_t count;
+        } tick{time, 96};
+        c.begin();
+        if (state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+            auto b = transition(vertices.Get(), state, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            c.cmd-&gt;ResourceBarrier(1, &amp;b);
+        }
+        c.cmd-&gt;SetComputeRootSignature(signature.Get());
+        c.cmd-&gt;SetPipelineState(pipeline.Get());
+        c.cmd-&gt;SetComputeRootUnorderedAccessView(0, vertices-&gt;GetGPUVirtualAddress());
+        c.cmd-&gt;SetComputeRoot32BitConstants(1, 2, &amp;tick, 0);
+        c.cmd-&gt;Dispatch(5, 1, 1);
+        auto b = transition(vertices.Get(),
+                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);</code></pre>
+<h3>同主题跨 API 导航</h3>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>程序</td></tr>
+<tr><td>DirectX 12</td><td><a href="README.html">dx29_gpu_particles</a></td></tr>
+<tr><td>对照后端</td><td><a href="../../../Vulkan/native/lessons/vk29_gpu_particles/README.html">vk29_gpu_particles</a></td></tr>
+</table></div>
+<h3>先预测，再验证</h3>
+<p>把粒子数改为 97，需要检查哪些容量与 dispatch/guard？</p>
+<p>参考推导：顶点数变为 291，GPU buffer 与 CPU 侧 draw count 元数据都要扩大；组数向上取整，shader 以 count*3 为上界。位置仍由 GPU 生成。</p>
+<h2>验证与边界</h2>
+<p>运行 <code>--smoke</code> 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。</p>
+<h2>实际画面</h2>
+<p><img alt="dx29_gpu_particles" src="../../../docs/previews/dx29_gpu_particles.png"></p></main></html>

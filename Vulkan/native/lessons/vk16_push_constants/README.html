@@ -1,0 +1,78 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk16_push_constants · 小常量计算</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk16_push_constants · 小常量计算</h1>
+<p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>目的与实际执行</h2>
+<p>实验用 16 字节 push constants 传 mode/count/factor/bias。pipeline layout 的 range、stageFlags 与 vkCmdPushConstants 的更新范围必须兼容。即使数据很小，也不能忽略设备 maxPushConstantsSize。</p>
+<p>DescriptorSetLayoutBinding 连接 shader binding 与资源类型/阶段；PipelineLayout 组合 set layout 和 push range。它不是 descriptor pool，也不拥有 buffer。绑定错误不能通过只更新 buffer 内容修复。</p>
+<p>push 常量使用字节 offset/size，并与 pipeline layout 的阶段范围相容。已有图形 Draw 为 80 字节，计算 Operation 为 16 字节；两个 layout 可以有不同约定，不应混用。</p>
+<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<h2>构建和运行</h2>
+<pre><code>cmake --preset vulkan-native
+cmake --build --preset vulkan-native-debug --target vk16_push_constants --parallel 4
+.\Vulkan\native\build\bin\Debug\vk16_push_constants.exe</code></pre>
+<h2>深入学习：数据、接口与执行</h2>
+<ul>
+<li><a href="../../chapters/16_pipeline_interface/README.html">第 16 课：Pipeline Layout、根签名与小常量</a></li>
+<li><a href="../../chapters/29_descriptor_layout/README.html">第 29 课：描述符布局与资源接口声明</a></li>
+<li><a href="../../chapters/32_per_draw_constants/README.html">第 32 课：Push/Root Constants 的单位与边界</a></li>
+</ul>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../common/advanced_labs.cpp#L114">Vulkan/native/common/advanced_labs.cpp</a>，第 114—157 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>    void record(VkCommandBuffer cmd,
+                uint32_t mode,
+                uint32_t count,
+                uint32_t factor,
+                uint32_t bias,
+                uint32_t slot = 0) {
+        uint32_t constants[4] = {mode, count, factor, bias};
+        uint32_t offset = slot * stride;
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+        vkCmdBindDescriptorSets(
+            cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &amp;set, 1, &amp;offset);
+        vkCmdPushConstants(cmd, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, constants);
+        vkCmdDispatch(cmd, (count + 63) / 64, 1, 1);
+        bufferDependency(cmd,
+                         output.buffer,
+                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                         VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                         VK_PIPELINE_STAGE_2_HOST_BIT,
+                         VK_ACCESS_2_HOST_READ_BIT);
+    }
+    void execute(uint32_t mode, uint32_t count, uint32_t factor, uint32_t bias, uint32_t slot = 0) {
+        immediate(c, [&amp;](VkCommandBuffer cmd) {
+            record(cmd, mode, count, factor, bias, slot);
+        });
+    }
+    ~ComputeKernel() {
+        vkDestroyPipeline(c.device, pipeline, nullptr);
+        vkDestroyPipelineLayout(c.device, pipelineLayout, nullptr);
+        vkDestroyDescriptorPool(c.device, pool, nullptr);
+        vkDestroyDescriptorSetLayout(c.device, layout, nullptr);
+    }
+};
+void capabilities(const VkContextRef&amp; c) {
+    VkPhysicalDeviceProperties p{};
+    vkGetPhysicalDeviceProperties(c.physical, &amp;p);
+    VkPhysicalDeviceMemoryProperties m{};
+    vkGetPhysicalDeviceMemoryProperties(c.physical, &amp;m);
+    std::cout &lt;&lt; &quot;maxPushConstantsSize=&quot; &lt;&lt; p.limits.maxPushConstantsSize
+              &lt;&lt; &quot;, minUniformBufferOffsetAlignment=&quot; &lt;&lt; p.limits.minUniformBufferOffsetAlignment
+              &lt;&lt; &quot;, maxComputeWorkGroupInvocations=&quot; &lt;&lt; p.limits.maxComputeWorkGroupInvocations
+              &lt;&lt; &#x27;\n&#x27;;
+    for (uint32_t i = 0; i &lt; m.memoryTypeCount; ++i)
+        std::cout &lt;&lt; &quot;memoryType[&quot; &lt;&lt; i &lt;&lt; &quot;] heap=&quot; &lt;&lt; m.memoryTypes[i].heapIndex
+                  &lt;&lt; &quot; properties=&quot; &lt;&lt; m.memoryTypes[i].propertyFlags &lt;&lt; &#x27;\n&#x27;;</code></pre>
+<h3>同主题跨 API 导航</h3>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>程序</td></tr>
+<tr><td>Vulkan 原生</td><td><a href="README.html">vk16_push_constants</a></td></tr>
+<tr><td>对照后端</td><td><a href="../../../../DirectX12/lessons/dx16_push_constants/README.html">dx16_push_constants</a></td></tr>
+</table></div>
+<h3>先预测，再验证</h3>
+<p>把 factor/bias 改为 9/17，如何证明 GPU 确实收到了新常量？</p>
+<p>参考推导：逐项检查 result[i]=9*i+17，而不是只看 CPU 断点中的变量。结果错时核对参数顺序、大小、阶段和入口。</p>
+<p>为一个每帧相机、每材质纹理、每对象 model 的场景设计更新频率划分。</p>
+<p>参考推导：按帧更新 Frame，按材质选择纹理引用，按 draw 更新 model 小常量。不要每 draw 重建全部布局，也不把大型场景数据塞进 push/root constants。</p>
+<p>加入第二个对象，仅改变它的 model，说明不需要重建哪些长期对象。</p>
+<p>参考推导：静态几何、纹理、layout 和同一兼容 pipeline 可以复用，只在对应 draw 前更新小常量。更改不可动态状态或 shader 才可能要求另一 pipeline。</p>
+<h2>验证与边界</h2>
+<p>运行 <code>--smoke</code> 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。</p></main></html>

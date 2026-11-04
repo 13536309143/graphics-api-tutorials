@@ -86,7 +86,7 @@ int main(int argc, char** argv) try {
 
 动态渲染仍要求 pipeline 声明附件格式；还要设置 viewport/scissor。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L373)，第 373—404 行：
+[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L391)，第 391—422 行：
 
 ```cpp
         VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
@@ -102,8 +102,7 @@ int main(int argc, char** argv) try {
         gp.pColorBlendState = &blend;
         gp.pDynamicState = &dynamic;
         gp.layout = pipelineLayout;
-        VkResult result =
-            vkCreateGraphicsPipelines(c.device, VK_NULL_HANDLE, 1, &gp, nullptr, &pipeline);
+        VkResult result = vkCreateGraphicsPipelines(c.device, cache, 1, &gp, nullptr, &pipeline);
         vkDestroyShaderModule(c.device, vs, nullptr);
         vkDestroyShaderModule(c.device, ps, nullptr);
         vkCheck(result, "Graphics pipeline");
@@ -111,16 +110,17 @@ int main(int argc, char** argv) try {
 
     // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
     void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = frame(mode, float(size.width) / size.height, true);
+        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
+        if (frameProvider)
+            f = frameProvider(float(size.width) / size.height, time, true);
         uniform.upload(&f, sizeof(f));
-        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkViewport viewport{
+            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
         VkRect2D scissor{{0, 0}, size};
+        if (halfScissor)
+            scissor.extent.width /= 2;
         vkCmdSetViewport(cmd, 0, 1, &viewport);
         vkCmdSetScissor(cmd, 0, 1, &scissor);
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        vkCmdBindDescriptorSets(
-            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor, 0, nullptr);
-        if (mode >= 4) {
 ```
 
 ### Vulkan / nvpro_core2 · 已实现

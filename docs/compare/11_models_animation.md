@@ -6,7 +6,7 @@
 
 ## 当前真实实现
 
-OpenGL 14/15 通过 Assimp 读取 OBJ/glTF，31 演示骨骼动画，34 将模型与材质/环境组合。Vulkan 和 DX12 当前只使用程序生成的四边形、立方体和球体；没有完整 glTF 导入与蒙皮后端。下面的迁移步骤是工程设计，不计入已运行课程。
+OpenGL 14/15 通过 Assimp 读取 OBJ/glTF，31 演示骨骼动画，34 将模型与材质/环境组合。Vulkan/DX12 新增 21/22，实际导入 OBJ 和 glTF 静态节点，递归应用层级变换并绘制。完整 glTF 材质/skin/动画尚未迁移，下面的骨骼与完整资产方案继续作为工程设计。
 
 ## 导入后不能只取一个 vertices 数组
 
@@ -30,7 +30,7 @@ OpenGL `Model` 持有 Assimp::Importer，因此 aiScene 在使用期间有效。
 
 ## 分四步迁移，逐步验收
 
-第一步只导入单个无贴图静态 mesh，保留 position/normal/UV，使用固定颜色。第二步支持节点 global transform 和多个 mesh。第三步加入纹理与材质，检查缓存键是否区分 sRGB/linear。第四步才扩展 GPU 顶点布局、joint buffer 和每帧骨骼更新。
+第一、二步已由新实验落实：导入静态 mesh、法线/UV，并支持节点 global transform 和多个 mesh。第三步加入纹理与材质，检查缓存键是否区分 sRGB/linear。第四步才扩展 GPU 顶点布局、joint buffer 和每帧骨骼更新。
 
 Vulkan 的骨骼数组可由 UBO 或 storage buffer 提供，选择取决于数量与设备限制；DX12 可用常量或结构化缓冲。不要因当前 Draw 是 80 字节就把整套骨骼塞进 push/root constants。每帧更新骨骼后仍需保护在途 GPU 访问。
 
@@ -49,9 +49,9 @@ Vulkan 的骨骼数组可由 UBO 或 storage buffer 提供，选择取决于数�
 | 路线 | 可运行参照 / 范围 |
 | --- | --- |
 | OpenGL | [31_skeletal](../../OpenGL/lessons/31_skeletal/README.md) |
-| Vulkan 原生 | 迁移设计 |
+| Vulkan 原生 | [vk22_gltf_scene](../../Vulkan/native/lessons/vk22_gltf_scene/README.md) |
 | Vulkan / nvpro_core2 | 迁移设计 |
-| DirectX 12 | 迁移设计 |
+| DirectX 12 | [dx22_gltf_scene](../../DirectX12/lessons/dx22_gltf_scene/README.md) |
 
 ### OpenGL · 已实现
 
@@ -91,16 +91,97 @@ Vulkan 的骨骼数组可由 UBO 或 storage buffer 提供，选择取决于数�
 };
 ```
 
-### Vulkan 原生 · 迁移设计
+### Vulkan 原生 · 静态模型已实现
 
-设计：CPU MeshData → VkBuffer；骨骼 UBO/SSBO；节点/材质解析可共享。
+真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。
 
+[shared/advanced.hpp](../../shared/advanced.hpp#L92)，第 92—127 行：
+
+```cpp
+inline Geometry staticAsset(const std::filesystem::path& path) {
+    Assimp::Importer importer;
+    const auto* scene =
+        importer.ReadFile(path.string(),
+                          aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                              aiProcess_JoinIdenticalVertices | aiProcess_ValidateDataStructure);
+    require(scene && scene->mRootNode, "Assimp could not load course model");
+    Geometry result;
+    unsigned nodes = 0;
+    std::function<void(const aiNode*, glm::mat4)> visit = [&](const aiNode* node,
+                                                              glm::mat4 parent) {
+        ++nodes;
+        glm::mat4 transform = parent * assimpMatrix(node->mTransformation);
+        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
+        for (unsigned m = 0; m < node->mNumMeshes; ++m) {
+            const auto* mesh = scene->mMeshes[node->mMeshes[m]];
+            uint32_t base = uint32_t(result.vertices.size());
+            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
+                const auto& p = mesh->mVertices[i];
+                auto n = mesh->HasNormals() ? mesh->mNormals[i] : aiVector3D(0, 1, 0);
+                auto uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : aiVector3D();
+                result.vertices.push_back({glm::vec3(transform * glm::vec4(p.x, p.y, p.z, 1)),
+                                           glm::normalize(normalMatrix * glm::vec3(n.x, n.y, n.z)),
+                                           {uv.x, uv.y}});
+            }
+            for (unsigned f = 0; f < mesh->mNumFaces; ++f) {
+                require(mesh->mFaces[f].mNumIndices == 3, "Non-triangle after triangulation");
+                for (unsigned k = 0; k < 3; ++k)
+                    result.indices.push_back(base + mesh->mFaces[f].mIndices[k]);
+            }
+        }
+        for (unsigned i = 0; i < node->mNumChildren; ++i)
+            visit(node->mChildren[i], transform);
+    };
+    visit(scene->mRootNode, glm::mat4(1));
+    require(!result.vertices.empty() && !result.indices.empty(), "Empty imported model");
+```
 
 ### Vulkan / nvpro_core2 · 迁移设计
 
 框架有资产相关辅助，但本课程未接入完整 glTF/skin；需要单独实现并验收。
 
 
-### DirectX 12 · 迁移设计
+### DirectX 12 · 静态模型已实现
 
-设计：扩展 VBV/input layout 加 joints/weights，骨骼经 CBV/SRV 提供。
+真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。
+
+[shared/advanced.hpp](../../shared/advanced.hpp#L92)，第 92—127 行：
+
+```cpp
+inline Geometry staticAsset(const std::filesystem::path& path) {
+    Assimp::Importer importer;
+    const auto* scene =
+        importer.ReadFile(path.string(),
+                          aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                              aiProcess_JoinIdenticalVertices | aiProcess_ValidateDataStructure);
+    require(scene && scene->mRootNode, "Assimp could not load course model");
+    Geometry result;
+    unsigned nodes = 0;
+    std::function<void(const aiNode*, glm::mat4)> visit = [&](const aiNode* node,
+                                                              glm::mat4 parent) {
+        ++nodes;
+        glm::mat4 transform = parent * assimpMatrix(node->mTransformation);
+        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
+        for (unsigned m = 0; m < node->mNumMeshes; ++m) {
+            const auto* mesh = scene->mMeshes[node->mMeshes[m]];
+            uint32_t base = uint32_t(result.vertices.size());
+            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
+                const auto& p = mesh->mVertices[i];
+                auto n = mesh->HasNormals() ? mesh->mNormals[i] : aiVector3D(0, 1, 0);
+                auto uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : aiVector3D();
+                result.vertices.push_back({glm::vec3(transform * glm::vec4(p.x, p.y, p.z, 1)),
+                                           glm::normalize(normalMatrix * glm::vec3(n.x, n.y, n.z)),
+                                           {uv.x, uv.y}});
+            }
+            for (unsigned f = 0; f < mesh->mNumFaces; ++f) {
+                require(mesh->mFaces[f].mNumIndices == 3, "Non-triangle after triangulation");
+                for (unsigned k = 0; k < 3; ++k)
+                    result.indices.push_back(base + mesh->mFaces[f].mIndices[k]);
+            }
+        }
+        for (unsigned i = 0; i < node->mNumChildren; ++i)
+            visit(node->mChildren[i], transform);
+    };
+    visit(scene->mRootNode, glm::mat4(1));
+    require(!result.vertices.empty() && !result.indices.empty(), "Empty imported model");
+```

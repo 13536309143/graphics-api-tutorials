@@ -1,16 +1,16 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>05 · Uniform、Descriptor、CBV 与根签名</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>05 · Uniform、Descriptor、CBV 与根签名</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>05 · Uniform、Descriptor、CBV 与根签名</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>05 · Uniform、Descriptor、CBV 与根签名</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#05_binding_constants">交互式对照</a> · <a href="04_transforms_camera.html">上一章</a> · <a href="06_textures_color.html">下一章</a></p>
 <p>本章回答“shader 要一个矩阵，为什么 Vulkan/DX12 需要布局、池、集合或根参数”。先把接口约定和实际数据分开，就不会把更新内存与更新绑定混淆。</p>
 <h2>用频率划分数据</h2>
 <p>顶点数据按顶点变化；相机矩阵按帧变化；材质纹理按材质变化；model 矩阵按 draw 变化。频率划分决定资源如何复用，不由 API 函数名替你决定。为每个 draw 重建所有 descriptor，或把整个场景塞进 push constants/root constants，都会让后续扩展困难。</p>
 <p>本仓库共享 <code>Frame</code> 只有一个 64 字节 viewProjection。<code>Draw</code> 为 64 字节 model 加 16 字节 settings，总计 80 字节。settings 的 x/y/z/w 对应模式、金属度、粗糙度、时间。CPU 的 static_assert、shader 的声明和实际绑定范围共同构成契约。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>层次</td><td>OpenGL</td><td>Vulkan</td><td>DX12</td></tr>
 <tr><td>声明接口</td><td>uniform 名称 / uniform block</td><td>set layout / pipeline layout</td><td>root signature</td></tr>
 <tr><td>保存数据</td><td>uniform 状态或 UBO</td><td>UBO / texture / storage buffer</td><td>常量或其他 resource</td></tr>
 <tr><td>选择实际资源</td><td>texture unit、buffer binding point</td><td>descriptor set 的 write/update</td><td>descriptor heap、root descriptor</td></tr>
 <tr><td>每 draw 小数据</td><td>glUniform</td><td>push constants</td><td>root constants</td></tr>
-</table>
+</table></div>
 <h2>按本代码拆解一次绑定</h2>
 <p>Vulkan 先创建两个 layout binding：0 是 vertex 阶段 UBO，1 是 fragment 阶段组合图像采样器；从 pool 分配 set，再更新其 buffer/image 引用。渲染时绑定 pipeline、set，逐对象推送 Draw。set layout 是“接口形状”，set 是“填好的引用”，buffer 才存矩阵字节。<code>vkUpdateDescriptorSets</code> 不会把 buffer 内容复制进集合。</p>
 <p>DX12 用 root parameter 0 直接传 b0 的 GPU 地址，parameter 1 是 b1 对应的 20 个 DWORD，parameter 2 是 t0 的 SRV descriptor table。root parameter 的数组下标与 HLSL register 编号不是一套编号：parameter 2 可以指向 t0，而不是必须 t2。当前 sampler 采用 static sampler，示例只需要可见 CBV/SRV/UAV heap。</p>
@@ -23,13 +23,13 @@
 <p>规则入口：<a href="https://docs.vulkan.org/guide/latest/descriptor_dynamic_offset.html">Vulkan dynamic offset</a>、<a href="https://learn.microsoft.com/en-us/windows/win32/direct3d12/root-signatures">Microsoft root signatures</a>。本章的字段和大小以本仓库源码为准。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/28_ubo/README.html">28_ubo</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>block index、binding point 与实际 buffer 三层分开检查。</p>
 <p><a href="../../OpenGL/lessons/28_ubo/main.cpp#L15">OpenGL/lessons/28_ubo/main.cpp</a>，第 15—41 行：</p>
@@ -62,7 +62,7 @@
     return failure(e);</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L265">Vulkan/common/scene_vk.hpp</a>，第 265—302 行：</p>
+<p><a href="../../Vulkan/common/scene_vk.hpp#L282">Vulkan/common/scene_vk.hpp</a>，第 282—319 行：</p>
 <pre><code>        VkDescriptorSetLayoutBinding bindings[2] = {
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
             {1,
@@ -103,16 +103,16 @@
         vkUpdateDescriptorSets(c.device, 2, writes, 0, nullptr);</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L411">Vulkan/common/scene_vk.hpp</a>，第 411—429 行：</p>
-<pre><code>        for (auto d : draws(mode, time)) {
-            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
-            vkCmdPushConstants(cmd,
+<p><a href="../../Vulkan/common/scene_vk.hpp#L435">Vulkan/common/scene_vk.hpp</a>，第 435—453 行：</p>
+<pre><code>            vkCmdPushConstants(cmd,
                                pipelineLayout,
                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                                0,
                                sizeof(d),
                                &amp;d);
-            if (mode == 3)
+            if (indirectArguments)
+                vkCmdDrawIndirect(cmd, indirectArguments, 0, 1, sizeof(VkDrawIndirectCommand));
+            else if (mode == 3)
                 vkCmdDraw(cmd, 3, 1, 0, 0);
             else if (mode == 4)
                 vkCmdDraw(cmd, uint32_t(mesh.vertices.size()), 1, 0, 0);
@@ -125,7 +125,7 @@
             vkDestroyPipeline(c.device, pipeline, nullptr);</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>root parameter 2 指 t0，0 指 b0；两种编号不能混同。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L328">DirectX12/common/dx12_course.hpp</a>，第 328—363 行：</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L345">DirectX12/common/dx12_course.hpp</a>，第 345—380 行：</p>
 <pre><code>        D3D12_ROOT_PARAMETER params[3]{};
         params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         params[0].Descriptor.ShaderRegister = 0;
@@ -143,7 +143,8 @@
         params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.AddressU = sampler.AddressV = sampler.AddressW =
+            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         sampler.MaxLOD = D3D12_FLOAT32_MAX;
         sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
@@ -160,5 +161,4 @@
                                                 0,
                                                 DXGI_FORMAT_R32G32B32_FLOAT,
                                                 0,
-                                                0,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,</code></pre></main></html>
+                                                0,</code></pre></main></html>

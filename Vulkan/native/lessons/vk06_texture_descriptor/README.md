@@ -59,7 +59,7 @@ Descriptor 更新后是否意味着 GPU 已经完成纹理上传？
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L224)，第 224—253 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L241)，第 241—270 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
         auto data = checker();

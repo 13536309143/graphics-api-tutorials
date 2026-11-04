@@ -11,6 +11,8 @@
 #include "scene.hpp"
 #include <memory>
 #include <iomanip>
+#include <optional>
+#include <functional>
 namespace course {
 using Microsoft::WRL::ComPtr;
 inline std::filesystem::path dxShaderFile;
@@ -243,7 +245,22 @@ public:
     ComPtr<ID3D12PipelineState> pipeline;
     D3D12_VERTEX_BUFFER_VIEW vb{};
     D3D12_INDEX_BUFFER_VIEW ib{};
-    DxScene(DxDevice& context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
+    std::optional<Frame> overrideFrame;
+    std::function<Frame(float, float, bool)> frameProvider;
+    std::vector<Draw> overrideDraws;
+    bool halfScissor = false;
+    bool halfViewport = false;
+    ComPtr<ID3D12Resource> indirectArguments;
+    ComPtr<ID3D12CommandSignature> indirectSignature;
+    std::shared_ptr<void> extension;
+    DxScene(DxDevice& context,
+            int lesson,
+            const Geometry* replacement = nullptr,
+            UINT samples = 1,
+            D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE,
+            bool clampSampler = false,
+            bool redOnly = false)
+        : c(context), mode(lesson), mesh(replacement ? *replacement : geometry(mode)) {
         if (mode >= 4) {
             UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
             vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -342,7 +359,8 @@ public:
         params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.AddressU = sampler.AddressV = sampler.AddressW =
+            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         sampler.MaxLOD = D3D12_FLOAT32_MAX;
         sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
@@ -380,10 +398,14 @@ public:
         pso.pRootSignature = signature.Get();
         pso.VS = {vs->GetBufferPointer(), vs->GetBufferSize()};
         pso.PS = {ps->GetBufferPointer(), ps->GetBufferSize()};
-        pso.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+        pso.BlendState.RenderTarget[0].RenderTargetWriteMask =
+            redOnly ? D3D12_COLOR_WRITE_ENABLE_RED | D3D12_COLOR_WRITE_ENABLE_ALPHA
+                    : D3D12_COLOR_WRITE_ENABLE_ALL;
         pso.SampleMask = UINT_MAX;
         pso.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-        pso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+        pso.RasterizerState.CullMode = cull;
+        // 共用模型按外表面逆时针排列；明确指定正面，避免剔除后只剩内部。
+        pso.RasterizerState.FrontCounterClockwise = TRUE;
         pso.RasterizerState.DepthClipEnable = TRUE;
         pso.DepthStencilState.DepthEnable = mode >= 5;
         pso.DepthStencilState.DepthWriteMask =
@@ -396,13 +418,15 @@ public:
         pso.NumRenderTargets = 1;
         pso.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         pso.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-        pso.SampleDesc.Count = 1;
+        pso.SampleDesc.Count = samples;
         dxCheck(c.device->CreateGraphicsPipelineState(&pso, IID_PPV_ARGS(&pipeline)));
     }
 
     // 绑定 PSO、root signature、descriptor heap 和顶点输入，再逐对象更新 root constants。
     void render(int w, int h, float time) {
-        Frame f = frame(mode, float(w) / h, false);
+        Frame f = overrideFrame.value_or(frame(mode, float(w) / h, false));
+        if (frameProvider)
+            f = frameProvider(float(w) / h, time, false);
         void* mapped;
         D3D12_RANGE empty{0, 0};
         dxCheck(uniform->Map(0, &empty, &mapped));
@@ -421,9 +445,12 @@ public:
             if (indices)
                 cmd->IASetIndexBuffer(&ib);
         }
-        for (auto d : draws(mode, time)) {
+        for (auto d : overrideDraws.empty() ? draws(mode, time) : overrideDraws) {
             cmd->SetGraphicsRoot32BitConstants(1, 20, &d, 0);
-            if (mode == 3)
+            if (indirectArguments)
+                cmd->ExecuteIndirect(
+                    indirectSignature.Get(), 1, indirectArguments.Get(), 0, nullptr, 0);
+            else if (mode == 3)
                 cmd->DrawInstanced(3, 1, 0, 0);
             else if (mode == 4)
                 cmd->DrawInstanced(UINT(mesh.vertices.size()), 1, 0, 0);
@@ -432,6 +459,16 @@ public:
         }
     }
 };
+struct DxRenderOptions {
+    const Geometry* mesh = nullptr;
+    D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE;
+    bool clampSampler = false, redOnly = false;
+    std::string captureStem;
+    UINT samples = 1;
+    std::function<void(DxScene&)> setup;
+    std::function<void(DxScene&, float)> update;
+    std::function<void(DxScene&, float)> beforeFrame;
+};
 class DxWindow {
 public:
     DxDevice c;
@@ -439,13 +476,15 @@ public:
     int mode, width = 0, height = 0;
     ComPtr<IDXGISwapChain3> swap;
     ComPtr<ID3D12DescriptorHeap> rtvHeap, dsvHeap;
-    ComPtr<ID3D12Resource> colors[2], depth, offscreen;
+    ComPtr<ID3D12Resource> colors[2], depth, offscreen, multisample;
+    DxRenderOptions options;
     std::unique_ptr<DxScene> scene;
     UINT rtvStride = 0;
-    DxWindow(GLFWwindow* w, int lesson, bool warp) : c(warp), window(w), mode(lesson) {
+    DxWindow(GLFWwindow* w, int lesson, bool warp, DxRenderOptions settings = {})
+        : c(warp), window(w), mode(lesson), options(std::move(settings)) {
         D3D12_DESCRIPTOR_HEAP_DESC heap{};
         heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        heap.NumDescriptors = 3;
+        heap.NumDescriptors = 4;
         dxCheck(c.device->CreateDescriptorHeap(&heap, IID_PPV_ARGS(&rtvHeap)));
         heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
         heap.NumDescriptors = 1;
@@ -466,7 +505,15 @@ public:
         c.factory->MakeWindowAssociation(glfwGetWin32Window(w), DXGI_MWA_NO_ALT_ENTER);
         resize(960, 640);
         if (mode >= 3)
-            scene = std::make_unique<DxScene>(c, mode);
+            scene = std::make_unique<DxScene>(c,
+                                              mode,
+                                              options.mesh,
+                                              options.samples,
+                                              options.cull,
+                                              options.clampSampler,
+                                              options.redOnly);
+        if (scene && options.setup)
+            options.setup(*scene);
     }
     D3D12_CPU_DESCRIPTOR_HANDLE rtv(UINT index) {
         auto h = rtvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -483,6 +530,7 @@ public:
             image.Reset();
         depth.Reset();
         offscreen.Reset();
+        multisample.Reset();
         dxCheck(swap->ResizeBuffers(2, UINT(w), UINT(h), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
         width = w;
         height = h;
@@ -499,7 +547,7 @@ public:
         desc.DepthOrArraySize = 1;
         desc.MipLevels = 1;
         desc.Format = DXGI_FORMAT_D32_FLOAT;
-        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Count = options.samples;
         desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
         D3D12_CLEAR_VALUE clear{};
         clear.Format = desc.Format;
@@ -512,6 +560,19 @@ public:
                                                   IID_PPV_ARGS(&depth)));
         c.device->CreateDepthStencilView(
             depth.Get(), nullptr, dsvHeap->GetCPUDescriptorHandleForHeapStart());
+        if (options.samples > 1) {
+            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+            D3D12_CLEAR_VALUE msClear{};
+            msClear.Format = desc.Format;
+            dxCheck(c.device->CreateCommittedResource(&heap,
+                                                      D3D12_HEAP_FLAG_NONE,
+                                                      &desc,
+                                                      D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                      &msClear,
+                                                      IID_PPV_ARGS(&multisample)));
+            c.device->CreateRenderTargetView(multisample.Get(), nullptr, rtv(3));
+        }
         if (mode == 10) {
             desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
             desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
@@ -536,18 +597,24 @@ public:
                 back.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
             c.cmd->ResourceBarrier(1, &b);
         }
-        auto color = rtv(mode == 10 ? 2 : swap->GetCurrentBackBufferIndex()),
+        auto color = rtv(options.samples > 1 ? 3
+                         : mode == 10        ? 2
+                                             : swap->GetCurrentBackBufferIndex()),
              ds = dsvHeap->GetCPUDescriptorHandleForHeapStart();
         float clear[] = {.035f, .055f, .09f, 1};
         c.cmd->ClearRenderTargetView(color, clear, 0, nullptr);
         c.cmd->ClearDepthStencilView(ds, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
         c.cmd->OMSetRenderTargets(1, &color, FALSE, &ds);
-        D3D12_VIEWPORT viewport{0, 0, float(width), float(height), 0, 1};
-        D3D12_RECT scissor{0, 0, width, height};
+        D3D12_VIEWPORT viewport{
+            0, 0, float(width) / (scene && scene->halfViewport ? 2 : 1), float(height), 0, 1};
+        D3D12_RECT scissor{0, 0, scene && scene->halfScissor ? width / 2 : width, height};
         c.cmd->RSSetViewports(1, &viewport);
         c.cmd->RSSetScissorRects(1, &scissor);
-        if (scene)
+        if (scene) {
+            if (options.update)
+                options.update(*scene, time);
             scene->render(width, height, time);
+        }
 
         // 离屏课先画独立纹理，再把它作为 COPY_SOURCE 拷贝到交换链图像。
         if (mode == 10) {
@@ -565,6 +632,22 @@ public:
             c.cmd->ResourceBarrier(1, &restore);
         }
         auto old = mode == 10 ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_RENDER_TARGET;
+        if (options.samples > 1) {
+            D3D12_RESOURCE_BARRIER barriers[] = {transition(multisample.Get(),
+                                                            D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                            D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
+                                                 transition(back.Get(),
+                                                            D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                            D3D12_RESOURCE_STATE_RESOLVE_DEST)};
+            c.cmd->ResourceBarrier(2, barriers);
+            c.cmd->ResolveSubresource(
+                back.Get(), 0, multisample.Get(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+            auto restore = transition(multisample.Get(),
+                                      D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+                                      D3D12_RESOURCE_STATE_RENDER_TARGET);
+            c.cmd->ResourceBarrier(1, &restore);
+            old = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+        }
         ComPtr<ID3D12Resource> readback;
         D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
         if (capturePath) {
@@ -611,7 +694,7 @@ public:
         c.wait();
     }
 };
-inline int dxMain(int argc, char** argv, int mode) {
+inline int dxMain(int argc, char** argv, int mode, DxRenderOptions options = {}) {
     dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / "shaders" / "scene.hlsl";
     bool smoke = false, warp = false;
     for (int i = 1; i < argc; ++i) {
@@ -634,10 +717,11 @@ inline int dxMain(int argc, char** argv, int mode) {
     if (!window)
         throw std::runtime_error("Window creation failed");
     {
-        DxWindow app(window, mode, warp);
+        DxWindow app(window, mode, warp, options);
         int frame = 0;
         auto output = std::filesystem::path(argv[0]).parent_path() /
-                      ("dx12_" + std::to_string(mode) + ".ppm");
+                      (options.captureStem.empty() ? "dx12_" + std::to_string(mode) + ".ppm"
+                                                   : options.captureStem + ".ppm");
         while (!glfwWindowShouldClose(window) && (!smoke || frame < 4)) {
             glfwPollEvents();
             if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -649,7 +733,10 @@ inline int dxMain(int argc, char** argv, int mode) {
                 continue;
             }
             app.resize(w, h);
-            app.render(smoke ? 1.f : float(glfwGetTime()), smoke && frame == 3 ? &output : nullptr);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene && options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke && frame == 3 ? &output : nullptr);
             ++frame;
         }
     }

@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk03_triangle · 动态渲染与第一个三角形</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk03_triangle · 动态渲染与第一个三角形</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk03_triangle · 动态渲染与第一个三角形</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk03_triangle · 动态渲染与第一个三角形</h1>
 <p><a href="../../README.html">路线首页</a> · <a href="../vk02_swapchain/README.html">上一课</a> · <a href="../vk04_vertex_buffer/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
@@ -27,7 +27,7 @@ cmake --build --preset vulkan-native-debug --target vk03_triangle --parallel 4
 <p>triangle.vert 用 gl_VertexIndex 生成位置与颜色，管线不要求 VBO。pipeline 声明颜色/深度格式，实际附件由 dynamic rendering 指定；省掉 render pass 不等于省掉兼容性。</p>
 <p>配套精讲：<a href="../../../../docs/compare/02_triangle_pipeline.html">三 API 对照 · 三角形、管线与着色器</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../../common/scene_vk.hpp#L373">Vulkan/common/scene_vk.hpp</a>，第 373—402 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<p>来自 <a href="../../../common/scene_vk.hpp#L391">Vulkan/common/scene_vk.hpp</a>，第 391—420 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
 <pre><code>        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
         gp.pNext = &amp;rendering;
         gp.stageCount = 2;
@@ -41,8 +41,7 @@ cmake --build --preset vulkan-native-debug --target vk03_triangle --parallel 4
         gp.pColorBlendState = &amp;blend;
         gp.pDynamicState = &amp;dynamic;
         gp.layout = pipelineLayout;
-        VkResult result =
-            vkCreateGraphicsPipelines(c.device, VK_NULL_HANDLE, 1, &amp;gp, nullptr, &amp;pipeline);
+        VkResult result = vkCreateGraphicsPipelines(c.device, cache, 1, &amp;gp, nullptr, &amp;pipeline);
         vkDestroyShaderModule(c.device, vs, nullptr);
         vkDestroyShaderModule(c.device, ps, nullptr);
         vkCheck(result, &quot;Graphics pipeline&quot;);
@@ -50,23 +49,24 @@ cmake --build --preset vulkan-native-debug --target vk03_triangle --parallel 4
 
     // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
     void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = frame(mode, float(size.width) / size.height, true);
+        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
+        if (frameProvider)
+            f = frameProvider(float(size.width) / size.height, time, true);
         uniform.upload(&amp;f, sizeof(f));
-        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkViewport viewport{
+            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
         VkRect2D scissor{{0, 0}, size};
-        vkCmdSetViewport(cmd, 0, 1, &amp;viewport);
-        vkCmdSetScissor(cmd, 0, 1, &amp;scissor);
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        vkCmdBindDescriptorSets(</code></pre>
+        if (halfScissor)
+            scissor.extent.width /= 2;</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="README.html">vk03_triangle</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../../nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
-</table>
+</table></div>
 <h3>先预测，再验证</h3>
 <p>固定片元输出正常，但原色异常，先检查哪段？</p>
 <p>参考推导：检查顶点输出与片元输入位置、插值和实际 shader 副本；目标链路已经有证据可用。</p>

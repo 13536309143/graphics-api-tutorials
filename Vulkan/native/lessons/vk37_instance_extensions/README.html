@@ -1,0 +1,74 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk37_instance_extensions · 加载器/工厂与枚举</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk37_instance_extensions · 加载器/工厂与枚举</h1>
+<p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>目的与实际执行</h2>
+<p>SDK 中的头文件、loader 导入库、glslc 与 validation layer 有不同用途。安装更高版本头文件不会升级驱动。程序枚举 loader 版本和实例扩展，再核对物理设备支持；glslc 产物使用 SPIR-V，不能拿 GLSL 文本直接创建 shader module。</p>
+<p>实例扩展用于窗口系统连接、debug utils 等实例层功能，设备扩展在创建设备时选择。glfwGetRequiredInstanceExtensions 返回当前平台 surface 所需扩展；无窗口计算不需要同一组 WSI 条件。pApplicationInfo 中的 apiVersion 不是“申请升级显卡”。</p>
+<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<h2>构建和运行</h2>
+<pre><code>cmake --preset vulkan-native
+cmake --build --preset vulkan-native-debug --target vk37_instance_extensions --parallel 4
+.\Vulkan\native\build\bin\Debug\vk37_instance_extensions.exe</code></pre>
+<h2>深入学习：数据、接口与执行</h2>
+<ul>
+<li><a href="../../chapters/02_environment/README.html">第 02 课：工具链、SDK、依赖与可复现构建</a></li>
+<li><a href="../../chapters/04_instance_factory/README.html">第 04 课：实例扩展与 DXGI 工厂</a></li>
+</ul>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../common/advanced_labs.cpp#L775">Vulkan/native/common/advanced_labs.cpp</a>，第 775—818 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>void inspection(const VkContextRef&amp; c, int id) {
+    if (id == 37) {
+        uint32_t version{};
+        vkCheck(vkEnumerateInstanceVersion(&amp;version));
+        uint32_t count{};
+        vkCheck(vkEnumerateInstanceExtensionProperties(nullptr, &amp;count, nullptr));
+        std::vector&lt;VkExtensionProperties&gt; extensions(count);
+        vkCheck(vkEnumerateInstanceExtensionProperties(nullptr, &amp;count, extensions.data()));
+        bool found = false;
+        for (const auto&amp; e : extensions) {
+            std::cout &lt;&lt; e.extensionName &lt;&lt; &#x27;\n&#x27;;
+            found |= std::strcmp(e.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0;
+        }
+        require(found, &quot;Debug utils extension missing&quot;);
+        std::cout &lt;&lt; &quot;Loader version=&quot; &lt;&lt; VK_API_VERSION_MAJOR(version) &lt;&lt; &#x27;.&#x27;
+                  &lt;&lt; VK_API_VERSION_MINOR(version) &lt;&lt; &#x27;\n&#x27;;
+    } else if (id == 38) {
+        uint32_t layers{};
+        vkCheck(vkEnumerateInstanceLayerProperties(&amp;layers, nullptr));
+        std::vector&lt;VkLayerProperties&gt; list(layers);
+        vkCheck(vkEnumerateInstanceLayerProperties(&amp;layers, list.data()));
+        for (const auto&amp; l : list)
+            std::cout &lt;&lt; &quot;layer=&quot; &lt;&lt; l.layerName &lt;&lt; &#x27;\n&#x27;;
+        int delivered = 0;
+        VkDebugUtilsMessengerCreateInfoEXT info{
+            VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+        info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+        info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+        info.pUserData = &amp;delivered;
+        info.pfnUserCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT,
+                                  VkDebugUtilsMessageTypeFlagsEXT,
+                                  const VkDebugUtilsMessengerCallbackDataEXT*,
+                                  void* user) -&gt; VkBool32 {
+            ++*static_cast&lt;int*&gt;(user);
+            return VK_FALSE;
+        };
+        auto create = reinterpret_cast&lt;PFN_vkCreateDebugUtilsMessengerEXT&gt;(
+            vkGetInstanceProcAddr(c.instance, &quot;vkCreateDebugUtilsMessengerEXT&quot;));
+        auto destroy = reinterpret_cast&lt;PFN_vkDestroyDebugUtilsMessengerEXT&gt;(
+            vkGetInstanceProcAddr(c.instance, &quot;vkDestroyDebugUtilsMessengerEXT&quot;));
+        auto message = reinterpret_cast&lt;PFN_vkSubmitDebugUtilsMessageEXT&gt;(
+            vkGetInstanceProcAddr(c.instance, &quot;vkSubmitDebugUtilsMessageEXT&quot;));
+        require(create &amp;&amp; destroy &amp;&amp; message, &quot;Debug utils functions missing&quot;);
+        VkDebugUtilsMessengerEXT messenger{};</code></pre>
+<h3>同主题跨 API 导航</h3>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>程序</td></tr>
+<tr><td>Vulkan 原生</td><td><a href="README.html">vk37_instance_extensions</a></td></tr>
+<tr><td>对照后端</td><td><a href="../../../../DirectX12/lessons/dx37_instance_extensions/README.html">dx37_instance_extensions</a></td></tr>
+</table></div>
+<h3>先预测，再验证</h3>
+<p>故意在副本中改变运行工作目录，再从命令行启动程序，说明为何它仍应能找到 shader/assets。</p>
+<p>参考推导：资源以 executable 所在目录为起点，构建复制到旁边。若只有 IDE 中能运行，检查是否偷偷依赖了工作目录或本机绝对路径。</p>
+<p>把某个窗口相关要求从无窗口计算路径中移除，先说明哪些操作因此不再允许，再解释为什么计算仍能成立。</p>
+<p>参考推导：没有 surface/swapchain 便不能走窗口呈现，但 compute pipeline、buffer 和 queue submit 不依赖可见窗口。需求应与实际功能一致。</p>
+<h2>验证与边界</h2>
+<p>运行 <code>--smoke</code> 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。</p></main></html>

@@ -63,7 +63,7 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L478)，第 478—507 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L525)，第 525—554 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
     void resize(int w, int h) {
@@ -74,6 +74,7 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
             image.Reset();
         depth.Reset();
         offscreen.Reset();
+        multisample.Reset();
         dxCheck(swap->ResizeBuffers(2, UINT(w), UINT(h), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
         width = w;
         height = h;
@@ -90,12 +91,11 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
         desc.DepthOrArraySize = 1;
         desc.MipLevels = 1;
         desc.Format = DXGI_FORMAT_D32_FLOAT;
-        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Count = options.samples;
         desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
         D3D12_CLEAR_VALUE clear{};
         clear.Format = desc.Format;
         clear.DepthStencil.Depth = 1;
-        dxCheck(c.device->CreateCommittedResource(&heap,
 ```
 
 ### 同主题跨 API 导航

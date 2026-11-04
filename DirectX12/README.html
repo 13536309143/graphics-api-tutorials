@@ -1,4 +1,8 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DirectX 12 · C++20 / CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>DirectX 12 · C++20 / CMake</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DirectX 12 · 54 课 / 54 个独立实验</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>DirectX 12 · 54 课 / 54 个独立实验</h1>
+<p><a href="COURSE.html">按顺序学习 54 课</a> · <a href="../docs/CURRICULUM.html">逐章跨 API 对照</a></p>
+<p>主线按指定官方教程顺序展开，从初始化到 compute，再加工程进阶。全部 54 个程序有实际 API/GPU 路径和独立验收；其中查询/诊断课正常输出后退出，图形课显示窗口，计算课逐项验证结果。章号是教学次序，实验编号保留旧链接。</p>
+<p>新增静态 OBJ/glTF、图片、GPU mip、MSAA、动态常量、双槽计算资源环、timeline/fence、时间戳、管线缓存、间接绘制与 GPU 顶点生成。完整 glTF 材质/skin、IBL、SSAO 及多帧呈现仍有明确边界。</p>
+<h2>基础快速入口与部署</h2>
 <p><a href="../README.html">合集首页</a></p>
 <p>本路线有 10 个独立程序，从设备创建到直接光 PBR 和离屏传输。要求：Windows 10/11、D3D12 feature level 12_0。调试层存在时自动启用，InfoQueue 中 ERROR/CORRUPTION 会导致 smoke 失败；没有 Graphics Tools 时能运行，但不能宣称已完成调试层验证。</p>
 <h2>部署</h2>
@@ -7,7 +11,7 @@
 cmake --build --preset dx12-debug --parallel 4
 ctest --preset dx12-debug</code></pre>
 <p>程序位于 <code>DirectX12/build/bin/Debug</code>，shader 在旁边 shaders/，改源 shader 后重新 build。Release 使用 <code>dx12-release</code>。每课也可在本地阅读器中点击运行。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>程序</td><td>课程</td></tr>
 <tr><td>dx01_device</td><td><a href="lessons/dx01_device/README.html">设备、适配器与调试层</a></td></tr>
 <tr><td>dx02_swapchain</td><td><a href="lessons/dx02_swapchain/README.html">交换链、RTV 与呈现</a></td></tr>
@@ -19,7 +23,7 @@ ctest --preset dx12-debug</code></pre>
 <tr><td>dx08_compute_uav</td><td><a href="lessons/dx08_compute_uav/README.html">Compute UAV 与 GPU 读回</a></td></tr>
 <tr><td>dx09_pbr</td><td><a href="lessons/dx09_pbr/README.html">HLSL 直接光 PBR</a></td></tr>
 <tr><td>dx10_offscreen</td><td><a href="lessons/dx10_offscreen/README.html">离屏 RTV 与 CopyResource</a></td></tr>
-</table>
+</table></div>
 <h2>代码结构</h2>
 <p>每课 main.cpp 选择该课执行路径；共享初始化、资源与命令代码集中在 common/ 下。common/dx12_course.hpp 包含设备、命令、资源与绘制；shaders/scene.hlsl 包含 VS/PS/CS，Debug 编译保留调试信息。几何与 Frame/Draw 布局在 shared/scene.hpp。共享代码仍是教学源码，可直接打断点，不是黑盒二进制依赖。</p>
 <h2>调试与范围</h2>

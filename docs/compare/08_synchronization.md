@@ -99,7 +99,7 @@ nvpro 离屏目标在 GENERAL 布局下渲染并供 ImGui 采样。布局可以�
 
 屏障声明前后阶段、访问及布局；并非只修改一个枚举。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L129)，第 129—163 行：
+[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L133)，第 133—167 行：
 
 ```cpp
 inline void barrier(VkCommandBuffer cmd,
@@ -200,7 +200,7 @@ GENERAL→GENERAL 仍声明颜色写入与后续采样依赖。
 
 CPU 等 fence 只解决完成条件；资源状态还要与实际访问一致。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L132)，第 132—145 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L134)，第 134—147 行：
 
 ```cpp
     void wait() {

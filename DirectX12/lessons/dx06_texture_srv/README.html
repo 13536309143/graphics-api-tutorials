@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx06_texture_srv · 纹理上传、SRV 与描述符堆</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx06_texture_srv · 纹理上传、SRV 与描述符堆</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx06_texture_srv · 纹理上传、SRV 与描述符堆</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx06_texture_srv · 纹理上传、SRV 与描述符堆</h1>
 <p><a href="../../README.html">路线首页</a> · <a href="../dx05_indexed_cbv/README.html">上一课</a> · <a href="../dx07_depth_instancing/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
@@ -29,7 +29,7 @@ cmake --build --preset dx12-debug --target dx06_texture_srv --parallel 4
 <p>GetCopyableFootprints 提供上传行距，逐行填入后 CopyTextureRegion，再转换为像素 shader 可读。SRV 是访问描述，不拥有单独一份像素。</p>
 <p>配套精讲：<a href="../../../docs/compare/06_textures_color.html">三 API 对照 · 纹理、Mip 与颜色空间</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/dx12_course.hpp#L284">DirectX12/common/dx12_course.hpp</a>，第 284—313 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<p>来自 <a href="../../common/dx12_course.hpp#L301">DirectX12/common/dx12_course.hpp</a>，第 301—330 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
 <pre><code>        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
         UINT rows;
         UINT64 rowBytes, total;
@@ -62,13 +62,13 @@ cmake --build --preset dx12-debug --target dx06_texture_srv --parallel 4
         c.submit();</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../../OpenGL/lessons/05_texture/README.html">05_texture</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk06_texture_descriptor/README.html">vk06_texture_descriptor</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="README.html">dx06_texture_srv</a></td></tr>
-</table>
+</table></div>
 <h3>先预测，再验证</h3>
 <p>纹理出现周期性错行，首先检查哪里？</p>
 <p>参考推导：核对 CPU 行字节数、footprint Offset/RowPitch、资源格式和 copy location；不要先用 linear filter 模糊错误。</p>

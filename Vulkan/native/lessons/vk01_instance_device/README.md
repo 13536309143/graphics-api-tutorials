@@ -55,7 +55,7 @@ Vulkan 区分实例、物理设备和逻辑设备。实例负责与驱动体系�
 来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L29)，第 29—58 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-    NativeDevice(GLFWwindow* window) {
+    NativeDevice(GLFWwindow* window, bool timeline = false) {
         uint32_t count = 0;
         std::vector<const char*> extensions;
         if (window) {

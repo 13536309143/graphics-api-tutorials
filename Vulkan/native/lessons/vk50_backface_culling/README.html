@@ -1,0 +1,72 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk50_backface_culling · 背面剔除</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk50_backface_culling · 背面剔除</h1>
+<p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>目的与实际执行</h2>
+<p>分别运行 half-scissor、half-viewport、back-face culling 和 red-only 写掩码实验。viewport/scissor 是管线声明的 dynamic state，cull 与写掩码在本实现中仍是创建时配置。投影 Y 翻转也会影响屏幕绕序判断。 本实验共用外表面逆时针模型：Vulkan 使用 COUNTER_CLOCKWISE，DX12 显式设置 FrontCounterClockwise=TRUE；不可依赖两边零初始化得到同一正面。</p>
+<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<h2>构建和运行</h2>
+<pre><code>cmake --preset vulkan-native
+cmake --build --preset vulkan-native-debug --target vk50_backface_culling --parallel 4
+.\Vulkan\native\build\bin\Debug\vk50_backface_culling.exe</code></pre>
+<h2>深入学习：数据、接口与执行</h2>
+<ul>
+<li><a href="../../chapters/14_fixed_function/README.html">第 14 课：固定功能、颜色掩码、视口与剔除</a></li>
+</ul>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../../common/scene_vk.hpp#L356">Vulkan/common/scene_vk.hpp</a>，第 356—399 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
+        ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        VkPipelineViewportStateCreateInfo viewport{
+            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
+        viewport.viewportCount = viewport.scissorCount = 1;
+        VkPipelineRasterizationStateCreateInfo raster{
+            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
+        raster.polygonMode = VK_POLYGON_MODE_FILL;
+        raster.cullMode = cull;
+        raster.lineWidth = 1;
+        VkPipelineMultisampleStateCreateInfo ms{
+            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+        ms.rasterizationSamples = samples;
+        VkPipelineDepthStencilStateCreateInfo depth{
+            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
+        depth.depthTestEnable = depth.depthWriteEnable = mode &gt;= 5;
+        depth.depthCompareOp = VK_COMPARE_OP_LESS;
+        VkPipelineColorBlendAttachmentState attachment{};
+        attachment.colorWriteMask =
+            redOnly ? VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_A_BIT : 15;
+        VkPipelineColorBlendStateCreateInfo blend{
+            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+        blend.attachmentCount = 1;
+        blend.pAttachments = &amp;attachment;
+        VkDynamicState ds[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+        VkPipelineDynamicStateCreateInfo dynamic{
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
+        dynamic.dynamicStateCount = 2;
+        dynamic.pDynamicStates = ds;
+
+        // 动态渲染不创建 render pass，但管线仍需声明颜色和深度附件格式。
+        VkPipelineRenderingCreateInfo rendering{VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+        rendering.colorAttachmentCount = 1;
+        rendering.pColorAttachmentFormats = &amp;colorFormat;
+        rendering.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+        gp.pNext = &amp;rendering;
+        gp.stageCount = 2;
+        gp.pStages = stages;
+        gp.pVertexInputState = &amp;vi;
+        gp.pInputAssemblyState = &amp;ia;
+        gp.pViewportState = &amp;viewport;
+        gp.pRasterizationState = &amp;raster;
+        gp.pMultisampleState = &amp;ms;</code></pre>
+<h3>同主题跨 API 导航</h3>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>程序</td></tr>
+<tr><td>Vulkan 原生</td><td><a href="README.html">vk50_backface_culling</a></td></tr>
+<tr><td>对照后端</td><td><a href="../../../../DirectX12/lessons/dx50_backface_culling/README.html">dx50_backface_culling</a></td></tr>
+</table></div>
+<h3>先预测，再验证</h3>
+<p>先预测半视口与半裁剪的区别，再分别运行对应实验，检查模型宽高和可见区域。</p>
+<p>参考推导：半视口把整幅几何压进较窄映射，半裁剪保留原映射但屏蔽右侧。它们可能显示相同面积，却不是相同几何变换。</p>
+<h2>验证与边界</h2>
+<p>运行 <code>--smoke</code> 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。</p>
+<h2>实际画面</h2>
+<p><img alt="vk50_backface_culling" src="../../../../docs/previews/vk50_backface_culling.png"></p></main></html>

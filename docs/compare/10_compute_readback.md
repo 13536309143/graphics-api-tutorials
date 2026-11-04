@@ -79,7 +79,7 @@ void main() {
 
 Context 提供队列和设备；计算管线与资源依赖仍是 Vulkan。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L442)，第 442—478 行：
+[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L466)，第 466—502 行：
 
 ```cpp
 inline void computeSquares(const VkContextRef& c, const std::filesystem::path& shaders) {
@@ -125,7 +125,7 @@ inline void computeSquares(const VkContextRef& c, const std::filesystem::path& s
 
 DEFAULT UAV 结果拷贝到 READBACK，经 fence 后 Map。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L195)，第 195—242 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L197)，第 197—244 行：
 
 ```cpp
 inline void dxCompute(DxDevice& c) {

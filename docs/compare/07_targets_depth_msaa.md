@@ -32,7 +32,7 @@ OpenGL 11 把场景纹理交给全屏 shader，可以改变颜色。vk10 是先�
 
 ## MSAA 的当前范围与迁移条件
 
-OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标。Vulkan/DX12 当前均为单样本。增加 MSAA 时检查设备支持的 sample count，创建相同样本数的颜色/深度目标，并让 pipeline/PSO 匹配；最终 resolve 到可呈现的单样本图像。MSAA 主要处理几何覆盖边缘，不等于消除所有纹理闪烁或 shader 内的高频变化。
+OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标。基础课程保留单样本，新增两后端 20 已完成 4x MSAA 和 resolve。新增实现先检查设备支持的 sample count，创建相同样本数的颜色/深度目标，并让 pipeline/PSO 匹配；最终 resolve 到可呈现的单样本图像。MSAA 主要处理几何覆盖边缘，不等于消除所有纹理闪烁或 shader 内的高频变化。
 
 ## 窗口变化实验
 
@@ -49,9 +49,9 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
 | 路线 | 可运行参照 / 范围 |
 | --- | --- |
 | OpenGL | [29_msaa](../../OpenGL/lessons/29_msaa/README.md) |
-| Vulkan 原生 | [vk10_offscreen](../../Vulkan/native/lessons/vk10_offscreen/README.md) |
+| Vulkan 原生 | [vk20_msaa_resolve](../../Vulkan/native/lessons/vk20_msaa_resolve/README.md) |
 | Vulkan / nvpro_core2 | [nv02_application](../../Vulkan/nvpro/lessons/nv02_application/README.md) |
-| DirectX 12 | [dx10_offscreen](../../DirectX12/lessons/dx10_offscreen/README.md) |
+| DirectX 12 | [dx20_msaa_resolve](../../DirectX12/lessons/dx20_msaa_resolve/README.md) |
 
 ### OpenGL · 已实现
 
@@ -88,13 +88,15 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
 
 ### Vulkan 原生 · 已实现
 
-动态渲染指定 load/store；当前单样本离屏 blit 不等于完整后处理。
+4x 颜色/深度与 dynamic rendering resolve，目标与管线样本数一致。
 
-[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L363)，第 363—400 行：
+[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L416)，第 416—451 行：
 
 ```cpp
-            VkRenderingAttachmentInfo color{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-            color.imageView = targetView;
+                color.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+                color.resolveImageView = targetView;
+                color.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
             color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -112,8 +114,12 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
             render.pColorAttachments = &color;
             render.pDepthAttachment = &depth;
             vkCmdBeginRendering(cmd, &render);
-            if (swap.scene)
-                swap.scene->render(cmd, swap.extent, smoke ? 1.f : float(glfwGetTime()));
+            if (swap.scene) {
+                float time = smoke ? 1.f : float(glfwGetTime());
+                if (options.update)
+                    options.update(*swap.scene, time);
+                swap.scene->render(cmd, swap.extent, time);
+            }
             vkCmdEndRendering(cmd);
             if (mode == 10) {
                 barrier(cmd,
@@ -122,14 +128,6 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        VK_PIPELINE_STAGE_2_BLIT_BIT,
-                        VK_ACCESS_2_TRANSFER_READ_BIT);
-                barrier(cmd,
-                        swap.images[imageIndex],
-                        VK_IMAGE_LAYOUT_UNDEFINED,
-                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_NONE,
-                        0,
                         VK_PIPELINE_STAGE_2_BLIT_BIT,
 ```
 
@@ -152,43 +150,45 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
 
 ### DirectX 12 · 已实现
 
-先等 GPU 并释放旧 back buffer 引用，才能 ResizeBuffers。
+4x 目标经 ResolveSubresource 到单样本 back buffer。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L478)，第 478—511 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L643)，第 643—678 行：
 
 ```cpp
-    void resize(int w, int h) {
-        if (width == w && height == h)
-            return;
-        c.wait();
-        for (auto& image : colors)
-            image.Reset();
-        depth.Reset();
-        offscreen.Reset();
-        dxCheck(swap->ResizeBuffers(2, UINT(w), UINT(h), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
-        width = w;
-        height = h;
-        for (UINT i = 0; i < 2; ++i) {
-            dxCheck(swap->GetBuffer(i, IID_PPV_ARGS(&colors[i])));
-            c.device->CreateRenderTargetView(colors[i].Get(), nullptr, rtv(i));
+            c.cmd->ResolveSubresource(
+                back.Get(), 0, multisample.Get(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+            auto restore = transition(multisample.Get(),
+                                      D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+                                      D3D12_RESOURCE_STATE_RENDER_TARGET);
+            c.cmd->ResourceBarrier(1, &restore);
+            old = D3D12_RESOURCE_STATE_RESOLVE_DEST;
         }
-        D3D12_HEAP_PROPERTIES heap{};
-        heap.Type = D3D12_HEAP_TYPE_DEFAULT;
-        D3D12_RESOURCE_DESC desc{};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        desc.Width = UINT64(w);
-        desc.Height = UINT(h);
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = 1;
-        desc.Format = DXGI_FORMAT_D32_FLOAT;
-        desc.SampleDesc.Count = 1;
-        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        D3D12_CLEAR_VALUE clear{};
-        clear.Format = desc.Format;
-        clear.DepthStencil.Depth = 1;
-        dxCheck(c.device->CreateCommittedResource(&heap,
-                                                  D3D12_HEAP_FLAG_NONE,
-                                                  &desc,
-                                                  D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                                                  &clear,
+        ComPtr<ID3D12Resource> readback;
+        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+        if (capturePath) {
+            auto b = transition(back.Get(), old, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            c.cmd->ResourceBarrier(1, &b);
+            auto desc = back->GetDesc();
+            UINT rows;
+            UINT64 bytes, total;
+            c.device->GetCopyableFootprints(&desc, 0, 1, 0, &footprint, &rows, &bytes, &total);
+            readback = c.buffer(total, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+            D3D12_TEXTURE_COPY_LOCATION src{}, dst{};
+            src.pResource = back.Get();
+            src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+            dst.pResource = readback.Get();
+            dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+            dst.PlacedFootprint = footprint;
+            c.cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+            old = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        }
+
+        // 呈现前把 back buffer 恢复到 PRESENT；CPU 读回则在 GPU 拷贝及 fence 完成后进行。
+        auto present = transition(back.Get(), old, D3D12_RESOURCE_STATE_PRESENT);
+        c.cmd->ResourceBarrier(1, &present);
+        c.submit();
+        dxCheck(swap->Present(1, 0));
+        c.wait();
+        if (capturePath) {
+            void* p;
 ```

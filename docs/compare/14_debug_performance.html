@@ -1,16 +1,16 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>14 · 从黑屏到性能：证据驱动的调试</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>14 · 从黑屏到性能：证据驱动的调试</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>14 · 从黑屏到性能：证据驱动的调试</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>14 · 从黑屏到性能：证据驱动的调试</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#14_debug_performance">交互式对照</a> · <a href="13_multipass_effects.html">上一章</a> · <a href="15_framework_architecture.html">下一章</a></p>
 <p>本章把 CPU 断点、API 验证、GPU 抓帧和性能分析分开。它们观察不同层次，不能互相替代。</p>
 <h2>黑屏排查的固定顺序</h2>
 <p>先确认进程和循环存活，再确认 shader 编译/管线创建成功，然后看 draw 是否提交、顶点输出是否合理、目标是否正确、深度/模板是否拒绝、最终是否呈现。跳过前面直接改灯光，常会把无关问题越改越复杂。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>证据</td><td>适合回答的问题</td><td>不能单独证明什么</td></tr>
 <tr><td>CPU 断点/变量</td><td>哪条路径执行、创建参数是什么</td><td>GPU 已执行完或像素正确</td></tr>
 <tr><td>validation / debug layer</td><td>哪条使用约束被破坏</td><td>公式符合视觉预期</td></tr>
 <tr><td>mesh/pipeline viewer</td><td>GPU 当时实际读取与绑定什么</td><td>所有帧都无竞态</td></tr>
 <tr><td>图像读回</td><td>固定输入是否得到有效输出</td><td>带宽、性能或跨设备都正确</td></tr>
 <tr><td>GPU timestamp/工具分析</td><td>某段 GPU 工作耗时</td><td>整个应用的端到端延迟</td></tr>
-</table>
+</table></div>
 <p>OpenGL 当前用 shader 日志和帧尾 glGetError；没有假称已经加上完整 KHR_debug 系统。Vulkan 的 VUID 是查具体有效用法的入口；DX12 InfoQueue 保留严重度与描述。先处理第一条根因错误，后面的报错常是错误对象继续传播的结果。</p>
 <h2>按资源追踪，而非只按函数追踪</h2>
 <p>选择一张纹理，从 CPU 字节、upload、GPU image、view、descriptor、draw 事件到目标像素一路记录。若最终纹理是空的，往回检查 copy 事件；若像素已正确而屏幕错误，检查最终输出或呈现。nvpro 抓帧要找场景离屏 draw，不能只查看最后的 ImGui 合成。</p>
@@ -25,13 +25,13 @@
 <p>具体工具步骤见<a href="../DEBUGGING.html">完整调试指南</a>，验证概念见 <a href="https://docs.vulkan.org/guide/latest/validation_overview.html">Khronos validation overview</a>。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>帧尾错误号辅助定位；完整问题还需要查看绑定和实际 draw。</p>
 <p><a href="../../OpenGL/common/app.hpp#L123">OpenGL/common/app.hpp</a>，第 123—130 行：</p>
@@ -99,7 +99,7 @@ struct NativeDevice {
             dependency.memoryBarrierCount = 1;</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>ERROR/CORRUPTION 使 smoke 失败；抓帧再看数据和管线。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L140">DirectX12/common/dx12_course.hpp</a>，第 140—165 行：</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L142">DirectX12/common/dx12_course.hpp</a>，第 142—167 行：</p>
 <pre><code>    void checkMessages() {
         if (!messages)
             return;

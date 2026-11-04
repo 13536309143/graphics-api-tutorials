@@ -15,12 +15,13 @@ def excerpt(item):
     start = next((i for i, line in enumerate(lines) if item['anchor'] in line), None)
     if start is None:
         raise ValueError(f"Missing source anchor: {item['file']}: {item['anchor']}")
+    start = max(0, start - item.get('lead', 0))
     end = min(len(lines), start + item['count'])
     return '\n'.join(lines[start:end]), start + 1, end
 
 
 def refresh_lesson_sources():
-    """Keep the 60 lesson excerpts and line locations synchronized with source edits."""
+    """Keep the lesson excerpts and line locations synchronized with source edits."""
     entries = json.loads((ROOT / 'docs/lesson-source-map.json').read_text(encoding='utf-8'))
     for item in entries:
         code, start, end = excerpt(item)
@@ -85,9 +86,9 @@ def build():
 <title>三种图形 API 对照实验室</title><link rel="stylesheet" href="../../web/compare.css">
 <link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/compare.js"></script>
 <script defer src="../../web/runner.js"></script></head><body><main>
-<nav><a href="../../index.html">教程首页</a> · <a href="../COMPARE.html">学习路线</a> · <a href="../FEATURE_MATRIX.html">功能完成度</a> · <a href="../REFERENCES.html">参考资料</a></nav>
+<nav><a href="../../index.html">教程首页</a> · <a href="../COMPARE.html">主题路线</a> · <a href="../../Vulkan/native/COURSE.html">Vulkan 54 课</a> · <a href="../../DirectX12/COURSE.html">DX12 54 课</a> · <a href="../FEATURE_MATRIX.html">功能完成度</a> · <a href="../REFERENCES.html">参考资料</a></nav>
 <h1>三种图形 API 对照实验室</h1><p class="intro">同一问题，三种 API 的责任分配。Vulkan 另列 nvpro_core2 框架路线；代码来自本仓库实际实现。</p>
-<div class="scope-note">共 16 个精讲主题、60 个已有可运行课程。标为“迁移设计 / 基线外”的功能不计作已实现；运行参照不保证场景完全一致，也不用于比较 FPS。</div>
+<div class="scope-note">共 16 个精讲主题、148 个可运行实验，并新增 Vulkan/DX12 各 54 课主线。标为“迁移设计 / 基线外”的功能不计作已实现；运行参照不保证场景完全一致，也不用于比较 FPS。</div>
 <div class="lab-layout"><aside><label for="topic-search">查找主题</label><input id="topic-search" type="search" placeholder="例如：纹理、同步、PBR"><nav id="topic-nav" aria-label="对照主题">TOPIC_NAV</nav><p id="search-status" role="status"></p></aside>
 <div class="lab-content"><div class="api-filters" role="group" aria-label="源码显示范围"><button type="button" data-api-filter="all" aria-pressed="true">并排对照</button><button type="button" data-api-filter="gl" aria-pressed="false">OpenGL</button><button type="button" data-api-filter="vk" aria-pressed="false">Vulkan 原生</button><button type="button" data-api-filter="nv" aria-pressed="false">nvpro_core2</button><button type="button" data-api-filter="dx" aria-pressed="false">DX12</button></div>TOPIC_SECTIONS</div></div>
 <p class="footer-note">选主题 → 读精讲 → 查真实代码 → 预测修改结果 → 运行与记录。直接打开 HTML 可阅读和切换；点击运行请从“开始学习.cmd”进入。</p></main></body></html>'''

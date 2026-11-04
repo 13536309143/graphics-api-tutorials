@@ -63,10 +63,17 @@ VBV 的 BufferLocation 是 CPU 地址吗？
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L246)，第 246—275 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L256)，第 256—285 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-    DxScene(DxDevice& context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
+    DxScene(DxDevice& context,
+            int lesson,
+            const Geometry* replacement = nullptr,
+            UINT samples = 1,
+            D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE,
+            bool clampSampler = false,
+            bool redOnly = false)
+        : c(context), mode(lesson), mesh(replacement ? *replacement : geometry(mode)) {
         if (mode >= 4) {
             UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
             vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -89,13 +96,6 @@ VBV 的 BufferLocation 是 CPU 地址吗？
 
         // CBV GPU 地址要求 256 字节对齐，因此给 64 字节的帧矩阵预留 256 字节。
         uniform = c.buffer(256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-        D3D12_HEAP_PROPERTIES hp{};
-        hp.Type = D3D12_HEAP_TYPE_DEFAULT;
-        D3D12_RESOURCE_DESC image{};
-        image.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        image.Width = image.Height = 64;
-        image.DepthOrArraySize = 1;
-        image.MipLevels = 1;
 ```
 
 ### 同主题跨 API 导航

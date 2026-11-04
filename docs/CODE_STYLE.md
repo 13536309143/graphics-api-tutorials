@@ -37,8 +37,10 @@ Visual Studio 可以对 C++ 执行“格式化文档”，并读取仓库 `.clan
 
 ## 更新精讲与源码切片
 
-修改讲解 Markdown 或 C++/shader 后，从根目录执行 `python tools/build_docs.py`，会先按 `docs/comparison-topics.json` 和 `docs/lesson-source-map.json` 中的定位信息提取当前源码，再生成对照页、60 个课程切片和所有离线 HTML。定位锚点找不到时会直接报错，避免静默展示错误代码。
+修改讲解 Markdown 或 C++/shader 后，从根目录执行 `python tools/build_docs.py`，会先按 `docs/comparison-topics.json` 和 `docs/lesson-source-map.json` 中的定位信息提取当前源码，再生成对照页、全部实验切片和所有离线 HTML。定位锚点找不到时会直接报错，避免静默展示错误代码。
 
 静态页面已随仓库提供，日常阅读无需 Python。切片只展示文件的一段，行号和完整文件链接用于定位；修改后重复生成应得到相同产物。
 
 生成后运行 `python tools/check_docs.py`，检查所有离线页面、课程深入阅读段落及本地链接/图片是否完整。该检查使用 Python 标准库，不需要安装图形 SDK 或浏览器。
+
+54 课正文与实验映射集中在 `docs/curriculum.json`，由 `tools/build_curriculum.py` 生成教材及新增实验指南。请修改数据源再生成，避免只改生成文件后被覆盖。

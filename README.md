@@ -1,6 +1,6 @@
 # Graphics API Tutorials · C++ / CMake
 
-中文图形 API 学习工程：**OpenGL、原生 Vulkan、nvpro_core2 Vulkan、DirectX 12**。三种 API 分目录，Vulkan 下保留两套路线。共 **60 个可执行课程**：OpenGL 34、原生 Vulkan 10、nvpro_core2 6、DX12 10。
+中文图形 API 学习工程：**OpenGL、原生 Vulkan、nvpro_core2 Vulkan、DirectX 12**。三种 API 分目录，Vulkan 下保留两套路线。共 **148 个独立可执行实验**：OpenGL 34、原生 Vulkan 54、nvpro_core2 6、DX12 54。原生 Vulkan 与 DX12 各有按官方顺序组织的 **54 章完整主线**。
 
 ![跨 API PBR 场景](docs/previews/api-comparison.jpg)
 
@@ -9,17 +9,23 @@
 | API | 目录 | 内容 |
 | --- | --- | --- |
 | OpenGL | [OpenGL/](OpenGL/README.md) | 原有 34 课，含模型、PBR/IBL、HDR/Bloom、SSAO、动画 |
-| Vulkan 原生 | [Vulkan/native/](Vulkan/native/README.md) | 实例/队列、交换链、动态渲染、资源/描述符、计算、直接光 PBR、离屏传输 |
+| Vulkan 原生 | [Vulkan/native/](Vulkan/native/README.md) | 54 章/54 实验：基础对象、资源、模型、GPU mip、MSAA、compute/粒子、同步与缓存 |
 | Vulkan / nvpro_core2 | [Vulkan/nvpro/](Vulkan/nvpro/README.md) | Context、nvapp、RenderTarget、VMA/Staging、计算与可交互 PBR 视口 |
-| DirectX 12 | [DirectX12/](DirectX12/README.md) | DXGI、命令与 fence、PSO/root signature、CBV/SRV/UAV、深度、计算、PBR |
+| DirectX 12 | [DirectX12/](DirectX12/README.md) | 54 章/54 实验：DXGI、PSO/根签名、模型、GPU mip、MSAA、资源环与 compute |
 
-新路线优先把显式 API 的资源和同步讲清楚。Vulkan/DX12 的 PBR 是直接光实现；OpenGL 的完整 IBL、模型导入等高级功能还没有全部迁移，具体实现范围在各路线 README 说明。
+Vulkan/DX12 已补上真实静态 OBJ/glTF 节点、图片、mip、MSAA、GPU 生成顶点、动态常量、双槽计算、计数同步、时间戳和缓存。PBR 目前是直接光实现；完整 glTF 材质/skin、IBL、SSAO 等范围见功能矩阵。
+
+## 先按完整主线学习
+
+[Vulkan 原生 54 课](Vulkan/native/COURSE.md) · [DX12 54 课](DirectX12/COURSE.md) · [54 课逐章对照](docs/CURRICULUM.md) · [nvpro_core2 框架对照](Vulkan/nvpro/CHAPTER_MAP.md)
+
+顺序为初始化、呈现、管线、绘制/同步、顶点/索引、常量、纹理、深度、模型、mip、MSAA、compute，再接工程扩展。教材章号与实验号分别维护，旧程序链接保留。每章有目的、参数约束、两后端源码、框架边界、实验和答案。
 
 ## 深入学习与三 API 对照
 
 [打开对照实验室](docs/compare/index.html) · [16 章详细精讲](docs/COMPARE.md) · [功能完成度](docs/FEATURE_MATRIX.md) · [统一实验协议](docs/EXPERIMENTS.md)
 
-精讲按窗口/设备、三角形、内存、矩阵、绑定、纹理、目标、同步、多帧、计算、模型、PBR/IBL、多遍、调试和框架组织。每章解释目的、参数与责任，并连接真实源码、实验和参考答案。所有 60 个课程也补充针对性的深入说明与横向导航。[参考资料](docs/REFERENCES.md)记录你提供的 Vulkan/BootWiki 教程与当前工程的版本差异。
+精讲按窗口/设备、三角形、内存、矩阵、绑定、纹理、目标、同步、多帧、计算、模型、PBR/IBL、多遍、调试和框架组织。每章解释目的、参数与责任，并连接真实源码、实验和参考答案。全部实验均提供深入说明与横向导航。[参考资料](docs/REFERENCES.md)记录你提供的 Vulkan/BootWiki 教程与当前工程的版本差异。
 
 ## 快速运行入口
 
@@ -77,7 +83,7 @@ OpenGL 旧目录入口也会返回总入口。原来的 E:\OpenGL 独立教程�
 
 先 OpenGL 建立管线直觉，再用原生 Vulkan 观察显式资源与提交；然后阅读 nvpro_core2 看框架替你管理了哪些对象，最后对照 DX12。相同场景复用 shared/scene.hpp 与 Vulkan 公共渲染器，避免数学差异掩盖 API 差异。各课 main.cpp 选择不同的真实执行路径，不是重复输出相同画面。
 
-每课提供中文概念、代码阅读路径、练习和验证目标。CPU 数据上传、descriptor、同步和资源状态应能逐项解释，再做多帧重叠等性能优化。本教学版 Vulkan/DX12 主渲染路径按帧等待，不能作为高吞吐引擎模板直接套用。
+每课提供中文概念、代码阅读路径、练习和验证目标。CPU 数据上传、descriptor、同步和资源状态应能逐项解释，再做多帧重叠等性能优化。窗口渲染路径保留逐帧等待；新增双槽实验实际验证计算提交的资源环，尚不代表完整多帧呈现引擎。
 
 ## 文档
 

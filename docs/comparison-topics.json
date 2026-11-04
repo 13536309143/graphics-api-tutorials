@@ -3,7 +3,7 @@
     "id": "00_learning_path",
     "title": "学习路线与版本基线",
     "chapter": "00_learning_path.md",
-    "goal": "把初始化、数据、管线、目标、提交、同步放进同一张工作清单。",
+    "goal": "完整主线各 54 课；先沿官方顺序学习，再回到主题实验室横向核对。",
     "question": "换 API 后，哪些图形学概念没有改变？",
     "rows": [
       [
@@ -197,11 +197,11 @@
         "input layout + VBV"
       ],
       [
-        "静态几何现状",
+        "设备上传现状",
         "BufferData",
-        "host-visible coherent",
-        "device-local staging 示例",
-        "UPLOAD heap"
+        "13 device-local round trip；基础顶点仍可见",
+        "04 VMA device-local vertex",
+        "13 DEFAULT round trip；基础顶点仍 UPLOAD"
       ]
     ],
     "tracks": {
@@ -260,9 +260,9 @@
       [
         "相机现状",
         "自由相机",
-        "共享固定相机",
-        "共享固定相机 + UI",
-        "共享固定相机"
+        "固定 + 23 轨道",
+        "固定 + UI",
+        "固定 + 23 轨道"
       ]
     ],
     "tracks": {
@@ -349,7 +349,7 @@
         "folder": "Vulkan/nvpro",
         "lesson": "nv06_pbr_viewport",
         "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "for (auto d : draws",
+        "anchor": "vkCmdPushConstants",
         "count": 19,
         "explanation": "SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。",
         "status": "已实现"
@@ -381,10 +381,10 @@
       ],
       [
         "Mip 现状",
-        "有生成路径",
-        "单级",
-        "单级",
-        "单级"
+        "已有生成",
+        "18 GPU blit",
+        "需接入框架",
+        "18 GPU compute / sRGB CPU reference"
       ]
     ],
     "tracks": {
@@ -399,11 +399,11 @@
       },
       "vk": {
         "folder": "Vulkan/native",
-        "lesson": "vk06_texture_descriptor",
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "auto data = checker",
-        "count": 44,
-        "explanation": "staging 到 optimal image，先传输后采样并建立依赖。",
+        "lesson": "vk18_mip_chain",
+        "file": "Vulkan/native/common/advanced_labs.cpp",
+        "anchor": "struct GpuTexture",
+        "count": 36,
+        "explanation": "实际生成多级图像并逐 texel 读回验证；详见 54 课主线纹理章节。",
         "status": "已实现"
       },
       "nv": {
@@ -417,11 +417,11 @@
       },
       "dx": {
         "folder": "DirectX12",
-        "lesson": "dx06_texture_srv",
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint",
-        "count": 40,
-        "explanation": "按 RowPitch 逐行填 upload；创建 SRV 不会复制像素。",
+        "lesson": "dx18_mip_chain",
+        "file": "DirectX12/common/advanced_labs.cpp",
+        "anchor": "struct GpuTexture",
+        "count": 36,
+        "explanation": "实际生成多级图像并逐 texel 读回验证；详见 54 课主线纹理章节。",
         "status": "已实现"
       }
     }
@@ -443,9 +443,9 @@
       [
         "MSAA 实现",
         "29 已实现",
-        "待迁移",
-        "待迁移",
-        "待迁移"
+        "20 已实现",
+        "框架接入对照",
+        "20 已实现"
       ]
     ],
     "tracks": {
@@ -460,11 +460,11 @@
       },
       "vk": {
         "folder": "Vulkan/native",
-        "lesson": "vk10_offscreen",
+        "lesson": "vk20_msaa_resolve",
         "file": "Vulkan/native/common/native_app.hpp",
-        "anchor": "VkRenderingAttachmentInfo color",
-        "count": 38,
-        "explanation": "动态渲染指定 load/store；当前单样本离屏 blit 不等于完整后处理。",
+        "anchor": "color.resolveMode",
+        "count": 36,
+        "explanation": "4x 颜色/深度与 dynamic rendering resolve，目标与管线样本数一致。",
         "status": "已实现"
       },
       "nv": {
@@ -478,11 +478,11 @@
       },
       "dx": {
         "folder": "DirectX12",
-        "lesson": "dx10_offscreen",
+        "lesson": "dx20_msaa_resolve",
         "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "void resize(int",
-        "count": 34,
-        "explanation": "先等 GPU 并释放旧 back buffer 引用，才能 ResizeBuffers。",
+        "anchor": "ResolveSubresource",
+        "count": 36,
+        "explanation": "4x 目标经 ResolveSubresource 到单样本 back buffer。",
         "status": "已实现"
       }
     }
@@ -565,9 +565,9 @@
       [
         "当前重叠",
         "驱动路径",
-        "教学串行",
+        "24 双槽计算；窗口串行",
         "自定义场景串行",
-        "教学串行"
+        "24 双槽计算；窗口串行"
       ]
     ],
     "tracks": {
@@ -679,10 +679,10 @@
     "rows": [
       [
         "导入/动画",
-        "14/15/31 已实现",
-        "待迁移",
-        "待迁移",
-        "待迁移"
+        "14/15/31",
+        "21/22 静态；skin 待补",
+        "框架接入设计",
+        "21/22 静态；skin 待补"
       ],
       [
         "可共享内容",
@@ -704,12 +704,12 @@
       },
       "vk": {
         "folder": "Vulkan/native",
-        "lesson": null,
-        "file": null,
-        "anchor": null,
-        "count": 32,
-        "explanation": "设计：CPU MeshData → VkBuffer；骨骼 UBO/SSBO；节点/材质解析可共享。",
-        "status": "迁移设计"
+        "lesson": "vk22_gltf_scene",
+        "file": "shared/advanced.hpp",
+        "anchor": "inline Geometry staticAsset",
+        "count": 36,
+        "explanation": "真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。",
+        "status": "静态模型已实现"
       },
       "nv": {
         "folder": "Vulkan/nvpro",
@@ -722,12 +722,12 @@
       },
       "dx": {
         "folder": "DirectX12",
-        "lesson": null,
-        "file": null,
-        "anchor": null,
-        "count": 32,
-        "explanation": "设计：扩展 VBV/input layout 加 joints/weights，骨骼经 CBV/SRV 提供。",
-        "status": "迁移设计"
+        "lesson": "dx22_gltf_scene",
+        "file": "shared/advanced.hpp",
+        "anchor": "inline Geometry staticAsset",
+        "count": 36,
+        "explanation": "真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。",
+        "status": "静态模型已实现"
       }
     }
   },

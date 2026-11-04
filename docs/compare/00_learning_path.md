@@ -35,7 +35,7 @@ OpenGL 使用 3.3 Core 和 GLSL 330。原生 Vulkan 使用 C API、Vulkan 1.3、
 
 能画出正确图片只完成了一半。你还应能在源码中找到创建、更新、绑定、提交和释放位置；说明图像为什么正确；用一个受控修改改变结果；通过日志或抓帧证明自己的解释。程序无验证错误是必要证据，但不证明光照公式或相机坐标正确。
 
-本次新增内容主要加深讲解、源码对照和实验设计。当前仍有 60 个可执行课程；模型/IBL/SSAO 等只在 OpenGL 完成的功能会明确标为“迁移设计”，不会因为有理论章节就算成新的 Vulkan/DX12 实现。
+本次新增内容主要加深讲解、源码对照和实验设计。当前共有 148 个可执行实验；静态模型、mip、MSAA 等已补齐原生/DX12 实现；完整材质、IBL/SSAO 等未完成部分继续标明“迁移设计”，不会因为有理论章节就算成新的 Vulkan/DX12 实现。
 
 <!-- generated-source-comparison -->
 
@@ -81,7 +81,7 @@ struct NativeDevice {
     VkContextRef c;
     VkDebugUtilsMessengerEXT messenger{};
     VkSurfaceKHR surface{};
-    NativeDevice(GLFWwindow* window) {
+    NativeDevice(GLFWwindow* window, bool timeline = false) {
         uint32_t count = 0;
         std::vector<const char*> extensions;
         if (window) {
@@ -156,7 +156,7 @@ inline int nvproMain(int argc, char** argv, int chapter) {
 
 从 adapter、device、queue 看设备建立。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L59)，第 59—90 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L61)，第 61—92 行：
 
 ```cpp
 struct DxDevice {

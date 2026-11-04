@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>09 · 命令录制、帧资源与两帧并行设计</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>09 · 命令录制、帧资源与两帧并行设计</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>09 · 命令录制、帧资源与两帧并行设计</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>09 · 命令录制、帧资源与两帧并行设计</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#09_commands_frames">交互式对照</a> · <a href="08_synchronization.html">上一章</a> · <a href="10_compute_readback.html">下一章</a></p>
 <p>本仓库显式后端的单帧串行版本容易检查：等完成、更新一份数据、录制、提交、再等。学到这里之后，再设计 CPU/GPU 重叠才不会把偶然正确误认为可扩展。</p>
 <h2>命令与执行分开</h2>
@@ -6,14 +6,14 @@
 <p>Vulkan command pool 决定分配/重置与队列族等要求；DX12 command allocator 保存命令所用存储，command list 负责录制接口。某个 command list 对象能够再次 Reset，与它背后 allocator 的存储可以被覆盖不是同一个条件。当前 <code>DxDevice::submit</code> 等待 fence，所以下一次 begin 可以安全 Reset allocator。</p>
 <h2>帧槽不等于交换链图像</h2>
 <p>假设有两份 CPU 帧资源、三张交换链图像。frameSlot 按 0、1 轮换，用于 UBO、allocator/pool 等；imageIndex 来自 acquire/GetCurrentBackBufferIndex，用于当前颜色图像。它们可能恰好一样，也可能完全不同。用 frameSlot 索引三张图像或用 imageIndex 索引两份 UBO，都可能越界或复用错误。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>资源</td><td>两帧设计中的处理</td><td>原因</td></tr>
 <tr><td>可变帧常量</td><td>每帧槽独立范围</td><td>CPU 不覆盖 GPU 正在读的数据</td></tr>
 <tr><td>command allocator/pool</td><td>每帧槽管理并等待对应完成值</td><td>不覆盖在途命令存储</td></tr>
 <tr><td>静态顶点/纹理</td><td>通常可共享只读</td><td>内容不变且上传已完成</td></tr>
 <tr><td>深度/离屏目标</td><td>分帧分配或明确串行依赖</td><td>多帧可能同时写同一目标</td></tr>
 <tr><td>present 等待信号</td><td>按呈现资源规则管理</td><td>提交结束与呈现消费完成不是同一事件</td></tr>
-</table>
+</table></div>
 <h2>设计草图，不是现成后端</h2>
 <pre><code>slot = frameNumber % framesInFlight
 等待 slot 上次提交的完成条件
@@ -28,16 +28,16 @@
 <h2>实验与验收</h2>
 <p>先不修改行为，在现有版本记录 CPU frame number、frameSlot（设计值）、imageIndex、fence 完成值和资源地址。然后在独立练习分支引入两份 Frame，只运行固定场景，确认同一槽的下一次写发生在其完成之后。最后才移除相应串行等待。</p>
 <p>验收同时包含验证层零错误、重复 resize、固定输入画面稳定，以及计时中确实出现预期重叠。帧率变高但矩阵偶尔跳动不是成功。不能用 sleep 延迟来证明同步正确，CPU 调度变化会掩盖问题。</p>
-<p><a href="https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles">Microsoft 命令列表说明</a> 可核对录制对象与执行的区别。本章的多帧方案属于迁移设计，当前正式示例仍保留单帧教学契约。</p>
+<p><a href="https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles">Microsoft 命令列表说明</a> 可核对录制对象与执行的区别。新增 vk24/dx24 已实际验证两槽 GPU 计算提交与逐代读回；窗口呈现的完整资源环仍属于迁移设计，基础图形路径保留串行契约。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/07_cube/README.html">07_cube</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk02_swapchain/README.html">vk02_swapchain</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx02_swapchain/README.html">dx02_swapchain</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时。</p>
 <p><a href="../../OpenGL/common/app.hpp#L91">OpenGL/common/app.hpp</a>，第 91—114 行：</p>
@@ -67,7 +67,7 @@
                 std::ofstream out(assets.parent_path() / (std::string(glfwGetWindowTitle(window)) +</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>成功 acquire 后才 reset fence，避免无提交却等待已重置 fence。</p>
-<p><a href="../../Vulkan/native/common/native_app.hpp#L325">Vulkan/native/common/native_app.hpp</a>，第 325—355 行：</p>
+<p><a href="../../Vulkan/native/common/native_app.hpp#L365">Vulkan/native/common/native_app.hpp</a>，第 365—395 行：</p>
 <pre><code>            vkCheck(vkWaitForFences(d.c.device, 1, &amp;fence, VK_TRUE, UINT64_MAX));
             uint32_t imageIndex;
 
@@ -116,7 +116,7 @@
 inline int nvproMain(int argc, char** argv, int chapter) {</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>allocator Reset 由前次 submit 的等待保护，多帧版本须改变该契约。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L120">DirectX12/common/dx12_course.hpp</a>，第 120—145 行：</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L122">DirectX12/common/dx12_course.hpp</a>，第 122—147 行：</p>
 <pre><code>    void begin() {
         dxCheck(allocator-&gt;Reset());
         dxCheck(cmd-&gt;Reset(allocator.Get(), nullptr));

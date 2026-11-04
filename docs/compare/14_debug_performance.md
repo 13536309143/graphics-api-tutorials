@@ -140,7 +140,7 @@ struct NativeDevice {
 
 ERROR/CORRUPTION 使 smoke 失败；抓帧再看数据和管线。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L140)，第 140—165 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L142)，第 142—167 行：
 
 ```cpp
     void checkMessages() {

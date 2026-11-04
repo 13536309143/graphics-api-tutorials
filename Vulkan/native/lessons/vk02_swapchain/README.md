@@ -59,7 +59,7 @@ acquire 返回本轮 imageIndex，提交等待 acquired，present 等待渲染�
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L325)，第 325—354 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L365)，第 365—394 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
             vkCheck(vkWaitForFences(d.c.device, 1, &fence, VK_TRUE, UINT64_MAX));

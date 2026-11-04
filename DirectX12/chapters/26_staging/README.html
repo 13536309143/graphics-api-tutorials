@@ -1,0 +1,94 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 26 课 · 暂存上传、设备资源与读回闭环 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 26 课 · 暂存上传、设备资源与读回闭环 · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/03_geometry_memory.html">对照精讲</a> · <a href="../25_memory/README.html">上一课</a> · <a href="../27_indices/README.html">下一课</a></p>
+<h2>本课目标与先修</h2>
+<p>学习目标：解释“暂存上传、设备资源与读回闭环”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
+<h2>为什么需要这一层</h2>
+<p>本课用 257 个确定整数做完整闭环：CPU 写 upload，中转到 GPU 设备资源，再复制到 readback，等待完成并逐项核对。奇数长度帮助发现把字节数、元素数或范围截断的错误。</p>
+<h2>DirectX 12 的对象、参数与执行推导</h2>
+<p>UPLOAD 固定 GENERIC_READ，DEFAULT 先 COPY_DEST，完成第一份 copy 后转 COPY_SOURCE，READBACK 固定 COPY_DEST。不能因为都叫 BufferRegion 就省掉资源状态；临时 upload 在 fence 前保持存活。</p>
+<h2>对照 Vulkan 原生：相同问题的另一种分工</h2>
+<p>源/目标分别声明 TRANSFER_SRC/DST，设备缓冲选择 device-local。第一次 copy 的写入通过 buffer barrier 对第二次 transfer read 可见，最后 copy 写入经 host-read 依赖供 CPU 检查。</p>
+<h2>关键参数与可检查不变量</h2>
+<div class="table-scroll"><table>
+<tr><td>检查项</td><td>Vulkan 表达</td><td>DX12 表达</td><td>不变量 / 证据</td></tr>
+<tr><td>闭环容量</td><td>257 个 uint32</td><td>257 个 uint32</td><td>每项 i*17+9 可独立核对</td></tr>
+<tr><td>中间存储</td><td>device-local buffer</td><td>DEFAULT resource</td><td>upload/readback 与设备资源分离</td></tr>
+<tr><td>依赖链</td><td>copy-write→copy-read→host-read</td><td>COPY_DEST→COPY_SOURCE→readback</td><td>临时 upload 活到完成后</td></tr>
+</table></div>
+<p>先为每项指出源码中的创建/绑定位置，以及证明它成立的实际日志、字节或图像。数值中的设备限制以查询为准；固定实验尺寸不当作所有设备的上限。</p>
+<h2>nvpro_core2 框架对照</h2>
+<p>StagingUploader 的 append 与 cmdUploadAppended 对应准备和录制；submitAndWait 后才可以 deinit 临时上传器。框架不使 CPU 数据地址永久有效。</p>
+<p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>运行与实际检查</h2>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>实际实验</td></tr>
+<tr><td>DirectX 12</td><td><a href="../../lessons/dx13_staging_copy/README.html">dx13_staging_copy</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk13_staging_copy/README.html">vk13_staging_copy</a></td></tr>
+</table></div>
+<p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
+<pre><code>cmake --preset dx12
+cmake --build --preset dx12-debug --target dx13_staging_copy --parallel 4
+.\DirectX12\build\bin\Debug\dx13_staging_copy.exe
+ctest --preset dx12-debug -R &quot;^dx13_staging_copy$&quot; --output-on-failure</code></pre>
+<p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
+<h2>关键实现：从当前源码定位</h2>
+<p>来自 <a href="../../common/advanced_labs.cpp#L148">DirectX12/common/advanced_labs.cpp</a>，第 148—191 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>void stagingCopy(DxDevice&amp; c) {
+    std::vector&lt;uint32_t&gt; original(257);
+    for (uint32_t i = 0; i &lt; 257; ++i)
+        original[i] = i * 17 + 9;
+    auto upload = c.buffer(257 * 4, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+    auto gpu = c.buffer(257 * 4, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST);
+    auto readback = c.buffer(257 * 4, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+    writeBuffer(upload.Get(), original.data(), original.size() * 4);
+    c.begin();
+    c.cmd-&gt;CopyBufferRegion(gpu.Get(), 0, upload.Get(), 0, 257 * 4);
+    auto b =
+        transition(gpu.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    c.cmd-&gt;ResourceBarrier(1, &amp;b);
+    c.cmd-&gt;CopyBufferRegion(readback.Get(), 0, gpu.Get(), 0, 257 * 4);
+    c.submit();
+    require(readBuffer(readback.Get(), 257) == original, &quot;DEFAULT staging-copy result mismatch&quot;);
+    std::cout &lt;&lt; &quot;Verified 257 DEFAULT round-trip words\n&quot;;
+}
+// 两组 allocator/list 与可变资源交替提交；等待的是本槽上次使用，不是每次提交后立即全局等待。
+void frameRing(DxDevice&amp; c, const LabOptions&amp; options) {
+    ComputeKernel kernels[2] = {ComputeKernel(c, options), ComputeKernel(c, options)};
+    ComPtr&lt;ID3D12CommandAllocator&gt; allocators[2];
+    ComPtr&lt;ID3D12GraphicsCommandList&gt; commands[2];
+    UINT64 completed[2]{};
+    int previous[2] = {-1, -1};
+    for (uint32_t i = 0; i &lt; 2; ++i) {
+        dxCheck(c.device-&gt;CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                 IID_PPV_ARGS(&amp;allocators[i])));
+        dxCheck(c.device-&gt;CreateCommandList(0,
+                                            D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                            allocators[i].Get(),
+                                            nullptr,
+                                            IID_PPV_ARGS(&amp;commands[i])));
+        dxCheck(commands[i]-&gt;Close());
+    }
+    for (uint32_t frame = 0; frame &lt; 8; ++frame) {
+        uint32_t slot = frame % 2;
+        waitValue(c, completed[slot]);
+        if (previous[slot] &gt;= 0) {
+            auto result = readBuffer(kernels[slot].readback.Get(), 257);
+            for (uint32_t i = 0; i &lt; 257; ++i)
+                require(result[i] == i * 3 + uint32_t(previous[slot]),
+                        &quot;In-flight slot overwritten&quot;);
+        }</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+<h2>受控修改实验</h2>
+<p>若最终只检查一个元素，哪些错误可能漏掉？</p>
+<p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>
+<h3>参考推导与通过标准</h3>
+<p>尾部未拷贝、偏移偏一、局部范围错误仍可能让首元素正确。闭环应核对全部元素和容量，再把路径用于顶点或纹理。</p>
+<h2>常见失败与排查顺序</h2>
+<p>上传后立刻释放/覆盖 upload，或用错误的 consumer access/stage，可能在轻负载下偶然正确。</p>
+<p>先看第一条错误和当前执行路径，再看实际数据/绑定，最后看 shader 与画面。需要 GPU 证据时抓取正常交互帧；仅四帧的 smoke 适合自动检查，不适合手动抓帧。</p>
+<h2>自测与本课交付</h2>
+<p>能否不看源码回答：若最终只检查一个元素，哪些错误可能漏掉？</p>
+<p>提交一份简短记录：输入与假设、唯一修改、预期、实际证据、原因、是否恢复基线。如果只能复述函数名而说不清何时允许访问/释放，先回到本课的数据流。</p>
+<h2>官方阅读位置与当前工程差异</h2>
+<p><a href="https://docs.vulkan.net.cn/tutorial/latest/04_Vertex_buffers/02_Staging_buffer.html">指定 Vulkan 教程对应位置</a>。DX12 路线按同一概念顺序建立映射，其对象与约束以 Microsoft 文档和本后端代码为准。49—54 课包含在基础/compute 之后加入的工程扩展。</p>
+<p><a href="../../../docs/REFERENCES.html">版本与资料说明</a> · <a href="../../../docs/DEBUGGING.html">调试</a> · <a href="../../../docs/FEATURE_MATRIX.html">功能完成度</a></p></main></html>

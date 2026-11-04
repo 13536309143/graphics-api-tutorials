@@ -59,7 +59,7 @@ triangle.vert 用 gl_VertexIndex 生成位置与颜色，管线不要求 VBO。p
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L373)，第 373—402 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L391)，第 391—420 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
         VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
@@ -75,8 +75,7 @@ triangle.vert 用 gl_VertexIndex 生成位置与颜色，管线不要求 VBO。p
         gp.pColorBlendState = &blend;
         gp.pDynamicState = &dynamic;
         gp.layout = pipelineLayout;
-        VkResult result =
-            vkCreateGraphicsPipelines(c.device, VK_NULL_HANDLE, 1, &gp, nullptr, &pipeline);
+        VkResult result = vkCreateGraphicsPipelines(c.device, cache, 1, &gp, nullptr, &pipeline);
         vkDestroyShaderModule(c.device, vs, nullptr);
         vkDestroyShaderModule(c.device, ps, nullptr);
         vkCheck(result, "Graphics pipeline");
@@ -84,14 +83,15 @@ triangle.vert 用 gl_VertexIndex 生成位置与颜色，管线不要求 VBO。p
 
     // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
     void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = frame(mode, float(size.width) / size.height, true);
+        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
+        if (frameProvider)
+            f = frameProvider(float(size.width) / size.height, time, true);
         uniform.upload(&f, sizeof(f));
-        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkViewport viewport{
+            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
         VkRect2D scissor{{0, 0}, size};
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        vkCmdBindDescriptorSets(
+        if (halfScissor)
+            scissor.extent.width /= 2;
 ```
 
 ### 同主题跨 API 导航

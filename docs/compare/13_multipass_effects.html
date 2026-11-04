@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>13 · 阴影、延迟渲染、SSAO 与后处理依赖图</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>13 · 阴影、延迟渲染、SSAO 与后处理依赖图</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>13 · 阴影、延迟渲染、SSAO 与后处理依赖图</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>13 · 阴影、延迟渲染、SSAO 与后处理依赖图</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#13_multipass_effects">交互式对照</a> · <a href="12_lighting_pbr_ibl.html">上一章</a> · <a href="14_debug_performance.html">下一章</a></p>
 <p>高级效果通常是多个简单 pass 加上正确的数据流。跨 API 迁移时，先把“哪一遍生成什么，下一遍如何读取”画出来，比直接翻译所有创建函数更可靠。</p>
 <h2>一个最小依赖图</h2>
@@ -19,25 +19,25 @@
 <p>半球样本按法线定向，投影到屏幕后与邻域位置比较。随机旋转减少固定方向条纹，却产生颗粒；降噪还要看位置与法线相似度，避免跨物体轮廓糊成黑边。radius 和 bias 与场景尺度相关，不是适用于任意单位的魔法常数。</p>
 <p>SSAO 不会恢复屏幕外遮挡，也不是完整全局照明。验收时同时查看位置、法线、原始 AO、降噪 AO 和最终光照，才能判断黑斑来自几何数据、采样还是合成。</p>
 <h2>三种 API 如何表达 pass 的连接</h2>
-<table>
+<div class="table-scroll"><table>
 <tr><td>连接</td><td>OpenGL</td><td>Vulkan 迁移方案</td><td>DX12 迁移方案</td></tr>
 <tr><td>G-buffer 写后采样</td><td>切 FBO 并绑定纹理，避免反馈</td><td>color-write→sampled-read barrier</td><td>RENDER_TARGET→shader resource</td></tr>
 <tr><td>阴影深度写后读取</td><td>depth texture + 比较采样</td><td>depth-write→sampled-read 与布局</td><td>DEPTH_WRITE→对应 shader-read state</td></tr>
 <tr><td>ping-pong 模糊</td><td>交替两个纹理/FBO</td><td>两图交替并追踪每遍依赖</td><td>两资源交替并转换状态</td></tr>
 <tr><td>MSAA resolve</td><td>blit resolve</td><td>resolve attachment/command</td><td>ResolveSubresource 等</td></tr>
-</table>
+</table></div>
 <p>不要在同一个 pass 不加区分地同时把同一子资源当颜色输出与普通采样输入。先使用两个目标建立正确 ping-pong，再研究合法的高级反馈机制。</p>
 <h2>练习：先迁移一种最简单后处理</h2>
 <p>为现有 vk10/dx10 增加全屏采样并输出灰度，替代 blit/copy。列出新的 sampler/SRV、shader-read 用途、管线、descriptor/root binding 与颜色写后读依赖。验收先看原色采样无变化，再启用灰度；若原色已错，暂时不要加 Bloom。该方案明确是待实现练习。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/27_ssao/README.html">27_ssao</a></td></tr>
 <tr><td>Vulkan 原生</td><td>迁移设计</td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td>迁移设计</td></tr>
 <tr><td>DirectX 12</td><td>迁移设计</td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>先有 G-buffer，再估算遮挡、降噪，最后合成环境光。</p>
 <p><a href="../../OpenGL/lessons/27_ssao/main.cpp#L70">OpenGL/lessons/27_ssao/main.cpp</a>，第 70—116 行：</p>

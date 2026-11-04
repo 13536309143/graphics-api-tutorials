@@ -1,0 +1,89 @@
+# dx39_queue_properties · 队列能力与属性
+
+[54 课目录](../../COURSE.md)
+
+## 目的与实际执行
+
+DIRECT、COMPUTE、COPY 队列有不同可执行操作集合。当前课程以 DIRECT 为基线，输出 queue desc；跨队列需要 Signal/Wait 建立生产消费，resource state 仍要合法。本课的计数同步不冒充独立 copy engine 优化。
+
+本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+
+## 构建和运行
+
+```powershell
+cmake --preset dx12
+cmake --build --preset dx12-debug --target dx39_queue_properties --parallel 4
+.\DirectX12\build\bin\Debug\dx39_queue_properties.exe
+```
+
+## 深入学习：数据、接口与执行
+
+- [第 07 课：队列族、命令队列与并行边界](../../chapters/07_queues/README.md)
+
+### 本课的真实源码切片
+
+来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L394)，第 394—437 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+        srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srv.Texture2D.MostDetailedMip = lastMip ? UINT(reference.size() - 1) : 0;
+        srv.Texture2D.MipLevels = lastMip ? 1 : UINT(reference.size());
+        c.device->CreateShaderResourceView(
+            texture.Get(), &srv, scene.srvHeap->GetCPUDescriptorHandleForHeapStart());
+    }
+    void verify() {
+        auto desc = texture->GetDesc();
+        UINT levels = UINT(reference.size());
+        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels);
+        UINT64 total{};
+        c.device->GetCopyableFootprints(
+            &desc, 0, levels, 0, footprints.data(), nullptr, nullptr, &total);
+        auto readback = c.buffer(total, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+        c.begin();
+        auto b = transition(texture.Get(),
+                            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                            D3D12_RESOURCE_STATE_COPY_SOURCE);
+        c.cmd->ResourceBarrier(1, &b);
+        for (UINT level = 0; level < levels; ++level) {
+            D3D12_TEXTURE_COPY_LOCATION src{}, dst{};
+            src.pResource = texture.Get();
+            src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+            src.SubresourceIndex = level;
+            dst.pResource = readback.Get();
+            dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+            dst.PlacedFootprint = footprints[level];
+            c.cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+        }
+        b = transition(texture.Get(),
+                       D3D12_RESOURCE_STATE_COPY_SOURCE,
+                       D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        c.cmd->ResourceBarrier(1, &b);
+        c.submit();
+        void* p{};
+        D3D12_RANGE range{0, SIZE_T(total)};
+        dxCheck(readback->Map(0, &range, &p));
+        for (UINT level = 0; level < levels; ++level)
+            for (UINT y = 0; y < reference[level].height; ++y) {
+                auto* row = static_cast<uint8_t*>(p) + footprints[level].Offset +
+                            size_t(y) * footprints[level].Footprint.RowPitch;
+                for (UINT x = 0; x < reference[level].width * 4; ++x)
+                    require(
+```
+
+### 同主题跨 API 导航
+
+| 路线 | 程序 |
+| --- | --- |
+| DirectX 12 | [dx39_queue_properties](README.md) |
+| 对照后端 | [vk39_queue_properties](../../../Vulkan/native/lessons/vk39_queue_properties/README.md) |
+
+### 先预测，再验证
+
+说明为什么同一 queue 上顺序提交，仍可能需要资源内存屏障。
+
+参考推导：提交顺序不自动提供每一种访问之间所需的可见性或布局/状态变化。要从生产者与消费者推导依赖，不能用“排在后面”替代规则。
+
+## 验证与边界
+
+运行 `--smoke` 执行有限自动检查。数值实验读取实际 GPU 结果，图形实验检查非空图像并可查看读回。交互重建与性能还需额外证据；窗口 renderer 当前保留串行等待，双槽计算实验不会被描述为完整多帧呈现引擎。

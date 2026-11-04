@@ -1,16 +1,16 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03 · 顶点、索引与 GPU 内存</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>03 · 顶点、索引与 GPU 内存</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03 · 顶点、索引与 GPU 内存</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>03 · 顶点、索引与 GPU 内存</h1>
 <p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#03_geometry_memory">交互式对照</a> · <a href="02_triangle_pipeline.html">上一章</a> · <a href="04_transforms_camera.html">下一章</a></p>
 <p>本章把“一个数组”拆成四层：CPU 数据、GPU 资源、底层内存、解释布局的接口。顶点看起来错乱时，四层中的任一层出错都可能得到相似画面。</p>
 <h2>先核对字节，再讨论形状</h2>
 <p>共享 <code>Vertex</code> 是 position 三个 float、normal 三个 float、UV 两个 float，共 32 字节。对应偏移为 0、12、24。若误把 stride 写成 24，第二个顶点就会从前一个顶点的 UV 处开始读取；如果索引类型用 uint16 而内存实际是 uint32，三角形连接也会完全错误。</p>
 <p>OpenGL 基础 <code>Mesh</code> 使用八个连续 float，基本布局同样是 32 字节。导入模型的 <code>ImportedMesh::Vertex</code> 还包含 joints/weights，不能继续套用 32 字节；它使用 <code>offsetof</code> 描述成员，骨骼索引走整数 attribute 接口。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>责任</td><td>OpenGL</td><td>Vulkan</td><td>DX12</td></tr>
 <tr><td>储存顶点</td><td>buffer object</td><td>VkBuffer + 绑定内存</td><td>ID3D12Resource</td></tr>
 <tr><td>描述布局</td><td>VAO 中的 attribute 配置</td><td>binding/attribute descriptions</td><td>input layout + VBV</td></tr>
 <tr><td>索引解释</td><td>DrawElements 的 type</td><td>BindIndexBuffer 的 index type</td><td>IBV 的 format</td></tr>
 <tr><td>内存选择</td><td>由驱动管理细节</td><td>memoryTypeBits 与属性筛选</td><td>DEFAULT/UPLOAD/READBACK heap</td></tr>
-</table>
+</table></div>
 <h2>本仓库如何上传</h2>
 <p>OpenGL 用 <code>glBufferData</code> 提交顶点；驱动可以在内部复制和调度。原生 Vulkan 的 <code>VkBufferResource</code> 默认申请 HOST_VISIBLE 和 HOST_COHERENT 内存，map 后 memcpy。这让初学者容易追踪数据，但不应被描述为独立显卡静态几何的最佳传输策略。DX12 的顶点/索引同样直接保存在 UPLOAD heap，教学目标是观察资源和输入视图。</p>
 <p>nv04 给出更接近静态几何的路径：VMA 创建 device-local 顶点缓冲，StagingUploader 临时保存 CPU 数据，录制 copy，等待完成，再释放上传器。纹理也有 CPU 可见缓冲到 optimal image 的拷贝，但它在公共 SceneVk 中实现，不能把两条路径混称为同一个 VMA 纹理上传例子。</p>
@@ -23,13 +23,13 @@
 <p>迁移练习：为原生 Vulkan 顶点增加 staging 路径。写出目标 usage 必须包含的 TRANSFER_DST 和 VERTEX_BUFFER，以及 copy-write 到 vertex-attribute-read 的依赖。该练习是设计任务，当前 vk04 默认仍使用直接可见缓冲。<a href="https://docs.vulkan.org/tutorial/latest/04_Vertex_buffers/02_Staging_buffer.html">官方 staging 章节</a> 可用于核对两级上传思路。</p>
 <h2>与本仓库实现并排核对</h2>
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/03_indexed/README.html">03_indexed</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk04_vertex_buffer/README.html">vk04_vertex_buffer</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx04_vertex_buffer/README.html">dx04_vertex_buffer</a></td></tr>
-</table>
+</table></div>
 <h3>OpenGL · 已实现</h3>
 <p>EBO 绑定属于 VAO 状态，attribute stride 与 CPU 数据一致。</p>
 <p><a href="../../OpenGL/common/app.hpp#L217">OpenGL/common/app.hpp</a>，第 217—264 行：</p>
@@ -83,7 +83,7 @@
             glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>先满足 memoryTypeBits 与属性，再绑定资源；coherent 不等于执行同步。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L29">Vulkan/common/scene_vk.hpp</a>，第 29—73 行：</p>
+<p><a href="../../Vulkan/common/scene_vk.hpp#L31">Vulkan/common/scene_vk.hpp</a>，第 31—75 行：</p>
 <pre><code>struct VkBufferResource {
     VkDevice device{};
     VkBuffer buffer{};
@@ -154,8 +154,15 @@ struct VkImageResource {
     // 视口大小变化时重建 RenderTarget，并把新的 image view 交给 ImGui 显示。</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>UPLOAD 顶点和 index buffer view 保持清楚，性能优化可再改 DEFAULT。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L246">DirectX12/common/dx12_course.hpp</a>，第 246—283 行：</p>
-<pre><code>    DxScene(DxDevice&amp; context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
+<p><a href="../../DirectX12/common/dx12_course.hpp#L256">DirectX12/common/dx12_course.hpp</a>，第 256—293 行：</p>
+<pre><code>    DxScene(DxDevice&amp; context,
+            int lesson,
+            const Geometry* replacement = nullptr,
+            UINT samples = 1,
+            D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE,
+            bool clampSampler = false,
+            bool redOnly = false)
+        : c(context), mode(lesson), mesh(replacement ? *replacement : geometry(mode)) {
         if (mode &gt;= 4) {
             UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
             vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -185,11 +192,4 @@ struct VkImageResource {
         image.Width = image.Height = 64;
         image.DepthOrArraySize = 1;
         image.MipLevels = 1;
-        image.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        image.SampleDesc.Count = 1;
-        dxCheck(c.device-&gt;CreateCommittedResource(&amp;hp,
-                                                  D3D12_HEAP_FLAG_NONE,
-                                                  &amp;image,
-                                                  D3D12_RESOURCE_STATE_COPY_DEST,
-                                                  nullptr,
-                                                  IID_PPV_ARGS(&amp;texture)));</code></pre></main></html>
+        image.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;</code></pre></main></html>

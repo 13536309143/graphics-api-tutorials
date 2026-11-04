@@ -56,7 +56,7 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L195)，第 195—224 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L197)，第 197—226 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
 inline void dxCompute(DxDevice& c) {

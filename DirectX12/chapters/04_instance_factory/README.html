@@ -1,0 +1,94 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 04 课 · 实例扩展与 DXGI 工厂 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 04 课 · 实例扩展与 DXGI 工厂 · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/01_context_device.html">对照精讲</a> · <a href="../03_lifetime/README.html">上一课</a> · <a href="../05_validation/README.html">下一课</a></p>
+<h2>本课目标与先修</h2>
+<p>学习目标：解释“实例扩展与 DXGI 工厂”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
+<h2>为什么需要这一层</h2>
+<p>启动对象需要把应用需求与实现能力连接起来。先枚举再选择，可以解释失败原因；把网上扩展列表整体复制过来，会引入无关平台需求并降低可移植性。需求应来自实际使用路径。</p>
+<h2>DirectX 12 的对象、参数与执行推导</h2>
+<p>CreateDXGIFactory2 的调试 flag 与 D3D12 debug layer 是相关但不同的设置。factory 枚举 adapter 并创建窗口交换链，ID3D12Device 则用于具体 GPU 对象。选择硬件前先排除或明确允许软件 adapter。</p>
+<h2>对照 Vulkan 原生：相同问题的另一种分工</h2>
+<p>实例扩展用于窗口系统连接、debug utils 等实例层功能，设备扩展在创建设备时选择。glfwGetRequiredInstanceExtensions 返回当前平台 surface 所需扩展；无窗口计算不需要同一组 WSI 条件。pApplicationInfo 中的 apiVersion 不是“申请升级显卡”。</p>
+<h2>关键参数与可检查不变量</h2>
+<div class="table-scroll"><table>
+<tr><td>检查项</td><td>Vulkan 表达</td><td>DX12 表达</td><td>不变量 / 证据</td></tr>
+<tr><td>实例层需求</td><td>instanceExtensions</td><td>DXGI factory flags</td><td>要求与平台和实际功能匹配</td></tr>
+<tr><td>设备层需求</td><td>deviceExtensions / feature chain</td><td>feature level / feature queries</td><td>不可把扩展名放错层次</td></tr>
+<tr><td>无窗口路径</td><td>不需要 surface/swapchain</td><td>不需要 HWND/swapchain</td><td>compute 依赖设备，不依赖呈现</td></tr>
+</table></div>
+<p>先为每项指出源码中的创建/绑定位置，以及证明它成立的实际日志、字节或图像。数值中的设备限制以查询为准；固定实验尺寸不当作所有设备的上限。</p>
+<h2>nvpro_core2 框架对照</h2>
+<p>ContextInitInfo 的 instanceExtensions 与 deviceExtensions 分开填写；框架自动创建不代表应用可以忽略扩展所属层次。</p>
+<p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>运行与实际检查</h2>
+<div class="table-scroll"><table>
+<tr><td>路线</td><td>实际实验</td></tr>
+<tr><td>DirectX 12</td><td><a href="../../lessons/dx37_instance_extensions/README.html">dx37_instance_extensions</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk37_instance_extensions/README.html">vk37_instance_extensions</a></td></tr>
+</table></div>
+<p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
+<pre><code>cmake --preset dx12
+cmake --build --preset dx12-debug --target dx37_instance_extensions --parallel 4
+.\DirectX12\build\bin\Debug\dx37_instance_extensions.exe
+ctest --preset dx12-debug -R &quot;^dx37_instance_extensions$&quot; --output-on-failure</code></pre>
+<p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
+<h2>关键实现：从当前源码定位</h2>
+<p>来自 <a href="../../common/advanced_labs.cpp#L612">DirectX12/common/advanced_labs.cpp</a>，第 612—655 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>void inspection(DxDevice&amp; c, const LabOptions&amp; options, int id) {
+    if (id == 37) {
+        UINT count = 0;
+        for (UINT i = 0;; ++i) {
+            ComPtr&lt;IDXGIAdapter1&gt; adapter;
+            auto hr = c.factory-&gt;EnumAdapters1(i, &amp;adapter);
+            if (hr == DXGI_ERROR_NOT_FOUND)
+                break;
+            dxCheck(hr);
+            DXGI_ADAPTER_DESC1 d{};
+            dxCheck(adapter-&gt;GetDesc1(&amp;d));
+            std::wcout &lt;&lt; L&quot;adapter=&quot; &lt;&lt; d.Description &lt;&lt; L&quot;, bytes=&quot; &lt;&lt; d.DedicatedVideoMemory
+                       &lt;&lt; L&#x27;\n&#x27;;
+            ++count;
+        }
+        require(count &gt; 0, &quot;No DXGI adapters enumerated&quot;);
+    } else if (id == 38) {
+        require(c.messages.Get() != nullptr, &quot;D3D12 InfoQueue unavailable&quot;);
+        dxCheck(c.messages-&gt;PushEmptyStorageFilter());
+        UINT64 before = c.messages-&gt;GetNumStoredMessages();
+        dxCheck(c.messages-&gt;AddApplicationMessage(D3D12_MESSAGE_SEVERITY_INFO,
+                                                  &quot;Course informational diagnostic&quot;));
+        require(c.messages-&gt;GetNumStoredMessages() &gt; before,
+                &quot;InfoQueue did not receive application message&quot;);
+        c.messages-&gt;PopStorageFilter();
+        std::cout
+            &lt;&lt; &quot;Verified informational diagnostic delivery without introducing invalid API usage\n&quot;;
+    } else if (id == 39) {
+        auto desc = c.queue-&gt;GetDesc();
+        require(desc.Type == D3D12_COMMAND_LIST_TYPE_DIRECT, &quot;Expected direct queue&quot;);
+        std::cout &lt;&lt; &quot;queue type=&quot; &lt;&lt; desc.Type &lt;&lt; &quot;, priority=&quot; &lt;&lt; desc.Priority
+                  &lt;&lt; &quot;, flags=&quot; &lt;&lt; desc.Flags &lt;&lt; &quot;, nodeMask=&quot; &lt;&lt; desc.NodeMask &lt;&lt; &#x27;\n&#x27;;
+    } else if (id == 42) {
+        auto shader = labShader(options, &quot;ComputeMain&quot;);
+        ComPtr&lt;ID3D11ShaderReflection&gt; reflection;
+        dxCheck(D3DReflect(
+            shader-&gt;GetBufferPointer(), shader-&gt;GetBufferSize(), IID_PPV_ARGS(&amp;reflection)));
+        UINT x{}, y{}, z{};
+        reflection-&gt;GetThreadGroupSize(&amp;x, &amp;y, &amp;z);
+        require(x == 64 &amp;&amp; y == 1 &amp;&amp; z == 1, &quot;Unexpected shader thread-group reflection&quot;);
+        D3D11_SHADER_DESC desc{};
+        dxCheck(reflection-&gt;GetDesc(&amp;desc));
+        std::cout &lt;&lt; &quot;Verified shader reflection: threads=&quot; &lt;&lt; x
+                  &lt;&lt; &quot;, bindings=&quot; &lt;&lt; desc.BoundResources &lt;&lt; &#x27;\n&#x27;;</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+<h2>受控修改实验</h2>
+<p>把某个窗口相关要求从无窗口计算路径中移除，先说明哪些操作因此不再允许，再解释为什么计算仍能成立。</p>
+<p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>
+<h3>参考推导与通过标准</h3>
+<p>没有 surface/swapchain 便不能走窗口呈现，但 compute pipeline、buffer 和 queue submit 不依赖可见窗口。需求应与实际功能一致。</p>
+<h2>常见失败与排查顺序</h2>
+<p>扩展名拼写正确不代表当前实现支持；实例与设备扩展放错创建位置也不会因为同为字符串就生效。</p>
+<p>先看第一条错误和当前执行路径，再看实际数据/绑定，最后看 shader 与画面。需要 GPU 证据时抓取正常交互帧；仅四帧的 smoke 适合自动检查，不适合手动抓帧。</p>
+<h2>自测与本课交付</h2>
+<p>能否不看源码回答：把某个窗口相关要求从无窗口计算路径中移除，先说明哪些操作因此不再允许，再解释为什么计算仍能成立。</p>
+<p>提交一份简短记录：输入与假设、唯一修改、预期、实际证据、原因、是否恢复基线。如果只能复述函数名而说不清何时允许访问/释放，先回到本课的数据流。</p>
+<h2>官方阅读位置与当前工程差异</h2>
+<p><a href="https://docs.vulkan.net.cn/tutorial/latest/03_Drawing_a_triangle/00_Setup/01_Instance.html">指定 Vulkan 教程对应位置</a>。DX12 路线按同一概念顺序建立映射，其对象与约束以 Microsoft 文档和本后端代码为准。49—54 课包含在基础/compute 之后加入的工程扩展。</p>
+<p><a href="../../../docs/REFERENCES.html">版本与资料说明</a> · <a href="../../../docs/DEBUGGING.html">调试</a> · <a href="../../../docs/FEATURE_MATRIX.html">功能完成度</a></p></main></html>

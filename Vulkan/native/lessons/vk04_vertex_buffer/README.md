@@ -59,7 +59,7 @@ HOST_COHERENT 是否意味着不用等待 GPU 就可以任意改写缓冲？
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L29)，第 29—58 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L31)，第 31—60 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
 struct VkBufferResource {

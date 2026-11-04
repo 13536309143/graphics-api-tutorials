@@ -1,0 +1,27 @@
+#version 450
+layout(local_size_x = 64) in;
+// Scalars keep the storage stride equal to the 32-byte vertex-input stride.
+struct Vertex {
+    float x, y, z, r, g, b, u, v;
+};
+layout(binding = 0, std430) buffer Vertices {
+    Vertex data[];
+}
+vertices;
+layout(push_constant) uniform Tick {
+    float time;
+    uint count;
+}
+tick;
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= tick.count * 3)
+        return;
+    uint particle = i / 3, corner = i % 3;
+    float phase = float(particle) * 2.39996323 + tick.time * .35;
+    float radius = .1 + .75 * sqrt(float(particle) / float(tick.count));
+    vec2 center = vec2(cos(phase), sin(phase)) * radius;
+    float a = float(corner) * 2.0943951;
+    vec2 p = center + vec2(cos(a), sin(a)) * .028;
+    vertices.data[i] = Vertex(p.x, p.y, 0, .25 + .7 * float(particle % 7) / 6, .65, .95, 0, 0);
+}

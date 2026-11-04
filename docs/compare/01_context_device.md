@@ -121,7 +121,7 @@ DX12 的 `DxDevice` 先尝试开启调试层，再创建 factory、选择 adapte
 [Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L29)，第 29—70 行：
 
 ```cpp
-    NativeDevice(GLFWwindow* window) {
+    NativeDevice(GLFWwindow* window, bool timeline = false) {
         uint32_t count = 0;
         std::vector<const char*> extensions;
         if (window) {
@@ -210,7 +210,7 @@ Context 减少创建代码，需求选择与失败处理仍由应用负责。
 
 在设备创建前启用调试层；WARP 是软件参考路径。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L69)，第 69—110 行：
+[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L71)，第 71—112 行：
 
 ```cpp
     explicit DxDevice(bool warp = false) {

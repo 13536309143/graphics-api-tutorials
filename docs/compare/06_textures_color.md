@@ -32,9 +32,9 @@ OpenGL `ImageTexture` 的 srgb 参数用于区分用途；Vulkan/DX12 棋盘采�
 
 ## Mip 在哪里实现了，哪里没有
 
-OpenGL 纹理调用 glGenerateMipmap 并使用相应 min filter。当前 Vulkan/DX12 示例只创建单级纹理。为它们增加 mip 时，需要同时修改资源级数、上传或生成流程、每级 view/layout/state，以及 sampler 最大 LOD；只打开线性过滤不会凭空生成 mip。
+OpenGL 纹理调用 glGenerateMipmap 并使用相应 min filter。基础 06 保留单级路径；新增 18/19 已创建并生成 mip 链，且读回所有级别核对。为它们增加 mip 时，需要同时修改资源级数、上传或生成流程、每级 view/layout/state，以及 sampler 最大 LOD；只打开线性过滤不会凭空生成 mip。
 
-迁移方案：先在 CPU 为 checker 生成一条 mip 链，逐级上传并验证颜色，再考虑 GPU blit/compute 生成。Vulkan 需查询格式是否支持所选过滤与 blit；DX12 的 compute 生成需要逐级 SRV/UAV 和相应依赖。这是扩展练习，不是现有示例的隐藏功能。
+迁移方案：先在 CPU 为 checker 生成一条 mip 链，逐级上传并验证颜色，再考虑 GPU blit/compute 生成。Vulkan 需查询格式是否支持所选过滤与 blit；DX12 的 compute 生成需要逐级 SRV/UAV 和相应依赖。新增 Vulkan 18 已使用逐级 GPU blit，DX12 18 使用 SRV/UAV compute 生成。数值校验采用线性 UNORM；DX12 sRGB 材质链采用先解码到线性平均再编码的 CPU 路径。
 
 ## 实验与检查
 
@@ -49,9 +49,9 @@ OpenGL 纹理调用 glGenerateMipmap 并使用相应 min filter。当前 Vulkan/
 | 路线 | 可运行参照 / 范围 |
 | --- | --- |
 | OpenGL | [05_texture](../../OpenGL/lessons/05_texture/README.md) |
-| Vulkan 原生 | [vk06_texture_descriptor](../../Vulkan/native/lessons/vk06_texture_descriptor/README.md) |
+| Vulkan 原生 | [vk18_mip_chain](../../Vulkan/native/lessons/vk18_mip_chain/README.md) |
 | Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md) |
-| DirectX 12 | [dx06_texture_srv](../../DirectX12/lessons/dx06_texture_srv/README.md) |
+| DirectX 12 | [dx18_mip_chain](../../DirectX12/lessons/dx18_mip_chain/README.md) |
 
 ### OpenGL · 已实现
 
@@ -84,55 +84,47 @@ sRGB 用于颜色，normal/roughness 等数据应保持线性。
 
 ### Vulkan 原生 · 已实现
 
-staging 到 optimal image，先传输后采样并建立依赖。
+实际生成多级图像并逐 texel 读回验证；详见 54 课主线纹理章节。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L224)，第 224—267 行：
+[Vulkan/native/common/advanced_labs.cpp](../../Vulkan/native/common/advanced_labs.cpp#L354)，第 354—389 行：
 
 ```cpp
-        auto data = checker();
+struct GpuTexture {
+    VkContextRef c;
+    VkImageResource image;
+    VkSampler sampler{};
+    VkImageView selectedView{};
+    VkFormat format{};
+    std::vector<Pixels> reference;
+    explicit GpuTexture(
+        VkContextRef context, Pixels pixels, bool mips, bool srgb = false, bool clamp = false)
+        : c(context) {
+        reference = mips ? mipReference(pixels, srgb) : std::vector<Pixels>{pixels};
+        uint32_t levels = uint32_t(reference.size());
+        format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+        if (mips) {
+            VkFormatProperties properties{};
+            vkGetPhysicalDeviceFormatProperties(c.physical, format, &properties);
+            VkFormatFeatureFlags required = VK_FORMAT_FEATURE_BLIT_SRC_BIT |
+                                            VK_FORMAT_FEATURE_BLIT_DST_BIT |
+                                            VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+            require((properties.optimalTilingFeatures & required) == required,
+                    "Format cannot generate linear-blit mip chain");
+        }
+        image.init(c,
+                   {pixels.width, pixels.height},
+                   format,
+                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                       VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                   VK_IMAGE_ASPECT_COLOR_BIT,
+                   levels);
         VkBufferResource upload;
-        upload.init(c, data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-        upload.upload(data.data(), data.size());
-        texture.init(c,
-                     {64, 64},
-                     VK_FORMAT_R8G8B8A8_SRGB,
-                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                     VK_IMAGE_ASPECT_COLOR_BIT);
-
-        // 纹理先切到传输目标布局，拷贝完成后再切到 shader 只读布局供片元阶段采样。
+        upload.init(c, pixels.rgba.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+        upload.upload(pixels.rgba.data(), pixels.rgba.size());
         immediate(c, [&](VkCommandBuffer cmd) {
-            barrier(cmd,
-                    texture.image,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_PIPELINE_STAGE_2_NONE,
-                    0,
-                    VK_PIPELINE_STAGE_2_COPY_BIT,
-                    VK_ACCESS_2_TRANSFER_WRITE_BIT);
-            VkBufferImageCopy copy{};
-            copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-            copy.imageExtent = {64, 64, 1};
-            vkCmdCopyBufferToImage(
-                cmd, upload.buffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
-            barrier(cmd,
-                    texture.image,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    VK_PIPELINE_STAGE_2_COPY_BIT,
-                    VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
-        });
-        VkSamplerCreateInfo si{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-        si.magFilter = si.minFilter = VK_FILTER_LINEAR;
-        si.addressModeU = si.addressModeV = si.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        si.maxLod = 0;
-        vkCheck(vkCreateSampler(c.device, &si, nullptr, &sampler));
-
-        // binding 0 对应每帧 UBO，binding 1 对应纹理和采样器；编号与 GLSL 保持一致。
-        VkDescriptorSetLayoutBinding bindings[2] = {
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            {1,
+            for (uint32_t i = 0; i < levels; ++i)
+                imageDependency(cmd,
+                                image.image,
 ```
 
 ### Vulkan / nvpro_core2 · 已实现
@@ -180,49 +172,45 @@ staging 到 optimal image，先传输后采样并建立依赖。
 
 ### DirectX 12 · 已实现
 
-按 RowPitch 逐行填 upload；创建 SRV 不会复制像素。
+实际生成多级图像并逐 texel 读回验证；详见 54 课主线纹理章节。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L284)，第 284—323 行：
+[DirectX12/common/advanced_labs.cpp](../../DirectX12/common/advanced_labs.cpp#L237)，第 237—272 行：
 
 ```cpp
-        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
-        UINT rows;
-        UINT64 rowBytes, total;
-
-        // 纹理上传不能假定行数据紧密排列；按 footprint 的对齐行距逐行复制。
-        c.device->GetCopyableFootprints(&image, 0, 1, 0, &footprint, &rows, &rowBytes, &total);
-        auto upload = c.buffer(total, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-        void* mapped;
-        D3D12_RANGE empty{0, 0};
-        dxCheck(upload->Map(0, &empty, &mapped));
-        auto data = checker();
-        for (UINT y = 0; y < rows; ++y)
-            std::memcpy(static_cast<uint8_t*>(mapped) + footprint.Offset +
-                            size_t(y) * footprint.Footprint.RowPitch,
-                        data.data() + size_t(y) * 64 * 4,
-                        64 * 4);
-        upload->Unmap(0, nullptr);
-        c.begin();
-        D3D12_TEXTURE_COPY_LOCATION source{}, destination{};
-        source.pResource = upload.Get();
-        source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-        source.PlacedFootprint = footprint;
-        destination.pResource = texture.Get();
-        destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        c.cmd->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
-        auto b = transition(texture.Get(),
-                            D3D12_RESOURCE_STATE_COPY_DEST,
-                            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        c.cmd->ResourceBarrier(1, &b);
-        c.submit();
-        D3D12_DESCRIPTOR_HEAP_DESC heap{};
-        heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        heap.NumDescriptors = 1;
-        heap.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        dxCheck(c.device->CreateDescriptorHeap(&heap, IID_PPV_ARGS(&srvHeap)));
-        D3D12_SHADER_RESOURCE_VIEW_DESC srv{};
-        srv.Format = image.Format;
-        srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        srv.Texture2D.MipLevels = 1;
+struct GpuTexture {
+    DxDevice& c;
+    ComPtr<ID3D12Resource> texture;
+    std::vector<Pixels> reference;
+    DXGI_FORMAT viewFormat;
+    GpuTexture(
+        DxDevice& context, const LabOptions& options, Pixels pixels, bool mips, bool srgb = false)
+        : c(context) {
+        reference = mips ? mipReference(pixels, srgb) : std::vector<Pixels>{pixels};
+        const UINT levels = UINT(reference.size());
+        const bool gpuMips = mips && !srgb;
+        viewFormat = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+        D3D12_RESOURCE_DESC desc{};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        desc.Width = pixels.width;
+        desc.Height = pixels.height;
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = UINT16(levels);
+        desc.Format = srgb ? DXGI_FORMAT_R8G8B8A8_TYPELESS : DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        if (gpuMips)
+            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        D3D12_HEAP_PROPERTIES hp{};
+        hp.Type = D3D12_HEAP_TYPE_DEFAULT;
+        dxCheck(c.device->CreateCommittedResource(&hp,
+                                                  D3D12_HEAP_FLAG_NONE,
+                                                  &desc,
+                                                  D3D12_RESOURCE_STATE_COPY_DEST,
+                                                  nullptr,
+                                                  IID_PPV_ARGS(&texture)));
+        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels);
+        std::vector<UINT> rows(levels);
+        std::vector<UINT64> rowBytes(levels);
+        UINT64 total{};
+        c.device->GetCopyableFootprints(
+            &desc, 0, levels, 0, footprints.data(), rows.data(), rowBytes.data(), &total);
 ```

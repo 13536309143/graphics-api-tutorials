@@ -39,6 +39,19 @@ lab=Links();lab.feed((root/'docs/compare/index.html').read_text(encoding='utf-8'
 for url in lab.values:
     parsed=urlsplit(url)
     if not parsed.scheme and parsed.path and not (root/'docs/compare'/unquote(parsed.path)).resolve().exists():broken.append(('comparison-lab',url))
+
+catalog_rows = [row.split('\t') for row in (root/'catalog.tsv').read_text(encoding='utf-8').splitlines()]
+counts = {folder: sum(row[1] == folder for row in catalog_rows) for folder in ['OpenGL','Vulkan/native','Vulkan/nvpro','DirectX12']}
+assert counts == {'OpenGL':34,'Vulkan/native':54,'Vulkan/nvpro':6,'DirectX12':54}, counts
+curriculum = json.loads((root/'docs/curriculum.json').read_text(encoding='utf-8'))
+assert len(curriculum['chapters']) == 54
+assert {n for chapter in curriculum['chapters'] for n in chapter['labs']} == set(range(1,55))
+for folder in ['Vulkan/native','DirectX12']:
+    assert len(list((root/folder/'chapters').glob('*/README.md'))) == 54, folder
+for chapter in curriculum['chapters']:
+    for key in ['vk','dx','nv','task','answer','error']:
+        assert len(chapter[key]) > (10 if key == "task" else 30), (chapter['slug'],key)
+
 if broken:
     print(json.dumps(broken,ensure_ascii=False,indent=2));raise SystemExit(1)
-print(f'PASS: {len(pages)} offline Markdown/HTML pairs; all local links/assets exist; 60 lesson expansions; 16 topics.')
+print(f'PASS: {len(pages)} offline Markdown/HTML pairs; all local links/assets exist; 148 catalog-backed experiments, 54+54 chapters; 16 comparison topics.')

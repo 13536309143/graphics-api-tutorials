@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PBR / IBL：把公式与数据流连起来</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>PBR / IBL：把公式与数据流连起来</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PBR / IBL：把公式与数据流连起来</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>PBR / IBL：把公式与数据流连起来</h1>
 <h2>直接光</h2>
 <p>渲染方程的反射部分把来自半球各方向的入射辐射度 Li 与 BRDF、cosθ 相乘后积分。离散点光源可以直接逐灯求和；环境光则需要方向积分的近似。</p>
 <pre><code>fr = kd * albedo / PI + D * G * F / (4 * NoV * NoL)
@@ -18,7 +18,7 @@ diffuse_env = irradiance * albedo / PI
 spec_env = prefiltered(R, roughness) * (F0 * LUT.x + LUT.y)</code></pre>
 <p>环境反射也受金属/粗糙度与 Fresnel 控制。普通 mipmap 与反射分布预积分不同；本教程逐 mip 真正进行 GGX 采样。为了快速学习，环境 128²、漫反射 16²、镜面 64² 五级、LUT 128²，每项 128 样本。提高品质时同步修改采样序列分母、循环次数、纹理大小与运行时最大 LOD。</p>
 <h2>色彩空间契约</h2>
-<table>
+<div class="table-scroll"><table>
 <tr><td>数据</td><td>文件/上传格式</td><td>shader 中的含义</td></tr>
 <tr><td>albedo/base color</td><td>PNG + GL_SRGB8_ALPHA8</td><td>GPU 解码到线性颜色</td></tr>
 <tr><td>normal / metallic / roughness / AO</td><td>GL_RGBA8</td><td>线性数值，不能 Gamma</td></tr>
@@ -26,7 +26,7 @@ spec_env = prefiltered(R, roughness) * (F0 * LUT.x + LUT.y)</code></pre>
 <tr><td>G-buffer position/normal</td><td>浮点</td><td>几何数据</td></tr>
 <tr><td>HDR scene/Bloom</td><td>RGBA16F</td><td>线性辐射亮度近似</td></tr>
 <tr><td>最终窗口输出</td><td>tone mapping + 简化 Gamma</td><td>显示编码值</td></tr>
-</table>
+</table></div>
 <p>23–25 为独立展示，在 PBR shader 中完成最终映射；34 接入 HDR，必须关闭 PBR 与天空的局部编码，最后只输出编码一次。灯光值与材质因子都是线性数，不要用图片编辑软件看到的 sRGB 数字直接当物理反射率。</p>
 <h2>验证方法</h2>
 <p>固定相机、灯和环境，只改一个变量。横向看 roughness 对高光宽度的影响，纵向看 metallic 对漫反射的关闭；关闭 IBL 看未被直接光照亮的金属是否失去环境反射；暂停动画对比 bind pose。不要仅根据“画面更亮”认定 PBR 实现正确。</p>

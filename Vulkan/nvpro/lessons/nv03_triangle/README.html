@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv03_triangle · 动态渲染与共享场景</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>nv03_triangle · 动态渲染与共享场景</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv03_triangle · 动态渲染与共享场景</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>nv03_triangle · 动态渲染与共享场景</h1>
 <p><a href="../../README.html">路线首页</a> · <a href="../../../native/README.html">原生 Vulkan 对照</a></p>
 <h2>构建与运行</h2>
 <pre><code>cmake --preset vulkan-nvpro
@@ -53,13 +53,13 @@ cmake --build --preset vulkan-nvpro-debug --target nv03_triangle --parallel 4
         if (scene)</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
-<table>
+<div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
 <tr><td>OpenGL</td><td><a href="../../../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
 <tr><td>Vulkan 原生</td><td><a href="../../../native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td><a href="README.html">nv03_triangle</a></td></tr>
 <tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
-</table>
+</table></div>
 <h3>先预测，再验证</h3>
 <p>省略最后屏障，某驱动仍显示正常能证明安全吗？</p>
 <p>参考推导：不能。偶然顺序不等于合法依赖；应按消费者阶段和访问推导，并用同步验证辅助检查。</p>

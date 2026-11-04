@@ -1,5 +1,5 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>进阶排错与性能</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>进阶排错与性能</h1>
-<table>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>进阶排错与性能</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>进阶排错与性能</h1>
+<div class="table-scroll"><table>
 <tr><td>现象</td><td>优先核查</td></tr>
 <tr><td>透明/粒子完全不显示</td><td>深度是否清过、清除时 DepthMask 是否为 true、Alpha 是否为零</td></tr>
 <tr><td>glTF 部件飞散</td><td>parent*local、矩阵转置、同一节点重复变换</td></tr>
@@ -13,7 +13,7 @@
 <tr><td>G-buffer 没数据</td><td>FBO/MRT 位置、alpha 背景标记、几何 pass 是否启用深度</td></tr>
 <tr><td>SSAO 相机移动就闪</td><td>观察/世界空间混用、投影除 w、深度比较方向、采样超屏</td></tr>
 <tr><td>MSAA FBO 不完整</td><td>样本数、所有附件尺寸/采样一致、设备 GL_MAX_SAMPLES</td></tr>
-</table>
+</table></div>
 <h2>按 pass 检查</h2>
 <p>为每一遍列出：输入纹理和单元、写入目标、viewport、程序、VAO、深度与模板状态、色彩空间。某一帧无 GL 错误只说明调用合法，不说明效果符合预期。本次增加了非背景/动态范围检查，并使用固定时间的开启/关闭效果抓图作差。</p>
 <p><code>program.exe --smoke --capture</code> 保存正常图，<code>--smoke --variant --capture</code> 在新课中模拟按住空格。图像文件写在 exe 旁。<code>--variant</code> 只用于对应有效果开关的课，不代表每个程序都有特殊分支。默认四帧时间固定为 1 秒，可稳定对比；真实运行按墙钟时间推进。</p>

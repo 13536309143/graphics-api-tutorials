@@ -23,7 +23,7 @@
 
 先取局部点 `(1,0,0,1)`，model 只沿 X 平移 2，世界位置应为 `(3,0,0,1)`。如果先旋转再平移，与先平移再旋转一般不同。写出两个矩阵乘积并在 CPU 打印结果，比看到模型绕错轴后反复交换代码更容易定位。
 
-OpenGL 相机课在右键按下时更新 yaw/pitch，把俯仰角限制在接近 ±90° 以内。移动速度乘 dt，避免高帧率下走得更快。Vulkan/DX12 的共享场景目前主要采用固定相机和旋转模型；这不等于已移植 OpenGL 的完整自由相机交互。
+OpenGL 相机课在右键按下时更新 yaw/pitch，把俯仰角限制在接近 ±90° 以内。移动速度乘 dt，避免高帧率下走得更快。Vulkan/DX12 除固定场景外，新增 23 课轨道相机，并按实际 aspect 更新投影；这不等于已移植 OpenGL 的完整自由相机交互。
 
 ## 法线为什么不等同于位置
 
@@ -138,14 +138,19 @@ inline Frame frame(int mode, float aspect, bool vulkan) {
 
 框架不改变 SceneVk 的数学约定；UI 调整的是材质参数。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L394)，第 394—413 行：
+[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L411)，第 411—430 行：
 
 ```cpp
     void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = frame(mode, float(size.width) / size.height, true);
+        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
+        if (frameProvider)
+            f = frameProvider(float(size.width) / size.height, time, true);
         uniform.upload(&f, sizeof(f));
-        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkViewport viewport{
+            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
         VkRect2D scissor{{0, 0}, size};
+        if (halfScissor)
+            scissor.extent.width /= 2;
         vkCmdSetViewport(cmd, 0, 1, &viewport);
         vkCmdSetScissor(cmd, 0, 1, &scissor);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -156,11 +161,6 @@ inline Frame frame(int mode, float aspect, bool vulkan) {
             VkDeviceSize offset = 0;
             vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
             if (indices.buffer)
-                vkCmdBindIndexBuffer(cmd, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-        }
-        for (auto d : draws(mode, time)) {
-            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
-            vkCmdPushConstants(cmd,
 ```
 
 ### DirectX 12 · 已实现
