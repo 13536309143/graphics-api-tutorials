@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>进阶学习路线</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>进阶学习路线</h1>
+<p>进阶内容现在都有实际程序，从 <a href="../lessons/14_model_obj/README.html">第 14 课模型导入</a> 开始，最后运行 <a href="../lessons/34_gallery/README.html">第 34 课综合 PBR 展厅</a>。</p>
+<p>建议依赖顺序：</p>
+<ul>
+<li>先 14/15，学会用真实模型、节点层级和图片；16/17 理解透明与模板状态。</li>
+<li>18 看 cubemap；19/20 理解切线空间与表面细节。</li>
+<li>21/22 建立线性 HDR 后处理；23/24 实现直接光 PBR 和材质贴图。</li>
+<li>25 计算完整 split-sum IBL，不能跳过环境积分的含义。</li>
+<li>26/27 比较延迟管线和环境遮蔽；28/29 学共享数据与 MSAA。</li>
+<li>30/31/32 学图元扩展、骨骼与粒子；33 补齐点光源全向阴影。</li>
+<li>最后用 34 检查模型、材质、IBL 与 HDR 的统一约定，再选择一个效果合并进去。</li>
+</ul>
+<p>模型格式兼容、PBR 公式与性能建议分别见 docs/09、10、11。还没有实现的高级主题见 <a href="12_后续专题与边界.html">后续专题与边界</a>，不要将路线中的选题当成已经提供可执行程序。</p>
+<p>权威参考：<a href="https://registry.khronos.org/OpenGL-Refpages/gl4/">Khronos OpenGL</a>、<a href="https://www.glfw.org/docs/latest/">GLFW</a>、<a href="https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html">glTF 2.0</a>、<a href="https://github.com/assimp/assimp">Assimp</a>、<a href="https://google.github.io/filament/Filament.md.html">Filament</a>。查看较高版本 API 文档时，始终检查本教程 3.3 Core 是否支持。</p></main></html>

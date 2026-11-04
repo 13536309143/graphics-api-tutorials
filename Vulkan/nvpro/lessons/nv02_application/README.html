@@ -1,0 +1,18 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv02_application · nvapp Application 生命周期</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>nv02_application · nvapp Application 生命周期</h1>
+<p><a href="../../README.html">路线首页</a> · <a href="../../../native/README.html">原生 Vulkan 对照</a></p>
+<h2>构建与运行</h2>
+<pre><code>cmake --preset vulkan-nvpro
+cmake --build --preset vulkan-nvpro-debug --target nv02_application --parallel 4
+.\Vulkan\nvpro\build\bin\Debug\nv02_application.exe</code></pre>
+<p>以上命令从仓库根目录执行，也可使用本页“运行本课”。预期：深蓝色 Viewport，可调窗口布局。</p>
+<h2>代码阅读</h2>
+<p>先读 <a href="main.cpp">main.cpp</a>，再读路线根目录 common/nvapp_course.hpp 的 NvLesson/nvproMain。框架实现位于 external/nvpro_core2；其固定 commit 和许可证见路线 README。共享底层实现位于 Vulkan/common/scene_vk.hpp，公共数学/几何位于 shared/scene.hpp。</p>
+<p>nvapp::Application 管理窗口、交换链、UI 和帧提交，IAppElement 提供 onAttach/onResize/onUIRender/onRender/onDetach。渲染不直接写交换链，而是写 nvvk::RenderTarget，再交给 ImGui 显示。onResize 中更新附件与显示描述符；资源必须先于 allocator/device 销毁。--smoke 使用官方 headless 路径，仍进行真实 GPU 渲染。</p>
+<h2>动手练习</h2>
+<p>修改清屏色；在每个回调中打印一次调用顺序；缩放 Viewport 观察 update。</p>
+<p>自测：列出本课中由 nvpro_core2 管理的对象，以及仍由 SceneVk/应用管理的对象。参考：Context/Application/RenderTarget/Allocator 负责各自对象，shader、pipeline layout、descriptor 与绘制逻辑仍有显式 Vulkan 状态；框架不会自动推断任意自定义 pass 的全部依赖。</p>
+<h2>检查</h2>
+<p><code>nv02_application.exe --smoke</code> 使用 GPU 无窗口运行或控制台检查。渲染课读回 Viewport 图像为 PPM；计算课逐项验证。验证层错误会使测试失败。常规窗口的 resize/minimize、UI 输入和长时间运行需要另外检查，不能以 headless 通过代替全部交互验证。</p>
+<h2>实测画面</h2>
+<p>固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。</p>
+<p><img alt="nv02_application" src="../../../../docs/previews/nv02_application.png"></p></main></html>

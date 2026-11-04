@@ -1,0 +1,15 @@
+name: Build
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  windows:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        track: [launcher, opengl, dx12]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake --preset ${{ matrix.track }}
+      - name: Build
+        run: cmake --build --preset ${{ matrix.track }}-debug --parallel 4
+      # GPU tests run locally; hosted CI is a compile check, not a hardware-rendering certification.

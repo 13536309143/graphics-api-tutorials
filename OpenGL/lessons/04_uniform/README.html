@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 04 课：Shader 与 Uniform 动画</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 04 课：Shader 与 Uniform 动画</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../03_indexed/README.html">上一课</a> · <a href="../05_texture/README.html">下一课</a></p>
+<h2>学完你应该能够</h2>
+<p>说明“Uniform 与 GLSL 数据流”，运行并修改本课示例。</p>
+<h2>运行与观察</h2>
+<p>在教程根目录执行：</p>
+<pre><code>.\scripts\run.ps1 -Lesson 04_uniform</code></pre>
+<p>预期画面：矩形周期性明暗变化。</p>
+<h2>原理与代码阅读</h2>
+<p>顶点属性在顶点之间不同，uniform 则在一次绘制期间保持不变，由 CPU 设置。shader.use() 调用 glUseProgram，随后 shader.set 才更新这个程序的 uniform。设置错误的当前程序可能得到 GL_INVALID_OPERATION。</p>
+<p>此课把时间作为 CPU 输入，计算 0.55+0.45*sin(2*t)，再更新片段着色器的 pulse。范围为 [0.1,1]，作用于插值颜色。时间由秒计量，2 是角速度，周期为 π 秒；与每帧固定增加数值不同，这种动画不会因为帧率不同而改变速度。</p>
+<p>GLSL 顶点阶段 out 与片段阶段 in 必须类型和名称匹配。uniform 由编译器优化掉时，glGetUniformLocation 返回 -1，设置它不会报错。本教程共享多个 shader，因此一些未用属性或 uniform 被优化是正常现象；自己的必需参数应检查名称、大小写和是否真正参与输出。</p>
+<p>修改 GLSL 后重新构建，会把 shaders 目录复制到 exe 旁；程序从 exe 所在目录查找文件，切换 PowerShell 工作目录也能运行。</p>
+<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<h2>动手练习</h2>
+<p>把频率改为原来的两倍；加入 uniform vec3 tint 实现整体调色。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<h2>自测</h2>
+<p>为什么调用 set 之前要 use？</p>
+<p>参考答案：glUniform 修改当前激活程序的 uniform，不会根据 location 自动切换程序。</p>
+<h2>出错时优先检查</h2>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>

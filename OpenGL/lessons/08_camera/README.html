@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 08 课：自由相机</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 08 课：自由相机</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../07_cube/README.html">上一课</a> · <a href="../09_lighting/README.html">下一课</a></p>
+<h2>学完你应该能够</h2>
+<p>说明“把输入变成相机运动”，运行并修改本课示例。</p>
+<h2>运行与观察</h2>
+<p>在教程根目录执行：</p>
+<pre><code>.\scripts\run.ps1 -Lesson 08_camera</code></pre>
+<p>预期画面：十个棋盘立方体，可自由穿行观察。</p>
+<h2>原理与代码阅读</h2>
+<p>相机的位置 pos、朝向 front 和世界 up 定义 view。用 yaw 和 pitch 计算方向，pitch 限制在 [-89,89]，避免 front 与 up 平行时叉乘退化。右方向 normalize(cross(front,up)) 由右手坐标系确定。</p>
+<p>鼠标的像素位移乘灵敏度改变角度。第一次捕获鼠标只记录位置，不计算大幅跳变；松开右键恢复指针。键盘移动距离是 speed*dt，不应每帧移动固定距离。此课 dt 上限为 0.05 秒，防止调试暂停后突然飞远；这会在极低帧率时牺牲真实时间一致性。</p>
+<p>W/S 前后，A/D 横移，Q/E 升降，按住右键转向。W/S 沿 front 移动，所以看向上方时会同时升高；如果想做贴地角色，应将 front 的 y 清零后归一化。此教学相机不包含碰撞，能穿过物体。</p>
+<p>阅读 Camera::update/view/projection，再看第 08 课使用同一个 VP 绘制 10 个不同 model 的对象。相机并不移动 GPU 内部的某个实体；改变 view 矩阵即可改变观察方式。</p>
+<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<h2>动手练习</h2>
+<p>加入 Shift 加速；改为地面移动；实现按 R 复位相机。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<h2>自测</h2>
+<p>为什么鼠标旋转不直接乘 dt？</p>
+<p>参考答案：本例输入是每帧累计像素位移，已经随采样间隔变化；再乘 dt 会引入帧率依赖。</p>
+<h2>出错时优先检查</h2>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>

@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 10 课：材质与多光源</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 10 课：材质与多光源</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../09_lighting/README.html">上一课</a> · <a href="../11_framebuffer/README.html">下一课</a></p>
+<h2>学完你应该能够</h2>
+<p>说明“纹理材质与多光源叠加”，运行并修改本课示例。</p>
+<h2>运行与观察</h2>
+<p>在教程根目录执行：</p>
+<pre><code>.\scripts\run.ps1 -Lesson 10_materials</code></pre>
+<p>预期画面：棋盘材质受移动白光和固定蓝光共同照亮。</p>
+<h2>原理与代码阅读</h2>
+<p>材质描述表面对光的响应，不能只把它理解为一张图片。这里棋盘纹理调制基础颜色，shininess 控制高光指数，镜面强度暂时固定为 0.45。真正的材质还可以有独立漫反射贴图、镜面贴图与法线贴图。</p>
+<p>此课在第 09 课白色光源之外，加入固定蓝色点光源，按光源逐项累加贡献。点光衰减为 1/(1+0.09*d+0.032*d*d)，参数用于可见的教学效果；它不是严格的物理逆平方模型。白色移动主光仍未应用距离衰减，便于与上一课对照。</p>
+<p>颜色值可能在多光源叠加后超过 1，普通归一化颜色缓冲会截断，这也是 HDR 与 tone mapping 要解决的问题。不要通过把所有光源随意平均来代替能量叠加。</p>
+<p>对比 lit.frag 中 phong 函数与 multi 分支。大量光源应使用结构体数组、UBO，甚至延迟渲染或 tiled/clustered lighting；本课先保持两盏灯的计算过程清晰。</p>
+<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<h2>动手练习</h2>
+<p>加入第二个彩色点光；让三个物体使用不同镜面强度；为光源绘制小立方体作为标记。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<h2>自测</h2>
+<p>为什么更多光源可能造成大片纯白？</p>
+<p>参考答案：光照求和超出 [0,1] 被颜色缓冲截断。可降低强度，进一步学习浮点 HDR 缓冲与色调映射。</p>
+<h2>出错时优先检查</h2>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>

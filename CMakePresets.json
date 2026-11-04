@@ -1,0 +1,173 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "launcher",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "GRAPHICS_TRACK": "launcher"
+      }
+    },
+    {
+      "name": "opengl",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/OpenGL/build",
+      "cacheVariables": {
+        "GRAPHICS_TRACK": "opengl"
+      }
+    },
+    {
+      "name": "vulkan-native",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/Vulkan/native/build",
+      "cacheVariables": {
+        "GRAPHICS_TRACK": "vulkan-native"
+      }
+    },
+    {
+      "name": "vulkan-nvpro",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/Vulkan/nvpro/build",
+      "cacheVariables": {
+        "GRAPHICS_TRACK": "vulkan-nvpro"
+      }
+    },
+    {
+      "name": "dx12",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/DirectX12/build",
+      "cacheVariables": {
+        "GRAPHICS_TRACK": "dx12"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "launcher-debug",
+      "configurePreset": "launcher",
+      "configuration": "Debug"
+    },
+    {
+      "name": "launcher-release",
+      "configurePreset": "launcher",
+      "configuration": "Release"
+    },
+    {
+      "name": "opengl-debug",
+      "configurePreset": "opengl",
+      "configuration": "Debug"
+    },
+    {
+      "name": "opengl-release",
+      "configurePreset": "opengl",
+      "configuration": "Release"
+    },
+    {
+      "name": "vulkan-native-debug",
+      "configurePreset": "vulkan-native",
+      "configuration": "Debug"
+    },
+    {
+      "name": "vulkan-native-release",
+      "configurePreset": "vulkan-native",
+      "configuration": "Release"
+    },
+    {
+      "name": "vulkan-nvpro-debug",
+      "configurePreset": "vulkan-nvpro",
+      "configuration": "Debug"
+    },
+    {
+      "name": "vulkan-nvpro-release",
+      "configurePreset": "vulkan-nvpro",
+      "configuration": "Release"
+    },
+    {
+      "name": "dx12-debug",
+      "configurePreset": "dx12",
+      "configuration": "Debug"
+    },
+    {
+      "name": "dx12-release",
+      "configurePreset": "dx12",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "opengl-debug",
+      "configurePreset": "opengl",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "opengl-release",
+      "configurePreset": "opengl",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "vulkan-native-debug",
+      "configurePreset": "vulkan-native",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "vulkan-native-release",
+      "configurePreset": "vulkan-native",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "vulkan-nvpro-debug",
+      "configurePreset": "vulkan-nvpro",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "vulkan-nvpro-release",
+      "configurePreset": "vulkan-nvpro",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "dx12-debug",
+      "configurePreset": "dx12",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "dx12-release",
+      "configurePreset": "dx12",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "lesson": "19_normal_mapping",
+    "pixels_changed_over_2": 381839,
+    "mean_absolute_channel_difference": 5.57604
+  },
+  {
+    "lesson": "20_parallax",
+    "pixels_changed_over_2": 422212,
+    "mean_absolute_channel_difference": 12.38807
+  },
+  {
+    "lesson": "21_hdr",
+    "pixels_changed_over_2": 39346,
+    "mean_absolute_channel_difference": 1.96325
+  },
+  {
+    "lesson": "22_bloom",
+    "pixels_changed_over_2": 602596,
+    "mean_absolute_channel_difference": 7.12604
+  },
+  {
+    "lesson": "24_pbr_textures",
+    "pixels_changed_over_2": 97543,
+    "mean_absolute_channel_difference": 1.38219
+  },
+  {
+    "lesson": "25_ibl",
+    "pixels_changed_over_2": 146815,
+    "mean_absolute_channel_difference": 9.26998
+  },
+  {
+    "lesson": "27_ssao",
+    "pixels_changed_over_2": 874,
+    "mean_absolute_channel_difference": 0.03476
+  },
+  {
+    "lesson": "29_msaa",
+    "pixels_changed_over_2": 413,
+    "mean_absolute_channel_difference": 0.03778
+  },
+  {
+    "lesson": "31_skeletal",
+    "pixels_changed_over_2": 45378,
+    "mean_absolute_channel_difference": 4.19448
+  },
+  {
+    "lesson": "33_point_shadows",
+    "pixels_changed_over_2": 58410,
+    "mean_absolute_channel_difference": 13.73878
+  },
+  {
+    "lesson": "34_gallery",
+    "pixels_changed_over_2": 4762,
+    "mean_absolute_channel_difference": 0.07398
+  }
+]

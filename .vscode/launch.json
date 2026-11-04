@@ -1,0 +1,45 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "OpenGL PBR",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/OpenGL/build/bin/Debug/25_ibl.exe",
+      "cwd": "${workspaceFolder}/OpenGL/build/bin/Debug",
+      "args": [],
+      "stopAtEntry": false,
+      "preLaunchTask": "opengl-debug"
+    },
+    {
+      "name": "Vulkan Native",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/Vulkan/native/build/bin/Debug/vk03_triangle.exe",
+      "cwd": "${workspaceFolder}/Vulkan/native/build/bin/Debug",
+      "args": [],
+      "stopAtEntry": false,
+      "preLaunchTask": "vulkan-native-debug"
+    },
+    {
+      "name": "Vulkan nvpro",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/Vulkan/nvpro/build/bin/Debug/nv06_pbr_viewport.exe",
+      "cwd": "${workspaceFolder}/Vulkan/nvpro/build/bin/Debug",
+      "args": [],
+      "stopAtEntry": false,
+      "preLaunchTask": "vulkan-nvpro-debug"
+    },
+    {
+      "name": "DirectX 12",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/DirectX12/build/bin/Debug/dx09_pbr.exe",
+      "cwd": "${workspaceFolder}/DirectX12/build/bin/Debug",
+      "args": [],
+      "stopAtEntry": false,
+      "preLaunchTask": "dx12-debug"
+    }
+  ]
+}

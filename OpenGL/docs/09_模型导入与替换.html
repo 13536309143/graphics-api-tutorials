@@ -1,0 +1,25 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>替换为自己的模型</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>替换为自己的模型</h1>
+<h2>直接运行</h2>
+<pre><code>cd OpenGL
+.\build\bin\Debug\14_model_obj.exe --model &quot;E:\MyModels\sample.obj&quot;
+.\build\bin\Debug\15_model_gltf.exe --model &quot;E:\MyModels\scene.gltf&quot;
+.\build\bin\Debug\31_skeletal.exe --model &quot;E:\MyModels\animated.glb&quot;</code></pre>
+<p>路径可以是 OBJ、glTF 或 GLB，支持范围以实际编进来的 Assimp 导入器为准。不要只复制 .gltf 而丢掉 .bin 和图片；保持文件中的相对路径。首次排错优先用课程自带素材确认渲染器正常，再换外部模型。</p>
+<h2>从 DCC 工具导出</h2>
+<p>应用需要固定的缩放，检查模型原点、单位、法线、UV0 和材质。优先导出核心 glTF 2.0 metallic-roughness，不启用需要额外解码的几何压缩。大模型若超出相机视锥，调整模型 rootTransform 或相机，而不是立即怀疑导入失败。本教学视锥 far=100。</p>
+<p>骨骼导出需要 mesh、skin、关节层级、inverse bind 和动画通道同时存在。示例每网格最多 48 骨骼，每顶点保留四个最强权重。数据会归一化，不能靠不正确的权重和来表达缩放。动画只播放首条，支持位置/缩放的线性与旋转 slerp，不支持 STEP/CUBICSPLINE、动画混合、根运动和 morph targets。</p>
+<h2>渲染层实现范围</h2>
+<p>已实现：三角网格、节点变换、基础颜色 factor/纹理、金属度/粗糙度 factor 与 G/B 图、法线图、AO、外部与 Assimp 内嵌图片、单动画骨骼蒙皮。没有烘焙模型的层级变换，蒙皮与网格节点的空间关系显式处理。</p>
+<p>未完整实现：多个 UV 集、材质 alphaMode/doubleSided/emissive、normal scale、occlusion strength、sampler 的全部细节、KHR_texture_transform、扩展材质、Draco/KTX2 解码、相机/灯光资产、顶点颜色、morph、负缩放绕序的统一修正等。外部文件能解析，但含这些功能时可能外观不完整，需要按规范继续扩展。对 OBJ 的 Ns 等传统材质到 PBR 只作有限映射，不能期待一键等价。</p>
+<p>未压缩内嵌 aiTexture 是 BGRA 结构，本实现逐 texel 转为 RGBA；压缩内嵌图使用 stbi_load_from_memory。所有图像只上传到 GPU，不依赖启动时联网。</p>
+<h2>常见错误</h2>
+<ul>
+<li>缺文件：检查控制台的完整图片路径，修复相对引用。</li>
+<li>模型不可见：检查大小、中心和 near/far；先使用纯色 shader 与线框。</li>
+<li>面全黑：检查法线、空间、材质 factor 是否为零、颜色图是否误用数据色彩空间。</li>
+<li>部件错位：检查 Assimp/GLM 行列转换和 parent*local 次序。</li>
+<li>动画扭曲：检查 bone offset、meshGlobal 的逆、关节 ID 整数属性、权重归一化。</li>
+<li>材质颠倒：检查 MR 的 G/B 和 normal 的 Y 方向，不要凭文件名判断通道。</li>
+</ul>
+<p><a href="https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html">glTF 核心规范</a> 是格式约定来源；<a href="https://github.com/assimp/assimp-docs/blob/master/source/usage/use_the_lib.rst">Assimp 用法</a> 解释导入场景与数据所有权。教程不声明完整通过 glTF conformance 测试。</p>
+<p>本教学实现用节点名称索引层级，因此节点名称需唯一；骨骼也按名称匹配。对允许同名节点的外部场景，产品代码应改用节点指针/稳定 ID 保存静态层级，单独处理骨骼名称到节点的关联。</p></main></html>

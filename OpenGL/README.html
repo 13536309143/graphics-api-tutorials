@@ -1,0 +1,76 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenGL 中文实战教程 · C++17 + CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>OpenGL 中文实战教程 · C++17 + CMake</h1>
+<p>这是一个本地可读、可编译、可修改的学习工程。以 <strong>OpenGL 3.3 Core</strong> 为基线，从第一个窗口到真实模型、三维相机、阴影、PBR/IBL、HDR、延迟渲染和骨骼动画。共 34 个独立可执行示例；每课有中文讲解、观察目标、练习和参考答案。无需预先理解图形学，但应先会 C++ 变量、函数、数组、类和基本指针。</p>
+<h2>现在就开始</h2>
+<p>双击合集根目录“开始学习.cmd”，选择 OpenGL 章节并点击运行。编译从<strong>合集根目录</strong>执行：</p>
+<pre><code>cmake --preset opengl
+cmake --build --preset opengl-debug --parallel 4
+.\OpenGL\build\bin\Debug\02_triangle.exe</code></pre>
+<p>也可执行 <code>powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Track opengl -Test</code>。旧的 OpenGL/scripts/build.ps1 已转发到合集脚本；OpenGL/scripts/run.ps1 仍可在 OpenGL 目录内使用。</p>
+<p>首次配置下载固定依赖，之后可使用缓存离线构建。独立配置 OpenGL 子工程时请另用 build-local，不要覆盖根 preset 创建的缓存。各课运行/增量构建命令以 OpenGL 目录为当前目录时仍然适用。</p>
+<h2>按顺序学习</h2>
+<table>
+<tr><td>课次</td><td>内容</td><td>CMake target / 运行参数</td></tr>
+<tr><td>01</td><td><a href="lessons/01_window/README.html">窗口与渲染循环</a></td><td><code>01_window</code></td></tr>
+<tr><td>02</td><td><a href="lessons/02_triangle/README.html">第一个彩色三角形</a></td><td><code>02_triangle</code></td></tr>
+<tr><td>03</td><td><a href="lessons/03_indexed/README.html">索引绘制与线框</a></td><td><code>03_indexed</code></td></tr>
+<tr><td>04</td><td><a href="lessons/04_uniform/README.html">Shader 与 Uniform 动画</a></td><td><code>04_uniform</code></td></tr>
+<tr><td>05</td><td><a href="lessons/05_texture/README.html">纹理与采样</a></td><td><code>05_texture</code></td></tr>
+<tr><td>06</td><td><a href="lessons/06_transform/README.html">二维变换</a></td><td><code>06_transform</code></td></tr>
+<tr><td>07</td><td><a href="lessons/07_cube/README.html">三维坐标与深度测试</a></td><td><code>07_cube</code></td></tr>
+<tr><td>08</td><td><a href="lessons/08_camera/README.html">自由相机</a></td><td><code>08_camera</code></td></tr>
+<tr><td>09</td><td><a href="lessons/09_lighting/README.html">Phong 光照</a></td><td><code>09_lighting</code></td></tr>
+<tr><td>10</td><td><a href="lessons/10_materials/README.html">材质与多光源</a></td><td><code>10_materials</code></td></tr>
+<tr><td>11</td><td><a href="lessons/11_framebuffer/README.html">离屏渲染与后处理</a></td><td><code>11_framebuffer</code></td></tr>
+<tr><td>12</td><td><a href="lessons/12_instancing/README.html">实例化绘制</a></td><td><code>12_instancing</code></td></tr>
+<tr><td>13</td><td><a href="lessons/13_shadows/README.html">阴影贴图</a></td><td><code>13_shadows</code></td></tr>
+</table>
+<h2>进阶课程（14–34）</h2>
+<table>
+<tr><td>课次</td><td>内容</td><td>CMake target / 运行参数</td></tr>
+<tr><td>14</td><td><a href="lessons/14_model_obj/README.html">Assimp 与 OBJ 模型</a></td><td><code>14_model_obj</code></td></tr>
+<tr><td>15</td><td><a href="lessons/15_model_gltf/README.html">glTF 场景与 PBR 材质</a></td><td><code>15_model_gltf</code></td></tr>
+<tr><td>16</td><td><a href="lessons/16_blending/README.html">透明混合与排序</a></td><td><code>16_blending</code></td></tr>
+<tr><td>17</td><td><a href="lessons/17_stencil/README.html">模板测试与描边</a></td><td><code>17_stencil</code></td></tr>
+<tr><td>18</td><td><a href="lessons/18_cubemap/README.html">天空盒与环境反射</a></td><td><code>18_cubemap</code></td></tr>
+<tr><td>19</td><td><a href="lessons/19_normal_mapping/README.html">法线贴图与 TBN</a></td><td><code>19_normal_mapping</code></td></tr>
+<tr><td>20</td><td><a href="lessons/20_parallax/README.html">视差遮蔽映射</a></td><td><code>20_parallax</code></td></tr>
+<tr><td>21</td><td><a href="lessons/21_hdr/README.html">线性颜色与 HDR</a></td><td><code>21_hdr</code></td></tr>
+<tr><td>22</td><td><a href="lessons/22_bloom/README.html">Bloom 与高斯模糊</a></td><td><code>22_bloom</code></td></tr>
+<tr><td>23</td><td><a href="lessons/23_pbr/README.html">Cook-Torrance PBR</a></td><td><code>23_pbr</code></td></tr>
+<tr><td>24</td><td><a href="lessons/24_pbr_textures/README.html">PBR 贴图工作流</a></td><td><code>24_pbr_textures</code></td></tr>
+<tr><td>25</td><td><a href="lessons/25_ibl/README.html">IBL 与 Split Sum</a></td><td><code>25_ibl</code></td></tr>
+<tr><td>26</td><td><a href="lessons/26_deferred/README.html">延迟渲染与 G-buffer</a></td><td><code>26_deferred</code></td></tr>
+<tr><td>27</td><td><a href="lessons/27_ssao/README.html">SSAO 与降噪</a></td><td><code>27_ssao</code></td></tr>
+<tr><td>28</td><td><a href="lessons/28_ubo/README.html">UBO 与 std140</a></td><td><code>28_ubo</code></td></tr>
+<tr><td>29</td><td><a href="lessons/29_msaa/README.html">离屏 MSAA 与 Resolve</a></td><td><code>29_msaa</code></td></tr>
+<tr><td>30</td><td><a href="lessons/30_geometry/README.html">几何着色器</a></td><td><code>30_geometry</code></td></tr>
+<tr><td>31</td><td><a href="lessons/31_skeletal/README.html">骨骼动画与蒙皮</a></td><td><code>31_skeletal</code></td></tr>
+<tr><td>32</td><td><a href="lessons/32_particles/README.html">实例化粒子</a></td><td><code>32_particles</code></td></tr>
+<tr><td>33</td><td><a href="lessons/33_point_shadows/README.html">点光源全方向阴影</a></td><td><code>33_point_shadows</code></td></tr>
+<tr><td>34</td><td><a href="lessons/34_gallery/README.html">综合实战：PBR 模型展厅</a></td><td><code>34_gallery</code></td></tr>
+</table>
+<p>建议每次学习一课：先运行观察，读讲解和 main.cpp，再修改练习，最后回答自测。基础阶段 01–08，光照与渲染入门 09–13，模型与表面 14–20，HDR/PBR/IBL 21–25，管线与进阶效果 26–33，综合实战 34。不要只复制代码：能画出数据从 CPU 到片段输出的路径，才算理解。</p>
+<h2>配套说明</h2>
+<ul>
+<li><a href="docs/01_环境与构建.html">环境和构建</a></li>
+<li><a href="docs/02_C++预备知识.html">C++ 必备知识</a></li>
+<li><a href="docs/03_CMake入门.html">CMake 入门</a></li>
+<li><a href="docs/04_数学与管线.html">坐标、向量和矩阵</a></li>
+<li><a href="docs/05_状态与资源.html">OpenGL 状态与资源管理</a></li>
+<li><a href="docs/06_排错手册.html">排错手册</a></li>
+<li><a href="docs/07_综合练习.html">综合练习与验收</a></li>
+<li><a href="docs/08_进阶路线.html">进阶路线和权威参考</a></li>
+<li><a href="docs/验证记录.html">本机验证记录</a></li>
+<li><a href="docs/09_模型导入与替换.html">模型导入与替换指南</a></li>
+<li><a href="docs/10_PBR与IBL.html">PBR/IBL 推导与管线</a></li>
+<li><a href="docs/11_进阶排错与性能.html">进阶排错与性能</a></li>
+<li><a href="docs/12_后续专题与边界.html">后续专题与实现边界</a></li>
+<li><a href="docs/扩充验证记录.html">扩充验证记录</a></li>
+<li><a href="THIRD_PARTY.html">第三方版本与许可证</a></li>
+</ul>
+<h2>操作与文件</h2>
+<p>Esc 退出；08–13 中含相机的示例使用 W/A/S/D 移动、Q/E 升降、按住鼠标右键转向。03 按空格看线框，11 按空格看彩色，13 按空格暂时关闭阴影。进阶各课的空格用于临时关闭当前效果，21/22 支持上下箭头调曝光，27 支持 1 查看 AO、2 查看法线。详见各课说明。</p>
+<p>lessons/ 每课一个 main.cpp 与 README；common/ 放窗口、shader、网格和相机工具；shaders/ 是可编辑 GLSL；scripts/ 放构建运行脚本；assets/ 是模型/纹理/HDR 素材；third_party/ 是固定版本依赖；build/ 是可重新生成的构建产物。普通开发只需要改 lessons、common、shaders。</p>
+<h2>范围</h2>
+<p>教程已覆盖从入门到模型加载、PBR/IBL、延迟渲染、SSAO、骨骼动画等进阶内容。随附自制 OBJ/glTF、PNG 材质和 HDR 环境素材，开箱即可运行。它仍不是所有图形学主题的百科，也不是完整游戏引擎；尚未实现的主题在后续路线明确列出。OpenGL 驱动来自显卡厂商，不是通过安装某个“OpenGL SDK”升级。运行需要支持 3.3 Core 的图形驱动。</p>
+<p>合集部署推荐从仓库根目录运行 <code>cmake --preset opengl</code>、<code>cmake --build --preset opengl-debug</code>。历史验证记录保留原 34 课开发过程；当前合集的验收以 <a href="../docs/VALIDATION.html">总验证记录</a> 为准。</p></main></html>

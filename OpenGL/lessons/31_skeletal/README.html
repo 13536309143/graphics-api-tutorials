@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 31 课：骨骼动画与蒙皮</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 31 课：骨骼动画与蒙皮</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../30_geometry/README.html">上一课</a> · <a href="../32_particles/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 31_skeletal</code></pre>
+<p>预期画面：一根带两根骨骼的软柱随时间弯曲；空格显示 bind pose。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>bending.gltf/animations/skins → Model::update/visit → ImportedMesh 权重 → model.vert</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>骨骼动画分为动画时间采样、层级变换、蒙皮矩阵与顶点混合。课程读取真实 glTF 的 skin、关节索引、权重、inverse bind matrices 和旋转关键帧，不是在 shader 中按顶点高度临时套一个波浪函数。</p>
+<p>动画通道按节点名称匹配。位置和缩放线性插值，旋转用 quaternion slerp，按父子顺序计算 nodeGlobal。时间用 ticksPerSecond 转换并对 duration 取模。本简化播放器只播放第一条动画，并将通道按线性/slerp 处理；STEP/CUBICSPLINE、动画混合与根运动不在支持范围内。</p>
+<p>mesh 局部的 bone matrix=inverse(meshGlobal)*boneGlobal*inverseBind。顶点按权重加权 bone matrix 后，外面再乘 rootTransform*meshGlobal。这样明确剥离网格节点变换，避免重复乘一遍模型变换。权重取最大的四个并归一化，无权重顶点保持原始姿态。</p>
+<p>骨骼 ID 使用整数属性 glVertexAttribIPointer，对应 ivec4，不能像普通 float 属性一样解释。此课每网格上限 48 骨骼，在 shader 中使用 mat4 数组；更大骨架需要 UBO/纹理缓冲等方案并检查设备限制。线性混合蒙皮会出现糖纸扭转与体积损失，双四元数蒙皮是后续方向。</p>
+<h2>修改练习</h2>
+<p>修改 glTF 的旋转关键帧；延长动画时长；给模型加第三根骨骼与权重；在 bind pose 对比蒙皮矩阵。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 31_skeletal --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>为何要乘 inverseBind？</p>
+<p>它把原始模型顶点从绑定姿态对应的网格空间转换到关节的参考空间，之后再应用当前关节姿态。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>31_skeletal.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="31_skeletal" src="../../docs/previews/31_skeletal.png"></p>
+<p><a href="../../docs/previews/31_skeletal_off.png">查看按住空格时的对照图</a></p></main></html>

@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 06 课：二维变换</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 06 课：二维变换</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../05_texture/README.html">上一课</a> · <a href="../07_cube/README.html">下一课</a></p>
+<h2>学完你应该能够</h2>
+<p>说明“矩阵顺序与局部坐标”，运行并修改本课示例。</p>
+<h2>运行与观察</h2>
+<p>在教程根目录执行：</p>
+<pre><code>.\scripts\run.ps1 -Lesson 06_transform</code></pre>
+<p>预期画面：偏右的棋盘矩形持续旋转。</p>
+<h2>原理与代码阅读</h2>
+<p>平移、旋转、缩放可以合并为 4×4 矩阵。齐次坐标 vec4(position,1) 让平移也能通过乘法表达。方向向量通常使用 w=0，避免被平移影响。</p>
+<p>GLM 与 GLSL 都使用列向量约定。本课代码依次 translate、rotate、scale 得到 T*R*S；实际作用到向量时从右往左执行，即先缩放，再旋转，最后平移。矩阵乘法不可交换，R*T 会让平移后的位置绕原点旋转。</p>
+<p>本课先把矩形缩小到 0.6 倍，绕自身原点旋转，再向右平移 0.25。glm::rotate 的角度单位是弧度；如果用角度要先 glm::radians。glUniformMatrix4fv 用 GL_FALSE，不需要为了列主序再转置一次。</p>
+<p>当前还没有透视相机，mvp 仅承担二维模型变换，所以宽窗口中图形比例可能被视口拉伸。第 07 课会用带 aspect 的透视投影解决三维场景比例。</p>
+<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<h2>动手练习</h2>
+<p>交换 translate 和 rotate 的调用顺序；解释自转与绕转的变化。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<h2>自测</h2>
+<p>为什么每帧从单位矩阵重新开始？</p>
+<p>参考答案：直接从时间计算姿态可避免重复累乘带来的误差，并使动画不依赖帧率。</p>
+<h2>出错时优先检查</h2>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>

@@ -1,0 +1,3 @@
+[submodule "Vulkan/nvpro/external/nvpro_core2"]
+    path = Vulkan/nvpro/external/nvpro_core2
+    url = https://github.com/nvpro-samples/nvpro_core2.git

@@ -1,0 +1,26 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 17 课：模板测试与描边</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 17 课：模板测试与描边</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../16_blending/README.html">上一课</a> · <a href="../18_cubemap/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 17_stencil</code></pre>
+<p>预期画面：旋转立方体外侧有清晰蓝色描边。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>main.cpp 的两遍对象绘制 → RenderTarget 的 DEPTH24_STENCIL8</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>模板缓冲存每像素整数标记。第一遍普通绘制时 glStencilFunc(GL_ALWAYS,1,0xFF)，模板操作 GL_KEEP,GL_KEEP,GL_REPLACE：只有深度通过的片段写标记 1。深度失败时不能替换，否则遮挡物后面的形状也可能留下标记。</p>
+<p>第二遍将模型放大 1.08 倍，用纯色绘制，glStencilFunc(GL_NOTEQUAL,1,0xFF) 只保留原模型覆盖区之外的像素。glStencilMask(0) 禁止覆盖已有标记，暂时关闭深度测试让轮廓不被原模型挡住。本例单物体适合入门；复杂遮挡和固定屏幕宽度轮廓需要更仔细设计。</p>
+<p>默认窗口不一定提供模板附件，所以本课显式创建含深度/模板附件的离屏 FBO，最后再呈现颜色。每帧恢复模板写掩码 0xFF 后清除 stencil；清除操作受 mask 影响，前一帧 mask=0 而忘恢复会导致残留。</p>
+<p>模型膨胀法的轮廓宽度随距离和曲率变化，并非像素恒定的描边。法线挤出、屏幕深度/法线边缘检测是不同方案，不要把这一课的技巧当成万能轮廓系统。</p>
+<h2>修改练习</h2>
+<p>改变膨胀倍数；增加第二个互相遮挡的物体；试着保留深度测试，比较轮廓。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 17_stencil --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>为什么需要清除模板而且恢复写掩码？</p>
+<p>旧帧的标记不再对应新帧位置；mask 为 0 时清除也可能无效。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>17_stencil.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="17_stencil" src="../../docs/previews/17_stencil.png"></p></main></html>

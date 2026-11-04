@@ -1,0 +1,15 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>已实现的范围与后续专题</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>已实现的范围与后续专题</h1>
+<p>目前有 34 个独立运行示例：从窗口/几何到模型导入、glTF 核心材质、PBR/IBL、HDR/Bloom、延迟渲染/SSAO、UBO/MSAA、几何着色器、线性蒙皮、粒子、点光阴影，以及一条集成模型展厅管线。每课源码、素材、GLSL、中文说明随项目提供。</p>
+<p>仍可以继续学习下列专题。它们是路线，当前没有伪装成已实现示例：</p>
+<ul>
+<li><strong>文字与 UI</strong>：字体解码、字形图集、Kerning、SDF/MSDF 与坐标布局。</li>
+<li><strong>复杂动画</strong>：多个 clip、状态机、Blend tree、根运动、IK、morph、双四元数蒙皮。</li>
+<li><strong>高级阴影</strong>：CSM、PCSS、阴影图集、缓存、variance/moment 方法。</li>
+<li><strong>现代抗锯齿与时域</strong>：FXAA、TAA、运动向量、抖动、历史拒绝与重投影。</li>
+<li><strong>更高级 PBR</strong>：多次散射、clear coat、anisotropy、transmission、subsurface 与面积光 LTC。</li>
+<li><strong>屏幕空间与全局光照</strong>：SSR、SSGI、探针、光照贴图、路径追踪；明确它们的遮挡与噪声局限。</li>
+<li><strong>大场景管理</strong>：视锥/遮挡剔除、LOD、batches、纹理流送、tiled/clustered lighting。</li>
+<li><strong>OpenGL 4.x 专题</strong>：compute、SSBO、tessellation、indirect draws、持久映射等；先升级运行基线并检测能力。</li>
+</ul>
+<p>一个实用结课项目：在第 34 课中加入外部动画模型、一种阴影和线性 HDR 粒子；选择透明或延迟光照管线之一，画出每遍的输入输出，记录帧耗时与显存估算。至少实现一种调试视图，能单独显示材质通道、法线、深度或 AO。</p>
+<p>不要以“覆盖完整”为理由把几十个未验证的功能同时堆进一个 shader。能解释和独立验证每个效果，再明确说明集成中的近似与限制，才是可继续扩展的渲染器。</p></main></html>

@@ -1,0 +1,20 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>合集中的 OpenGL 构建入口</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>合集中的 OpenGL 构建入口</h1>
+<p>本页保留原独立工程的背景说明。<strong>在新合集内请优先从仓库根目录执行 <code>cmake --preset opengl</code>、<code>cmake --build --preset opengl-debug</code> 和 <code>ctest --preset opengl-debug</code>。</strong> 根配置已使用 OpenGL/build；若按旧说明独立配置子工程，必须另设 OpenGL/build-local，避免 source root 冲突。旧 build.ps1 入口已转发到合集脚本。</p>
+<h1>环境与构建</h1>
+<h2>Windows</h2>
+<p>要求：CMake 3.24+，Visual Studio 2022 的“使用 C++ 的桌面开发”（包含 MSVC 和 Windows SDK），支持 OpenGL 3.3 Core 的显卡驱动。本工程用 C++17，GLFW 和 GLAD 部分源码是 C，所以 project 同时启用 C/CXX。</p>
+<p>从 OpenGL 打开终端。<code>cmake --preset windows-vs2022</code> 生成工程，<code>cmake --build --preset debug --parallel</code> 编译。首次会编译 GLFW，后续只增量构建。仅构建一课：</p>
+<pre><code>cmake --build build --config Debug --target 05_texture --parallel
+.\build\bin\Debug\05_texture.exe</code></pre>
+<p>Release 用 <code>cmake --build --preset release --parallel</code>，程序位于 build/bin/Release。不要把 Debug 与 Release 的输出路径混淆。打开 build/OpenGLCourse.sln 可使用 Visual Studio 调试；也可以用 VS“打开文件夹”载入 OpenGL，让它读取 CMakePresets.json。断点优先设在 main.cpp 的 draw 前。</p>
+<h2>验证</h2>
+<pre><code>ctest --preset smoke</code></pre>
+<p>每个程序用隐藏窗口创建真实 OpenGL 上下文，执行四帧并检查 GL 错误与画面是否包含几何；第 01 课只检查清屏。它不是软件渲染替代品，仍需可用图形驱动。无显示服务器的 Linux、受限远程桌面和 CI 可能无法创建上下文。</p>
+<h2>Linux / macOS（源代码兼容，当前机器未验证）</h2>
+<p>Linux 先安装编译器、CMake、Ninja 和发行版的 X11/Wayland 开发库。Ubuntu 可从 build-essential、ninja-build、libxrandr-dev、libxinerama-dev、libxcursor-dev、libxi-dev、libwayland-dev、libxkbcommon-dev、wayland-protocols 开始，根据 GLFW 检测日志补充。也可配置 <code>-DGLFW_BUILD_WAYLAND=OFF</code> 只用 X11。macOS 安装 Xcode Command Line Tools、CMake/Ninja；程序已设置 forward-compatible context。</p>
+<pre><code>cmake --preset ninja</code></pre>
+<p>继续构建并运行：</p>
+<pre><code>cmake --build build-ninja --parallel
+./build-ninja/bin/02_triangle
+ctest --test-dir build-ninja --output-on-failure</code></pre>
+<p>不要在同一 build 目录里切换生成器或移动源码路径；换用新的目录，例如 <code>cmake -S . -B build-other -G Ninja</code>。构建缓存内含绝对路径，拷贝整个工程到其他目录后请重新配置到新的构建目录。</p></main></html>

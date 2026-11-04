@@ -1,0 +1,26 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 28 课：UBO 与 std140</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 28 课：UBO 与 std140</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../27_ssao/README.html">上一课</a> · <a href="../29_msaa/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 28_ubo</code></pre>
+<p>预期画面：五个旋转方块共享相机矩阵，并各自使用不同颜色和模型矩阵。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>ubo.vert 的 CameraBlock → main.cpp 的 glUniformBlockBinding/BufferSubData</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>多个 shader 常共享相机矩阵。UBO 把这些数据放进一个缓冲，以 binding point 让多个程序引用，不再对每个程序逐个上传相同 mat4。本课为了突出数据路径只使用一个程序、五个物体；可扩展第二程序验证共享。</p>
+<p>GLSL 330 用 layout(std140) uniform CameraBlock 声明布局，然后 CPU 查 block index，glUniformBlockBinding 将其映射到 binding=0，glBindBufferBase 把缓冲接到这个 binding。不要把 program 的 block index 当成全局 binding point；二者不是同一个编号。</p>
+<p>std140 下两个 mat4 各占 64 字节，projection 在偏移 0，view 在偏移 64，总计 128。vec3、数组和结构体有额外对齐规则，不能直接拿随意的 C++ struct memcpy。更通用代码应按规范对齐或查询 offset/stride。</p>
+<p>本课先分配一次 GL_DYNAMIC_DRAW，再每帧 glBufferSubData 更新相机数据。model 仍按对象作为普通 uniform 上传，因为它不在共享相机块内。UBO 数量和块大小有设备上限，可查询 GL_MAX_UNIFORM_BUFFER_BINDINGS 与 GL_MAX_UNIFORM_BLOCK_SIZE。</p>
+<h2>修改练习</h2>
+<p>加一个不同片段 shader，共享 binding=0；在 block 中加入眼睛位置并明确 16 字节对齐。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 28_ubo --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>glUniformBlockBinding 和 glBindBufferBase 分别连接什么？</p>
+<p>前者连接程序内的块与绑定点，后者连接绑定点与实际缓冲对象。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>28_ubo.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="28_ubo" src="../../docs/previews/28_ubo.png"></p></main></html>

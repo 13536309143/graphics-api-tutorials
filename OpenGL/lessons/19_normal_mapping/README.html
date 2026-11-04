@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 19 课：法线贴图与 TBN</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 19 课：法线贴图与 TBN</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../18_cubemap/README.html">上一课</a> · <a href="../20_parallax/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 19_normal_mapping</code></pre>
+<p>预期画面：平面上的橙色纹理产生细小明暗凹凸；按住空格关闭法线贴图。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>shaders/surface.frag 的 tangentFrame → normalMap 解码</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>法线贴图不改变位置和轮廓，只替换光照使用的表面法线。图片 RGB 存切线空间方向，采样后乘 2 再减 1。中性法线接近 (0.5,0.5,1)，表示朝表面外侧。它是方向数据，必须按线性纹理读取，不能用 sRGB 解码。</p>
+<p>TBN 的三列分别是 tangent、bitangent、normal，把切线空间方向转到世界空间。此课通过 dFdx/dFdy 的位置和 UV 梯度计算切线，并正交化 T。B 的符号根据原始 bitangent 与 cross(N,T) 的点积恢复，不能只用屏幕 UV 行列式的符号，否则换观察方向时可能翻转。</p>
+<p>UV 退化时导数无法形成有效基，代码给出垂直 N 的备用基；它只能避免数值崩溃，不能恢复错误 UV 的正确外观。更通用的产品模型可以导入预计算切线，保留 tangent.w 的手性，并保证与烘焙工具的切线基一致。</p>
+<p>GL 约定的法线贴图通常把 +Y 编到绿色增加方向，其他工具可能使用相反约定。凹凸颠倒时先检查绿色通道，而不是随意反转整个法线。基底方向与纹理内容必须匹配。</p>
+<h2>修改练习</h2>
+<p>把法线图换成纯中性蓝；反转绿色通道；让平面绕 Y 旋转并观察凹凸是否稳定。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 19_normal_mapping --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>法线贴图能让侧面轮廓变成锯齿吗？</p>
+<p>不能，它没有增加几何或改变顶点位置。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>19_normal_mapping.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="19_normal_mapping" src="../../docs/previews/19_normal_mapping.png"></p>
+<p><a href="../../docs/previews/19_normal_mapping_off.png">查看按住空格时的对照图</a></p></main></html>

@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>扩充版部署与验证</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>扩充版部署与验证</h1>
+<p>2026-11-03，最终目录 <strong>OpenGL</strong>。从原 13 课扩充到 <strong>34 课，新增 21 个独立程序</strong>，01–13 的 main.cpp 保持原样。</p>
+<h2>本机结果</h2>
+<ul>
+<li>Visual Studio 2022 / MSVC x64 / C++17 / CMake 4.2.1。</li>
+<li>NVIDIA GeForce RTX 3060；真实上下文报告 OpenGL 3.3.0 NVIDIA 610.88。</li>
+<li>在最终目录重新配置和编译 Debug，34 个程序构建成功。</li>
+<li><code>ctest --test-dir OpenGL\build -C Debug --output-on-failure</code>：<strong>34/34 通过</strong>，总耗时 20.82 秒。</li>
+<li>对新增 21 课分别执行固定时间抓图；11 组效果开启/关闭比较全部通过。</li>
+<li>每个程序检查 GLSL/文件加载、GL 错误、非背景像素、画面动态范围。视觉对比检查某一技术开关是否真正改变画面；不将单纯“无错误”当成视觉效果正确的证明。</li>
+</ul>
+<h2>效果对比</h2>
+<p>正常状态和 <code>--smoke --variant</code> 对应的新课空格状态作差。差异阈值为像素任一通道变化大于 2/255；全图通道差的平均值仅供了解效果范围，不是渲染质量评分。</p>
+<table>
+<tr><td>程序</td><td>改变像素数</td><td>通道平均绝对差</td></tr>
+<tr><td>19_normal_mapping</td><td>381839</td><td>5.57604</td></tr>
+<tr><td>20_parallax</td><td>422212</td><td>12.38807</td></tr>
+<tr><td>21_hdr</td><td>39346</td><td>1.96325</td></tr>
+<tr><td>22_bloom</td><td>602596</td><td>7.12604</td></tr>
+<tr><td>24_pbr_textures</td><td>97543</td><td>1.38219</td></tr>
+<tr><td>25_ibl</td><td>146815</td><td>9.26998</td></tr>
+<tr><td>27_ssao</td><td>874</td><td>0.03476</td></tr>
+<tr><td>29_msaa</td><td>413</td><td>0.03778</td></tr>
+<tr><td>31_skeletal</td><td>45378</td><td>4.19448</td></tr>
+<tr><td>33_point_shadows</td><td>58410</td><td>13.73878</td></tr>
+<tr><td>34_gallery</td><td>4762</td><td>0.07398</td></tr>
+</table>
+<p>原始数据在 <a href="previews/effect-comparisons.json">effect-comparisons.json</a>。SSAO 和 MSAA 只改变接触区/几何边缘，差异像素较少是正常现象；AO 本身可按 1 查看，不能以总亮度越大认定效果越好。</p>
+<h2>图像核查</h2>
+<p>已人工查看新增示例总览、模型、PBR/IBL、蒙皮与粒子，检查几何/材质和预期效果。每课说明也有单独截图，截图时间固定为 1 秒。</p>
+<p><img alt="新增课程效果总览" src="previews/advanced-contact-sheet.jpg"></p>
+<h2>日志与备份</h2>
+<p>配置、构建、测试日志在 docs/logs/；运行中的原始 CTest 日志仍在 build/Testing/Temporary/LastTest.log。此次被替换的原文件已备份到 <code>OpenGL\backups\before-expansion-20261103-140944</code>，部署清单在 docs/扩充部署清单.json。没有清空或删除原工程目录。</p>
+<h2>验证范围</h2>
+<p>已测本机 Windows Debug、课程自带 OBJ/glTF/PNG/HDR 资产、四帧实际渲染和效果对照。未声明 Release、其他系统、所有外部模型及长时间交互都已验证。模型渲染层的功能范围见导入指南，PBR/IBL 的采样质量与近似见对应课程；它们是可修改的教学实现。</p></main></html>

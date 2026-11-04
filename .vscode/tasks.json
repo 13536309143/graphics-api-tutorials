@@ -1,0 +1,133 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "opengl-configure",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--preset",
+        "opengl"
+      ],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "opengl-debug",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "opengl-debug",
+        "--parallel",
+        "4"
+      ],
+      "dependsOn": "opengl-configure",
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "vulkan-native-configure",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--preset",
+        "vulkan-native"
+      ],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "vulkan-native-debug",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "vulkan-native-debug",
+        "--parallel",
+        "4"
+      ],
+      "dependsOn": "vulkan-native-configure",
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "vulkan-nvpro-configure",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--preset",
+        "vulkan-nvpro"
+      ],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "vulkan-nvpro-debug",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "vulkan-nvpro-debug",
+        "--parallel",
+        "4"
+      ],
+      "dependsOn": "vulkan-nvpro-configure",
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "dx12-configure",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--preset",
+        "dx12"
+      ],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "dx12-debug",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "dx12-debug",
+        "--parallel",
+        "4"
+      ],
+      "dependsOn": "dx12-configure",
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>本机部署与验证记录</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>本机部署与验证记录</h1>
+<p>日期：2026-11-03（Asia/Shanghai）。最终部署位置：OpenGL。</p>
+<h2>环境</h2>
+<ul>
+<li>CMake 4.2.1；Visual Studio 2022，MSVC 19.44.35222，x64。</li>
+<li>Windows SDK 10.0.26100.0。</li>
+<li>实测显卡 NVIDIA GeForce RTX 3060；运行报告 OpenGL 3.3.0 NVIDIA 610.88。</li>
+<li>GLFW 3.4、GLM 1.0.1、GLAD 2.0.8 生成的 3.3 Core 接口，全部随源码提供。</li>
+</ul>
+<h2>结果</h2>
+<p>在最终目录从源码重新配置、编译 Debug，13 个程序全部成功，编译日志未报告警告。随后执行：</p>
+<pre><code>ctest --test-dir OpenGL\build -C Debug --output-on-failure</code></pre>
+<p>13/13 通过，0 失败，总耗时约 7.21 秒。每个程序创建隐藏的真实 OpenGL 窗口，编译/链接 GLSL、执行四帧、检查 GL 错误；除清屏课之外，还读取颜色缓冲确认出现至少 100 个非背景像素。</p>
+<p>示例第 09 课约 69787、第 12 课约 67407、第 13 课约 317623 个非背景像素。第 09、13 课抓图人工查看，确认有光照立方体和地面投影。截图保存在本目录 previews/。</p>
+<p>原始测试日志在 build/Testing/Temporary/LastTest.log。复验可使用 scripts/test.ps1；这个测试需要可工作的显卡驱动与图形会话，不适合无显示环境直接运行。</p>
+<h2>验证范围</h2>
+<p>已验证本机 Windows Debug 构建和四帧渲染，检查了中文文档的本地链接。Release、Linux/macOS 构建、长时间运行、所有交互按键组合尚未逐项验证；对应说明提供的是可复现操作和源代码兼容设计，不作为这些平台的已测试承诺。</p></main></html>

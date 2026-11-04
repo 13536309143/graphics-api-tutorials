@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 02 课：第一个彩色三角形</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 02 课：第一个彩色三角形</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../01_window/README.html">上一课</a> · <a href="../03_indexed/README.html">下一课</a></p>
+<h2>学完你应该能够</h2>
+<p>说明“从 CPU 数据到 GPU 像素”，运行并修改本课示例。</p>
+<h2>运行与观察</h2>
+<p>在教程根目录执行：</p>
+<pre><code>.\scripts\run.ps1 -Lesson 02_triangle</code></pre>
+<p>预期画面：红、绿、蓝三个顶点之间有平滑渐变的三角形。</p>
+<h2>原理与代码阅读</h2>
+<p>一组三角形的三个位置先在 C++ 数组里。VBO 保存上传到 GPU 的顶点数据，VAO 保存如何解释这些数据的规则。VAO 不保存顶点数据副本，而是引用 VBO 及其属性布局。</p>
+<p>本教程每个顶点有 8 个 float：xyz、rgb、uv。位置 location=0，颜色 location=1，UV location=2；stride 是 8*sizeof(float)，颜色 offset 是 3*sizeof(float)，UV offset 是 6*sizeof(float)。glVertexAttribPointer 记录调用时绑定的 VBO，glEnableVertexAttribArray 开启属性。</p>
+<p>顶点着色器为每个顶点计算 gl_Position。此课 mvp 是单位矩阵，所以直接使用位置。除以 w 后进入标准化设备坐标 NDC，可见范围 x/y/z 均为 [-1,1]。光栅化生成覆盖区域的片段，并插值顶点颜色；片段着色器输出 FragColor。</p>
+<p>阅读 main.cpp → common/app.hpp 的 Mesh → shaders/basic.vert → shaders/color.frag。glDrawArrays 的 count 是顶点数，不是 float 数；这里是 3。顶点、片段着色器在运行时编译和链接，Shader 类会将日志作为错误输出。</p>
+<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<h2>动手练习</h2>
+<p>移动顶点；把三个顶点颜色都改为黄色；再尝试画两个三角形。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<h2>自测</h2>
+<p>为什么 CPU 数组改动后，不重新上传看不到变化？</p>
+<p>参考答案：glBufferData 已把原始数据复制到 GPU。修改 CPU 数组后需再次 glBufferData 或 glBufferSubData。</p>
+<h2>出错时优先检查</h2>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>

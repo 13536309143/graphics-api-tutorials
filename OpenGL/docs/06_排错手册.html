@@ -1,0 +1,19 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>排错手册</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>排错手册</h1>
+<table>
+<tr><td>现象</td><td>检查顺序</td></tr>
+<tr><td>找不到 C/C++ 编译器</td><td>VS Installer 是否包含“使用 C++ 的桌面开发”；重新配置生成器</td></tr>
+<tr><td>生成器与缓存冲突</td><td>不混用旧 build，指定新的 -B 目录</td></tr>
+<tr><td>无法创建上下文</td><td>查看 GLFW 错误；更新显卡厂商驱动；本地登录重试，排除远程会话限制</td></tr>
+<tr><td>Missing shader</td><td>重建目标，确认 exe 旁有 shaders/，整目录复制程序</td></tr>
+<tr><td>GLSL 编译失败</td><td>读取控制台日志中的源码行号、变量类型和版本；本工程使用 #version 330 core</td></tr>
+<tr><td>黑屏</td><td>先第 01 课确认清屏，再检查 viewport、VAO、shader、MVP、顶点范围、深度与纹理</td></tr>
+<tr><td>纹理全黑</td><td>sampler 单元编号、绑定、mipmap、上传格式；不是把对象 id 直接设为 sampler</td></tr>
+<tr><td>模型拉伸</td><td>用实际 framebuffer 宽高比，排除整数除法</td></tr>
+<tr><td>物体互相穿透</td><td>启用 GL_DEPTH_TEST，并且每帧清除深度</td></tr>
+<tr><td>光照跟相机乱动</td><td>确认 N/L/V 都在同一空间并且归一化</td></tr>
+<tr><td>后处理全黑</td><td>FBO 完整性、附件尺寸、第二遍程序/纹理/深度状态、不能读写同一纹理</td></tr>
+<tr><td>阴影条纹或悬浮</td><td>调整 bias、缩紧光源视锥、检查深度映射与 viewport 恢复</td></tr>
+</table>
+<p>GL 错误编号：1280=GL_INVALID_ENUM，1281=GL_INVALID_VALUE，1282=GL_INVALID_OPERATION，1285=GL_OUT_OF_MEMORY，1286=GL_INVALID_FRAMEBUFFER_OPERATION。本工程在帧尾检查错误，因此编号指向的是这一帧某次调用；需要精确定位可在可疑调用后临时加检查。</p>
+<p>诊断时从一个已验证的简单输出开始：片段 shader 固定输出红色；顶点 shader 只输出可见 NDC 三角形。若能看见，再逐步恢复矩阵、纹理和光照。不要同时修改全部模块。</p>
+<p>进阶调试可用图形帧抓取工具查看 draw、管线状态和附件。OpenGL 3.3 Core 不保证有 KHR_debug；使用调试回调前必须检测扩展/更高版本并生成相应 GLAD 接口，不能直接在当前最小接口上调用未加载函数。</p></main></html>

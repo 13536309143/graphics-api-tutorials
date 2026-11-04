@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>综合练习：小型展厅</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>综合练习：小型展厅</h1>
+<p>在读完第 13 课后，新建 lessons/14_gallery/main.cpp。复用现有工具，把不同知识连起来。此文件夹由你动手创建；课程提供下面的任务和验收标准。</p>
+<ul>
+<li>一个地面与至少五个立方体，各自有独立 model 矩阵；至少一个持续旋转。</li>
+<li>自由相机，WASD 和右键操作，按 R 回到初始姿态。</li>
+<li>棋盘纹理材质与两盏颜色不同的灯；画小立方体显示灯的位置。</li>
+<li>一盏主光的阴影，按键按下/抬起边沿切换阴影，而不是每帧重复翻转。</li>
+<li>整个场景先画到 FBO，再经过彩色/灰度后处理；改变窗口大小时同步调整附件。</li>
+<li>用实例化绘制一组展台装饰，一次 draw 提交至少 100 个。</li>
+</ul>
+<p>参考组织：App 最先声明；Shader 与 Mesh/Texture/Camera 随后；ShadowMap 与 Framebuffer 管理两类目标。每帧先更新输入和时间，计算一次物体变换；渲染阴影深度；渲染展厅颜色到 FBO；最后向 framebuffer 0 画全屏后处理。每一遍都显式设置 viewport、深度状态和所需纹理。</p>
+<p>验收：程序无 GL 错误；画面不是空白；前后遮挡正确；相机移动不改变固定光照的漫反射；窗口缩放不拉伸；阴影关闭后只有遮挡效果消失；关闭后处理后颜色恢复；退出无崩溃。给你的课补写 README，列出每个可见效果对应的 API。</p>
+<p>思考题：如果加入透明玻璃，应在哪一遍、什么顺序绘制？如果颜色太亮，应该怎样从普通 RGB8 缓冲迁移到 HDR？如果场景有 10000 个物体，哪些成本不会被实例化解决？参考第 05、10、12 课和进阶路线。</p>
+<p>扩充版已经提供 <a href="../lessons/34_gallery/README.html">第 34 课 PBR 模型展厅</a>，可以作为集成管线的可运行参考；本章原有任务仍适合作为你独立完成的练习。</p></main></html>

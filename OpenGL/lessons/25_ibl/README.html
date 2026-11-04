@@ -1,0 +1,28 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 25 课：IBL 与 Split Sum</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 25 课：IBL 与 Split Sum</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../24_pbr_textures/README.html">上一课</a> · <a href="../26_deferred/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 25_ibl</code></pre>
+<p>预期画面：环境照明下的 35 球矩阵与天空，空格关闭 IBL 作对照。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>Environment → equirect/irradiance/prefilter/brdf.frag → pbr.frag 的 useIBL</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>直接光只计算明确的灯，IBL 把环境图当作来自各方向的入射光。它不是给金属球随便采一张模糊图。此课从线性 HDR 文件生成环境 cubemap，再计算三类实际预计算资源。</p>
+<p>漫反射 irradiance：对法线半球进行余弦重要性采样，128 个 Hammersley 样本估计辐照度。因为样本 PDF 已含 cosθ/π，结果为 π*平均环境值；着色时再乘 Lambert albedo/π，不能重复漏乘或多乘 π。</p>
+<p>镜面 prefilter：对 GGX 半程向量重要性采样，假定 V=N，分别计算五级不同粗糙度的 cubemap。每级的内容是独立 GGX 积分，不是对原图 glGenerateMipmap 后就宣称完成粗糙反射。运行时 roughness*4 选择 LOD。此教学实现源环境固定采样 LOD0，低样本数与小分辨率可能让极亮点有噪声。</p>
+<p>BRDF LUT：在 128×128 的 RG16F 纹理中积分 NdotV 和 roughness 对应的分离系数 A/B。运行时环境镜面近似为 prefilteredColor*(F0*A+B)。此处 IBL 几何函数使用 k=r²/2，和直接光的近似参数区分。</p>
+<p>这就是 split-sum 近似的两部分：预过滤环境与 BRDF 查表，不是精确求解渲染方程。资源分辨率低、每项只用 128 样本，优先保证学习和启动速度。更高品质需要更多采样、源 mip/PDF 选择、多次散射补偿和更完整的局部探针策略。</p>
+<h2>修改练习</h2>
+<p>将采样数同时在 hammersley 和循环改为 512；增加预过滤分辨率；只显示 irradiance 或 prefilter 的某级作为调试。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 25_ibl --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>普通 mipmap 为什么不能代替 GGX 预过滤？</p>
+<p>普通 mipmap 按图像空间过滤，GGX 预过滤按反射分布与方向半球积分，二者权重和几何意义不同。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>25_ibl.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="25_ibl" src="../../docs/previews/25_ibl.png"></p>
+<p><a href="../../docs/previews/25_ibl_off.png">查看按住空格时的对照图</a></p></main></html>

@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>依赖版本与许可证</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>依赖版本与许可证</h1>
+<table>
+<tr><td>项目</td><td>固定版本</td><td>获取方式</td></tr>
+<tr><td>GLFW</td><td>3.4</td><td>CMake URL + SHA256，或 OpenGL/third_party 本地缓存</td></tr>
+<tr><td>GLM</td><td>1.0.1</td><td>同上</td></tr>
+<tr><td>Assimp</td><td>5.4.3</td><td>OpenGL CMake URL + SHA256，仅开启 OBJ/GLTF</td></tr>
+<tr><td>GLAD</td><td>generator 2.0.8 / GL3.3 Core</td><td>已生成源码随 OpenGL 提交</td></tr>
+<tr><td>stb_image</td><td>d14d46f6b44456eb88beac58cba833a4135d4c89</td><td>随 OpenGL/third_party/stb 提交</td></tr>
+<tr><td>nvpro_core2</td><td>71ab4212aa3dd8e3b6cb659ed691b59062dc5f11</td><td>Git 子模块</td></tr>
+<tr><td>Vulkan-Headers / Utility-Libraries</td><td>vulkan-sdk-1.4.341.0</td><td>项目局部 FetchContent，固定 SHA256</td></tr>
+</table>
+<p>Vulkan loader/import library、glslc 和系统 validation layer 来自安装的 SDK/驱动，不提交仓库。nvpro 的 Volk 采用同一子模块版本，避免旧 SDK 带的 Volk 与新头文件不匹配。nvpro 第三方代码由其子模块保留原版本/许可证；未开启 nvslang、Aftermath、CUDA、MCP 等不需要的模块。</p>
+<p>根 LICENSE 为 Apache-2.0，根 NOTICE 保留 nvpro 示例结构来源说明。OpenGL 的详细第三方许可证见其 THIRD_PARTY.md，素材见 OpenGL/assets/LICENSE.txt。MIT、BSD、Apache、CC0 等各依赖保持原条款，不能因为外层代码采用 Apache 就删掉第三方声明。</p>
+<p>压缩包哈希写在各 CMakeLists/Dependencies.cmake，便于 fresh clone 验证下载内容。SDK 的二进制工具、构建产物、日志、备份和本机认证信息不进入 Git 历史。</p></main></html>

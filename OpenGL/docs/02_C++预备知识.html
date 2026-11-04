@@ -1,0 +1,12 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C++ 预备知识</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>C++ 预备知识</h1>
+<p>先能写出一个控制台程序，再进入图形接口。读本工程需要下面这些概念。</p>
+<ul>
+<li><code>std::vector&lt;float&gt;</code> 是连续浮点数组；<code>data()</code> 提供首元素地址，<code>size()</code> 给元素数。GPU 上传的大小以字节为单位，需乘 sizeof(float)。</li>
+<li><code>GLuint</code> 是 OpenGL 对象句柄，不是 C++ 对象指针。glGenBuffers 返回编号，glDeleteBuffers 删除对应 GPU 资源。复制一个编号并没有复制 GPU 数据。</li>
+<li>构造函数初始化资源，析构函数释放资源，称为 RAII。本项目 Shader/Mesh/Texture 不允许复制，防止两次删除同一编号。更通用的封装可实现移动构造，但入门阶段先保持简单。</li>
+<li><code>const Shader&amp;</code> 通过引用使用现有对象，不复制；<code>[&amp;]</code> lambda 捕获现有局部变量的引用，第 13 课用它让两次渲染共享同一场景绘制逻辑。</li>
+<li>main 的 try/catch 接住初始化、文件、shader 等错误并返回 1；局部资源在栈展开时自动释放。GPU 资源必须在 App 销毁上下文之前析构，所以 App 始终第一个声明。</li>
+<li><code>#include</code> 把声明引入翻译单元；头文件中定义小函数要 inline 或定义在类内部，避免多个 cpp 链接时重复定义。本课程每个示例是独立 target。</li>
+</ul>
+<p>练习：先在 main 中打印 vector 的顶点数与字节数；再解释 <code>reinterpret_cast&lt;void*&gt;(3*sizeof(float))</code>。这里它表达绑定缓冲中的字节偏移，不是让 CPU 解引用地址 12。</p>
+<p>小心整数除法。<code>960/640</code> 的结果是 1，透视宽高比应使用 float(width)/float(height)。角度建议 float，常量使用 0.5f 减少不必要的 double 转换。</p></main></html>

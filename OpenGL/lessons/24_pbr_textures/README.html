@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 24 课：PBR 贴图工作流</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 24 课：PBR 贴图工作流</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../23_pbr/README.html">上一课</a> · <a href="../25_ibl/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 24_pbr_textures</code></pre>
+<p>预期画面：35 颗带纹理球，不同金属度/粗糙度因子下有空间变化的材质，空格关闭法线。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>albedo.png / normal.png / metalrough.png / ao.png → pbr.frag useMaps 分支</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>PBR 材质的各张图有不同语义：albedo 是没有烘焙直接光的基础颜色；normal 是切线空间法线；metallic 和 roughness 是标量；AO 描述小尺度环境遮蔽，不应无条件乘到直接光上。</p>
+<p>本例遵循 glTF 的金属粗糙度通道：G 存粗糙度、B 存金属度，R 此处未参与计算；AO 独立读取 R。packed ORM 常见布局为 R=AO/G=roughness/B=metallic，但是否打包必须看素材约定，不能仅凭文件名猜。课程模型材质导入与此布局一致。</p>
+<p>基础颜色贴图上传为 GL_SRGB8_ALPHA8，其他图为 GL_RGBA8；读取时只有颜色图自动解码。颜色 factor×贴图、粗糙度 factor×G、金属度 factor×B 允许同一组纹理复用于不同对象。法线图需要 TBN，且应该在片段内归一化。</p>
+<p>本课的示例图是自制变化图，目的是看清每个通道对结果的影响，不是扫描得到的真实材质。导入外部材质包时首先确认 OpenGL/DirectX 法线绿色方向、粗糙度还是光滑度、色彩空间与通道打包规则。</p>
+<h2>修改练习</h2>
+<p>把 G 和 B 交换看错误；将 roughness 当成 1-glossiness 接入；用纯白 AO 对照。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 24_pbr_textures --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>AO 应直接让灯照到的表面也同样变黑吗？</p>
+<p>本例只让 AO 调制环境项，直接光仍按几何与光源计算；具体分离策略取决于渲染模型。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>24_pbr_textures.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="24_pbr_textures" src="../../docs/previews/24_pbr_textures.png"></p>
+<p><a href="../../docs/previews/24_pbr_textures_off.png">查看按住空格时的对照图</a></p></main></html>

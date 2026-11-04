@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 03 课：索引绘制与线框</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 03 课：索引绘制与线框</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../02_triangle/README.html">上一课</a> · <a href="../04_uniform/README.html">下一课</a></p>
+<h2>学完你应该能够</h2>
+<p>说明“复用顶点与 EBO”，运行并修改本课示例。</p>
+<h2>运行与观察</h2>
+<p>在教程根目录执行：</p>
+<pre><code>.\scripts\run.ps1 -Lesson 03_indexed</code></pre>
+<p>预期画面：渐变矩形；按住空格显示两个三角形的线框。</p>
+<h2>原理与代码阅读</h2>
+<p>矩形可拆成两个三角形。直接绘制需要 6 个顶点，但实际上只有 4 个角。EBO 存索引 0,1,2,2,3,0，使两个三角形复用顶点。此课用 glDrawElements，count=6 是索引数量。</p>
+<p>GL_ELEMENT_ARRAY_BUFFER 的绑定属于当前 VAO 状态。创建 EBO 时必须绑定对应 VAO；在 VAO 仍然绑定时把 EBO 解绑，会把 VAO 的 EBO 关联清掉。glDrawElements 的最后一个参数是 EBO 内字节偏移，此处 nullptr 表示偏移 0。</p>
+<p>默认按逆时针顶点顺序定义正面，本课未启用面剔除。按住空格把 glPolygonMode 切为 GL_LINE，可以看到矩形的对角线。索引必须匹配 GL_UNSIGNED_INT 类型且不能超出 VBO 顶点范围。</p>
+<p>阅读 quad/quadIndices 与 Mesh 中 indexed 分支，再比较第 02 课。VAO 与 VBO 不是同一个对象；索引复用的也是完整顶点属性组合，而不只是位置。</p>
+<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<h2>动手练习</h2>
+<p>改成菱形；有意删除最后三个索引，观察只剩半个矩形。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<h2>自测</h2>
+<p>索引数据用 unsigned short 时要同时修改什么？</p>
+<p>参考答案：EBO 上传元素大小与 glDrawElements 的 type 都要改成相应大小及 GL_UNSIGNED_SHORT。</p>
+<h2>出错时优先检查</h2>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>

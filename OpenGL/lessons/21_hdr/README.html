@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 21 课：线性颜色与 HDR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 21 课：线性颜色与 HDR</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../20_parallax/README.html">上一课</a> · <a href="../22_bloom/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 21_hdr</code></pre>
+<p>预期画面：三颗高亮球；上下箭头调整曝光，空格暂时关闭 tone mapping。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>RenderTarget 的 RGBA16F → hdr_scene.frag → tone.frag</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>光照叠加可超过 1，归一化 RGB8 会在写入时截断这些信息。RGBA16F 保留更大范围的浮点亮度，使曝光、Bloom 与色调映射能够在显示前处理高亮。</p>
+<p>线性工作流分三步：颜色贴图按 sRGB 解码，在线性空间进行光照与叠加，显示前再编码。数值贴图、法线、HDR 文件保持线性。本课用指数映射 LDR=1-exp(-HDR*exposure)，然后以 pow(color,1/2.2) 做简化 Gamma 编码；最后这一步近似 sRGB 曲线，而不是精确分段传递函数。</p>
+<p>示例没有启用 GL_FRAMEBUFFER_SRGB，因为 tone shader 已经手动编码。如果再启用自动编码会造成双重 Gamma。若改成自动 sRGB，应申请支持 sRGB 的窗口并移除手工编码，且确认所有中间纹理的格式。</p>
+<p>曝光改变传感器/显示对场景的响应，不应修改材质 baseColor 去抵消过曝。空格关闭 tone mapping 后仍进行显示编码，超过 1 的结果在最终缓冲裁剪，高亮细节因此丢失。</p>
+<h2>修改练习</h2>
+<p>分别调高灯强和曝光，解释区别；加入 Reinhard 映射并对比；把附件换 RGB8 看高光信息丢失。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 21_hdr --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>HDR 是否意味着最终显示一定支持 HDR 显示器？</p>
+<p>不是。这里是内部高动态范围渲染，最终仍映射到普通窗口显示范围。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>21_hdr.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="21_hdr" src="../../docs/previews/21_hdr.png"></p>
+<p><a href="../../docs/previews/21_hdr_off.png">查看按住空格时的对照图</a></p></main></html>

@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 27 课：SSAO 与降噪</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 27 课：SSAO 与降噪</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../26_deferred/README.html">上一课</a> · <a href="../28_ubo/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 27_ssao</code></pre>
+<p>预期画面：球与地面接触附近有环境遮蔽；空格关闭，按 1 查看 AO，按 2 查看法线。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>ssao.frag → ao_blur.frag → deferred.frag 的环境项</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>SSAO 从屏幕空间近似表面附近的遮挡。对每个观察空间位置，在法线半球取 32 个样本；样本转到观察空间后投影到屏幕，读取附近已渲染的位置深度，判断是否存在更靠近相机的表面阻挡。</p>
+<p>观察空间相机朝 -Z，看得见的表面 z 通常为负；比较方向不能套用普通正距离直觉。此例当 neighbor.z &gt;= samplePos.z+bias 时认为阻挡，并用 range smoothstep 降低深度差太大导致的假遮挡。采样超屏和无几何处跳过。</p>
+<p>4×4 的随机旋转噪声减少固定采样方向条纹；kernel 用确定种子构造，并偏向近处。随后进行空间、法线、深度共同决定权重的双边滤波，减轻噪声而尽量不跨物体边界糊开。最终只调制环境项，保留直接灯光。</p>
+<p>SSAO 不知道屏幕外和被遮住的几何，边缘漏光、相机相关变化与大尺度失真都属于近似的局限。没有时域累积、半分辨率重建、GTAO/HBAO 等改进。本例只实现可读的基础版本。</p>
+<h2>修改练习</h2>
+<p>改变半径 .8 与 bias .03；暂时关闭降噪；扩大 kernel，观察质量和 GPU 成本。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 27_ssao --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>为什么环境遮蔽不应把所有直接光一起压暗？</p>
+<p>屏幕 AO 近似环境方向遮挡，明确灯光的可见性通常应由阴影来决定。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>27_ssao.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="27_ssao" src="../../docs/previews/27_ssao.png"></p>
+<p><a href="../../docs/previews/27_ssao_off.png">查看按住空格时的对照图</a></p></main></html>

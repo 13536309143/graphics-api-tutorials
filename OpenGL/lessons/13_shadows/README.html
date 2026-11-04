@@ -1,0 +1,23 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 13 课：阴影贴图</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 13 课：阴影贴图</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../12_instancing/README.html">上一课</a> · <a href="../14_model_obj/README.html">下一课</a></p>
+<h2>学完你应该能够</h2>
+<p>说明“从光源视角判断遮挡”，运行并修改本课示例。</p>
+<h2>运行与观察</h2>
+<p>在教程根目录执行：</p>
+<pre><code>.\scripts\run.ps1 -Lesson 13_shadows</code></pre>
+<p>预期画面：地面上能看到两个立方体的阴影，旋转立方体的投影随之变化。</p>
+<h2>原理与代码阅读</h2>
+<p>阴影贴图由两遍渲染构成：第一遍从光源看场景，把最近表面的深度写到深度纹理；第二遍正常绘制，将当前片段变换到光源裁剪空间，比较它的深度是否大于纹理中记录的最近深度。</p>
+<p>本例使用位置固定的白色主光，光照方向按点光源计算；阴影仅覆盖该光源朝原点的正交视锥，是用于说明深度比较的有限范围演示。它不提供点光源的全方向阴影；真实点光源阴影应使用 cubemap 六个方向，方向光则通常采用正交 shadow map 或级联方案。</p>
+<p>lightSpace=lightProjection*lightView；片段投影后除以 w，再从 [-1,1] 映射到 [0,1]。深度纹理只接到 FBO 的 GL_DEPTH_ATTACHMENT，使用 glDrawBuffer(GL_NONE)/glReadBuffer(GL_NONE)。采样时使用独立单元 1，颜色纹理仍在单元 0。</p>
+<p>同一表面的浮点误差会造成 shadow acne；bias 给比较留出余量，过大又会让阴影脱离物体（peter panning）。本例使用依赖 N·L 的 bias 和 3×3 PCF，让边缘稍柔和。纹理边界设白色深度 1，超出光源远平面的片段不加阴影；这些是有限视锥的处理，不是无限范围阴影。</p>
+<p>观察地面上的旋转方块投影，按空格关闭阴影作对照。第一遍/第二遍必须用同一帧物体变换；视口也必须从 2048×2048 恢复成窗口大小。</p>
+<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<h2>动手练习</h2>
+<p>修改 ShadowMap::size 看锯齿；把 bias 设 0 看 acne；关闭 PCF 比较边缘。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<h2>自测</h2>
+<p>为什么增大 shadow map 分辨率也不总能解决阴影问题？</p>
+<p>参考答案：深度精度、光源投影范围、bias 和采样方式同样影响质量，应先让光源视锥紧贴有效场景。</p>
+<h2>出错时优先检查</h2>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>

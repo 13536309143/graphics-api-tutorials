@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 33 课：点光源全方向阴影</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 33 课：点光源全方向阴影</h1>
+<p><a href="../../README.html">课程首页</a> · <a href="../32_particles/README.html">上一课</a> · <a href="../34_gallery/README.html">下一课</a></p>
+<h2>目标与运行</h2>
+<pre><code>cd OpenGL
+.\scripts\run.ps1 -Lesson 33_point_shadows</code></pre>
+<p>预期画面：移动点光源照亮四个立方体，地面阴影向各方向延伸；空格关闭阴影。</p>
+<p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
+<h2>代码阅读顺序</h2>
+<p>point_depth.vert/frag → 六个 cubemap 面 → point_shadow.frag</p>
+<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<h2>原理与实现</h2>
+<p>第 13 课只有一个有限正交视锥，不能覆盖点光源全方向。本课从光源位置向六个轴向各渲染一次 90° 透视深度，形成 depth cubemap。使用六次 draw pass，未采用几何 shader 分层输出，方便逐面检查。</p>
+<p>片段深度写成 length(worldPos-light)/farPlane，因此 cubemap 存的是线性径向距离，而不是默认透视 z。正常着色时用 worldPos-light 的方向采样，乘 farPlane 恢复距离，再与当前点距离比较。若写的是透视 z，却按径向距离读取，结果不会正确。</p>
+<p>每面使用正确的 up 向量，并切换 GL_DEPTH_ATTACHMENT。颜色输出关闭；每个方向都清深度。恢复默认 FBO 和窗口 viewport 后再画正常场景。点光源运动时六面都需要更新，成本明显高于一张方向光阴影。</p>
+<p>本课用 512² 深度、最近采样和固定 bias=.05，故边缘有锯齿，偏置也可能产生 acne/peter panning。扩展时可在球面方向上多次采样进行 PCF、使用角度与距离相关偏置。更大的分辨率并非唯一质量因素。</p>
+<h2>修改练习</h2>
+<p>依次显示六面深度；增大分辨率；实现多个方向的 PCF；调整光源高度。</p>
+<p>修改后重新执行 <code>cmake --build build --config Debug --target 33_point_shadows --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<h2>自测与参考答案</h2>
+<p>为什么点阴影用方向采样而不需为每个片段手选 cubemap 面？</p>
+<p>Cubemap 采样器根据方向的最大绝对分量自动选面并计算面内坐标。</p>
+<h2>检查与排错</h2>
+<p>运行 <code>33_point_shadows.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
+<h2>参考截图</h2>
+<p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
+<p><img alt="33_point_shadows" src="../../docs/previews/33_point_shadows.png"></p>
+<p><a href="../../docs/previews/33_point_shadows_off.png">查看按住空格时的对照图</a></p></main></html>

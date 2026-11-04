@@ -1,0 +1,25 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vulkan / nvpro_core2 路线</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>Vulkan / nvpro_core2 路线</h1>
+<p><a href="../../README.html">合集首页</a> · <a href="../native/README.html">原生路线</a></p>
+<p>6 个真实使用 nvvk/nvapp/VMA/RenderTarget 的示例。与原生路线共享场景和低层管线，明确展示框架封装边界，而不是将同一个原生程序改名。</p>
+<h2>固定依赖与构建</h2>
+<p>nvpro_core2 固定 commit <code>71ab4212aa3dd8e3b6cb659ed691b59062dc5f11</code>，以 Git 子模块形式保存，不能只下载本仓库 ZIP 后忽略子模块。</p>
+<pre><code>git submodule update --init --recursive
+cmake --preset vulkan-nvpro
+cmake --build --preset vulkan-nvpro-debug --parallel 4
+ctest --preset vulkan-nvpro-debug
+.\Vulkan\nvpro\build\bin\Debug\nv06_pbr_viewport.exe</code></pre>
+<p>以上从仓库根目录执行。依赖要求 Vulkan 1.4 的驱动和 C++20。所选框架内部要求 1.4.341 头文件，故项目下载并固定官方 Vulkan-Headers 和 Vulkan-Utility-Libraries 1.4.341，并使用 nvpro 子模块自带 Volk，避免 SDK 1.4.335 的头文件/loader 辅助源码不匹配。Vulkan loader/import library 与 glslc 仍来自本机 SDK；不修改系统安装。</p>
+<p>只开启 nvutils/nvgui/nvapp/nvvk，未强制安装 Slang、CUDA、Aftermath 或光追扩展。自定义 shader 使用 GLSL→SPIR-V，框架内部必要的预编译 shader 由上游提供。项目包含上游许可证，应用元素结构参考了 NVIDIA project_template，见根 NOTICE。</p>
+<table>
+<tr><td>程序</td><td>课程</td></tr>
+<tr><td>nv01_context</td><td><a href="lessons/nv01_context/README.html">Context 与显式资源所有权</a></td></tr>
+<tr><td>nv02_application</td><td><a href="lessons/nv02_application/README.html">nvapp Application 生命周期</a></td></tr>
+<tr><td>nv03_triangle</td><td><a href="lessons/nv03_triangle/README.html">动态渲染与共享场景</a></td></tr>
+<tr><td>nv04_vma_staging_texture</td><td><a href="lessons/nv04_vma_staging_texture/README.html">VMA、Staging 与采样纹理</a></td></tr>
+<tr><td>nv05_compute_readback</td><td><a href="lessons/nv05_compute_readback/README.html">Compute 与读回验证</a></td></tr>
+<tr><td>nv06_pbr_viewport</td><td><a href="lessons/nv06_pbr_viewport/README.html">PBR 视口与 UI 参数</a></td></tr>
+</table>
+<h2>生命周期和调试</h2>
+<p>Context→Application→Element attach→resize/UI/render→detach→Application deinit→Context deinit。nvvk 对象通常要求显式 deinit，不能将它当成自动 RAII。Settings/Viewports 是 ImGui UI；普通窗口 Esc 退出。</p>
+<p><code>--smoke</code> 使用 nvapp headless 渲染四帧并读回 offscreen，仍需要 Vulkan GPU。自定义 debug messenger 计数验证错误；不把框架内部日志输出误当成测试断言。调试请在 common/nvapp_course.hpp 的回调、共享 SceneVk 或子模块源码中设置断点，进一步使用 <a href="../../docs/DEBUGGING.html">RenderDoc/Nsight 指南</a>。</p>
+<p>此路线没有实现 ray tracing、Slang 材质编译或 glTF 框架加载，更没有把上游未使用的所有功能都宣称为课程。PBR 为直接光；UI 粗糙度控制与图像读回已实现。当前串行等待是资源生命周期教学取舍，多帧优化必须同时维护帧资源与附件所有权。</p></main></html>
