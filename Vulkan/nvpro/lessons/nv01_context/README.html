@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv01_context · Context 与显式资源所有权</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>nv01_context · Context 与显式资源所有权</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv01_context · Context 与显式资源所有权</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>nv01_context · Context 与显式资源所有权</h1>
 <p><a href="../../README.html">路线首页</a> · <a href="../../../native/README.html">原生 Vulkan 对照</a></p>
 <h2>构建与运行</h2>
 <pre><code>cmake --preset vulkan-nvpro
@@ -12,4 +12,52 @@ cmake --build --preset vulkan-nvpro-debug --target nv01_context --parallel 4
 <p>在 ContextInitInfo 中申请一条 compute 队列，比较队列族；打印支持和启用的扩展。</p>
 <p>自测：列出本课中由 nvpro_core2 管理的对象，以及仍由 SceneVk/应用管理的对象。参考：Context/Application/RenderTarget/Allocator 负责各自对象，shader、pipeline layout、descriptor 与绘制逻辑仍有显式 Vulkan 状态；框架不会自动推断任意自定义 pass 的全部依赖。</p>
 <h2>检查</h2>
-<p><code>nv01_context.exe --smoke</code> 使用 GPU 无窗口运行或控制台检查。渲染课读回 Viewport 图像为 PPM；计算课逐项验证。验证层错误会使测试失败。常规窗口的 resize/minimize、UI 输入和长时间运行需要另外检查，不能以 headless 通过代替全部交互验证。</p></main></html>
+<p><code>nv01_context.exe --smoke</code> 使用 GPU 无窗口运行或控制台检查。渲染课读回 Viewport 图像为 PPM；计算课逐项验证。验证层错误会使测试失败。常规窗口的 resize/minimize、UI 输入和长时间运行需要另外检查，不能以 headless 通过代替全部交互验证。</p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>Context 根据扩展、特性和队列需求创建 Vulkan 对象。先读 setup，再展开框架实现，比较它把原生 NativeDevice 的哪些重复工作封装起来。</p>
+<p>配套精讲：<a href="../../../../docs/compare/01_context_device.html">三 API 对照 · 窗口、设备与队列</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../common/nvapp_course.hpp#L245">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 245—274 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>    nvvk::ContextInitInfo setup{};
+    setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+    setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
+    setup.enableValidationLayers = true;
+    setup.verbose = false;
+    setup.applicationName = &quot;nvpro_core2 Course&quot;;
+    if (!smoke &amp;&amp; chapter != 1 &amp;&amp; chapter != 5) {
+        nvvk::addSurfaceExtensions(setup.instanceExtensions);
+        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
+    }
+    vkCheck(context.init(setup));
+    VkDebugUtilsMessengerCreateInfoEXT debug{
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debug.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debug.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debug.pfnUserCallback = nvValidation;
+    vkCheck(
+        vkCreateDebugUtilsMessengerEXT(context.getInstance(), &amp;debug, nullptr, &amp;owner.messenger));
+    {
+        auto q = context.getQueueInfo(0);
+        VkContextRef c{context.getInstance(),
+                       context.getPhysicalDevice(),
+                       context.getDevice(),
+                       q.queue,
+                       q.familyIndex};
+        if (chapter == 1) {
+            VkPhysicalDeviceProperties p;
+            vkGetPhysicalDeviceProperties(c.physical, &amp;p);
+            std::cout &lt;&lt; &quot;nvpro_core2 context: &quot; &lt;&lt; p.deviceName &lt;&lt; &#x27;\n&#x27;;
+        } else if (chapter == 5)</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="../../../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="README.html">nv01_context</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>框架创建成功能否证明自定义资源生命周期正确？</p>
+<p>参考推导：不能。Context 只提供环境，应用创建的 image/buffer 和未完成提交仍需独立管理。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

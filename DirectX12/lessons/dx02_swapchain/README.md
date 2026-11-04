@@ -42,7 +42,6 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 
 参考：GPU 可能仍在访问，而交换链也要求没有外部引用，两个条件都需要满足。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -54,3 +53,62 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![dx02_swapchain](../../../docs/previews/dx02_swapchain.png)
+
+
+## 深入学习：数据、接口与执行
+
+DXGI 当前 back buffer index 决定本帧目标；写入前 PRESENT→RENDER_TARGET，结束恢复。allocator Reset 的安全性依赖前次 GPU 已完成。
+
+配套精讲：[三 API 对照 · 命令、帧槽与多帧设计](../../../docs/compare/09_commands_frames.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L120)，第 120—145 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+    void begin() {
+        dxCheck(allocator->Reset());
+        dxCheck(cmd->Reset(allocator.Get(), nullptr));
+    }
+    void submit() {
+        dxCheck(cmd->Close());
+        ID3D12CommandList* lists[] = {cmd.Get()};
+        queue->ExecuteCommandLists(1, lists);
+        wait();
+    }
+
+    // 队列 signal fence 后，CPU 等事件确认进度；提交返回不等于 GPU 已完成。
+    void wait() {
+        dxCheck(queue->Signal(fence.Get(), ++value));
+        if (fence->GetCompletedValue() < value) {
+            dxCheck(fence->SetEventOnCompletion(value, event));
+            if (WaitForSingleObject(event, 30000) != WAIT_OBJECT_0)
+                throw std::runtime_error("GPU fence timeout");
+        }
+    }
+    void checkMessages() {
+        if (!messages)
+            return;
+        UINT64 count = messages->GetNumStoredMessagesAllowedByRetrievalFilter();
+        for (UINT64 i = 0; i < count; ++i) {
+            SIZE_T bytes = 0;
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [07_cube](../../../OpenGL/lessons/07_cube/README.md) |
+| Vulkan 原生 | [vk02_swapchain](../../../Vulkan/native/lessons/vk02_swapchain/README.md) |
+| Vulkan / nvpro_core2 | [nv03_triangle](../../../Vulkan/nvpro/lessons/nv03_triangle/README.md) |
+| DirectX 12 | [dx02_swapchain](README.md) |
+
+### 先预测，再验证
+
+把 submit 里的 wait 删除就得到两帧并行了吗？
+
+参考推导：没有。还缺每帧 allocator、常量和完成值管理，以及深度/离屏资源的并发保护。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

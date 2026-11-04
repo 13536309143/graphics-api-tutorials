@@ -38,7 +38,6 @@ shared sphere/draws → scene.frag pbr → push constants 每球参数。
 
 参考：金属没有该模型中的漫反射，未被直接光覆盖的反射方向需要真实环境照明来提供能量。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -50,3 +49,62 @@ shared sphere/draws → scene.frag pbr → push constants 每球参数。
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![vk09_pbr](../../../../docs/previews/vk09_pbr.png)
+
+
+## 深入学习：数据、接口与执行
+
+球阵列共用同一网格和 pipeline，每个 Draw 改 metal/roughness。先在 GLSL 输出法线/NoL 隔离输入，再看 D/G/F。当前只有直接光，不含完整环境 IBL。
+
+配套精讲：[三 API 对照 · 直接光 PBR 与 IBL](../../../../docs/compare/12_lighting_pbr_ibl.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/common/shaders/scene.frag](../../../common/shaders/scene.frag#L17)，第 17—42 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```glsl
+vec3 pbr(vec3 N, vec3 V, vec3 P, float metal, float r) {
+    vec3 albedo = vec3(.8, .25, .07), sum = vec3(.02) * albedo * (1.0 - metal),
+         f0 = mix(vec3(.04), albedo, metal);
+    for (int i = 0; i < 4; ++i) {
+        vec3 lp = vec3(i % 2 == 0 ? -6 : 6, i < 2 ? 6 : -4, 8);
+        vec3 delta = lp - P, L = normalize(delta), H = normalize(V + L);
+        float NoV = max(dot(N, V), .001), NoL = max(dot(N, L), 0), NoH = max(dot(N, H), 0);
+        float a = r * r, a2 = a * a, d = NoH * NoH * (a2 - 1) + 1,
+              D = a2 / max(PI * d * d, .000001);
+        float k = (r + 1) * (r + 1) / 8;
+        float G = NoV / (NoV * (1 - k) + k) * NoL / (NoL * (1 - k) + k);
+        vec3 F = f0 + (1 - f0) * pow(1 - max(dot(V, H), 0), 5);
+        sum += ((1 - F) * (1 - metal) * albedo / PI + D * G * F / max(4 * NoV * NoL, .001)) * 90 /
+               dot(delta, delta) * NoL;
+    }
+    return sum;
+}
+
+void main() {
+    int mode = int(draw.settings.x);
+    vec3 N = normalize(normal), c;
+    if (mode <= 4)
+        c = clamp(normal, 0, 1);
+    else if (mode >= 9)
+        c = pbr(
+            N, normalize(vec3(0, 0, 14) - worldPos), worldPos, draw.settings.y, draw.settings.z);
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [25_ibl](../../../../OpenGL/lessons/25_ibl/README.md) |
+| Vulkan 原生 | [vk09_pbr](README.md) |
+| Vulkan / nvpro_core2 | [nv06_pbr_viewport](../../../nvpro/lessons/nv06_pbr_viewport/README.md) |
+| DirectX 12 | [dx09_pbr](../../../../DirectX12/lessons/dx09_pbr/README.md) |
+
+### 先预测，再验证
+
+与 OpenGL IBL 球图不同可否直接认定 Vulkan 错了？
+
+参考推导：不可以；先统一场景、光源、相机、环境项和显示编码。比较前先定义一致输入。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

@@ -36,3 +36,8 @@ Context→Application→Element attach→resize/UI/render→detach→Application
 `--smoke` 使用 nvapp headless 渲染四帧并读回 offscreen，仍需要 Vulkan GPU。自定义 debug messenger 计数验证错误；不把框架内部日志输出误当成测试断言。调试请在 common/nvapp_course.hpp 的回调、共享 SceneVk 或子模块源码中设置断点，进一步使用 [RenderDoc/Nsight 指南](../../docs/DEBUGGING.md)。
 
 此路线没有实现 ray tracing、Slang 材质编译或 glTF 框架加载，更没有把上游未使用的所有功能都宣称为课程。PBR 为直接光；UI 粗糙度控制与图像读回已实现。当前串行等待是资源生命周期教学取舍，多帧优化必须同时维护帧资源与附件所有权。
+
+
+## 深入精讲与横向阅读
+
+本路线每课已加入数据/接口/执行推导、真实源码切片和预测实验。配合[16 章三 API 精讲](../../docs/COMPARE.md)与[并排源码实验室](../../docs/compare/index.html)阅读；[功能矩阵](../../docs/FEATURE_MATRIX.md)区分已经实现与待迁移内容。

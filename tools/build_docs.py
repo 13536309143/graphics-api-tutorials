@@ -4,7 +4,7 @@ import html
 import re
 
 ROOT=Path(__file__).resolve().parents[1]
-STYLE='''body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}'''
+STYLE='''body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}'''
 
 def inline(text):
     text=html.escape(text)
@@ -24,6 +24,7 @@ def render(markdown):
             if code:out.append('<pre><code>'+html.escape('\n'.join(buf))+'</code></pre>');buf=[]
             code=not code;continue
         if code:buf.append(line);continue
+        if line.startswith('<!--') and line.endswith('-->'):continue
         if line.startswith('|'):
             if not table:out.append('<table>');table=True
             if re.fullmatch(r'[| :\-]+',line):continue
@@ -42,18 +43,20 @@ def render(markdown):
     return '\n'.join(out)
 
 def pages():
-    result=list(ROOT.glob('*.md'))+list((ROOT/'docs').glob('*.md'))
+    result=list(ROOT.glob('*.md'))+list((ROOT/'docs').rglob('*.md'))
     for folder in ['OpenGL','Vulkan','Vulkan/native','Vulkan/nvpro','DirectX12']:
         result+=list((ROOT/folder).glob('*.md'))+list((ROOT/folder/'docs').glob('*.md'))+list((ROOT/folder/'lessons').glob('*/*.md'))
     return sorted(set(result))
 
 def build():
+    from build_comparison import build as build_comparison
+    build_comparison()
     for page in pages():
         prefix='../'*len(page.relative_to(ROOT).parts[:-1]);text=page.read_text(encoding='utf-8');heading=re.search(r'^# (.+)',text,re.M);title=heading[1] if heading else page.stem
         nav=f'<nav><a href="{prefix}index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav>'
         content=f'<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><style>{STYLE}</style><link rel="stylesheet" href="{prefix}web/runner.css"><script defer src="{prefix}web/runner.js"></script><main>'+nav+render(text)+'</main></html>'
-        page.with_suffix('.html').write_text(content,encoding='utf-8')
-    (ROOT/'index.html').write_text((ROOT/'README.html').read_text(encoding='utf-8'),encoding='utf-8')
+        page.with_suffix('.html').write_bytes(content.encode('utf-8'))
+    (ROOT/'index.html').write_bytes((ROOT/'README.html').read_bytes())
     print('Rendered',len(pages()),'offline pages')
 
 if __name__=='__main__':build()

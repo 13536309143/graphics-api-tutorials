@@ -42,7 +42,6 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 
 参考：不能，PSO、资源状态、绑定和清除也必须匹配。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -54,3 +53,66 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![dx07_depth_instancing](../../../docs/previews/dx07_depth_instancing.png)
+
+
+## 深入学习：数据、接口与执行
+
+深度资源、DSV 和 PSO 深度状态共同成立，SV_InstanceID 给每实例偏移。draw 的 instance count 不会自动改变 mesh 索引数或上传尺寸。
+
+配套精讲：[三 API 对照 · 目标、深度与 MSAA](../../../docs/compare/07_targets_depth_msaa.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L478)，第 478—507 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+    void resize(int w, int h) {
+        if (width == w && height == h)
+            return;
+        c.wait();
+        for (auto& image : colors)
+            image.Reset();
+        depth.Reset();
+        offscreen.Reset();
+        dxCheck(swap->ResizeBuffers(2, UINT(w), UINT(h), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
+        width = w;
+        height = h;
+        for (UINT i = 0; i < 2; ++i) {
+            dxCheck(swap->GetBuffer(i, IID_PPV_ARGS(&colors[i])));
+            c.device->CreateRenderTargetView(colors[i].Get(), nullptr, rtv(i));
+        }
+        D3D12_HEAP_PROPERTIES heap{};
+        heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+        D3D12_RESOURCE_DESC desc{};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        desc.Width = UINT64(w);
+        desc.Height = UINT(h);
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = 1;
+        desc.Format = DXGI_FORMAT_D32_FLOAT;
+        desc.SampleDesc.Count = 1;
+        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        D3D12_CLEAR_VALUE clear{};
+        clear.Format = desc.Format;
+        clear.DepthStencil.Depth = 1;
+        dxCheck(c.device->CreateCommittedResource(&heap,
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [29_msaa](../../../OpenGL/lessons/29_msaa/README.md) |
+| Vulkan 原生 | [vk10_offscreen](../../../Vulkan/native/lessons/vk10_offscreen/README.md) |
+| Vulkan / nvpro_core2 | [nv02_application](../../../Vulkan/nvpro/lessons/nv02_application/README.md) |
+| DirectX 12 | [dx07_depth_instancing](README.md) |
+
+### 先预测，再验证
+
+关闭 depth write 但保留 test 会怎样？
+
+参考推导：新片段仍参与比较但不更新深度，可用于部分透明路径；用于不透明实例则可能失去期望的相互遮挡。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

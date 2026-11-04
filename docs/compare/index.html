@@ -1,0 +1,1655 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>三种图形 API 对照实验室</title><link rel="stylesheet" href="../../web/compare.css">
+<link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/compare.js"></script>
+<script defer src="../../web/runner.js"></script></head><body><main>
+<nav><a href="../../index.html">教程首页</a> · <a href="../COMPARE.html">学习路线</a> · <a href="../FEATURE_MATRIX.html">功能完成度</a> · <a href="../REFERENCES.html">参考资料</a></nav>
+<h1>三种图形 API 对照实验室</h1><p class="intro">同一问题，三种 API 的责任分配。Vulkan 另列 nvpro_core2 框架路线；代码来自本仓库实际实现。</p>
+<div class="scope-note">共 16 个精讲主题、60 个已有可运行课程。标为“迁移设计 / 基线外”的功能不计作已实现；运行参照不保证场景完全一致，也不用于比较 FPS。</div>
+<div class="lab-layout"><aside><label for="topic-search">查找主题</label><input id="topic-search" type="search" placeholder="例如：纹理、同步、PBR"><nav id="topic-nav" aria-label="对照主题"><button type="button" data-topic="00_learning_path" aria-pressed="true">学习路线与版本基线</button><button type="button" data-topic="01_context_device" aria-pressed="false">窗口、设备与队列</button><button type="button" data-topic="02_triangle_pipeline" aria-pressed="false">三角形、管线与着色器</button><button type="button" data-topic="03_geometry_memory" aria-pressed="false">顶点、索引与内存</button><button type="button" data-topic="04_transforms_camera" aria-pressed="false">矩阵、相机与坐标</button><button type="button" data-topic="05_binding_constants" aria-pressed="false">常量与资源绑定</button><button type="button" data-topic="06_textures_color" aria-pressed="false">纹理、Mip 与颜色空间</button><button type="button" data-topic="07_targets_depth_msaa" aria-pressed="false">目标、深度与 MSAA</button><button type="button" data-topic="08_synchronization" aria-pressed="false">同步与可见性</button><button type="button" data-topic="09_commands_frames" aria-pressed="false">命令、帧槽与多帧设计</button><button type="button" data-topic="10_compute_readback" aria-pressed="false">计算与读回</button><button type="button" data-topic="11_models_animation" aria-pressed="false">模型、节点与骨骼迁移</button><button type="button" data-topic="12_lighting_pbr_ibl" aria-pressed="false">直接光 PBR 与 IBL</button><button type="button" data-topic="13_multipass_effects" aria-pressed="false">阴影、SSAO 与后处理</button><button type="button" data-topic="14_debug_performance" aria-pressed="false">调试、抓帧与公平测量</button><button type="button" data-topic="15_framework_architecture" aria-pressed="false">框架与多后端架构</button></nav><p id="search-status" role="status"></p></aside>
+<div class="lab-content"><div class="api-filters" role="group" aria-label="源码显示范围"><button type="button" data-api-filter="all" aria-pressed="true">并排对照</button><button type="button" data-api-filter="gl" aria-pressed="false">OpenGL</button><button type="button" data-api-filter="vk" aria-pressed="false">Vulkan 原生</button><button type="button" data-api-filter="nv" aria-pressed="false">nvpro_core2</button><button type="button" data-api-filter="dx" aria-pressed="false">DX12</button></div><section class="comparison-topic" data-topic-panel="00_learning_path"><h2>00 · 学习路线与版本基线</h2><p>把初始化、数据、管线、目标、提交、同步放进同一张工作清单。</p><p><a class="deep-link" href="00_learning_path.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：换 API 后，哪些图形学概念没有改变？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>基线</td><td>OpenGL 3.3 Core</td><td>Vulkan 1.3 / C API</td><td>Vulkan 1.4 / 框架</td><td>D3D12 / SM5.1</td></tr><tr><td>入口模式</td><td>App 帧循环</td><td>nativeMain</td><td>nvapp 回调</td><td>dxMain</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>先读最短清屏路径，建立 CPU 帧循环。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr></table><p class="source-label"><a href="../../OpenGL/lessons/01_window/main.cpp" target="_blank" rel="noopener">OpenGL/lessons/01_window/main.cpp</a> · 5—15 行</p><pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;01_window - OpenGL Course&quot;);
+    // 渲染循环 = 处理事件 → 设置视口 → 清屏 → 交换前后缓冲。
+    while (app.begin()) {
+        app.clear();
+        app.end();
+    }
+    return 0;
+} catch (const std::exception&amp; e) {
+    return failure(e);
+}</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>从 instance、设备筛选和队列看显式初始化。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr></table><p class="source-label"><a href="../../Vulkan/native/common/native_app.hpp" target="_blank" rel="noopener">Vulkan/native/common/native_app.hpp</a> · 25—56 行</p><pre><code>struct NativeDevice {
+    VkContextRef c;
+    VkDebugUtilsMessengerEXT messenger{};
+    VkSurfaceKHR surface{};
+    NativeDevice(GLFWwindow* window) {
+        uint32_t count = 0;
+        std::vector&lt;const char*&gt; extensions;
+        if (window) {
+            const char** required = glfwGetRequiredInstanceExtensions(&amp;count);
+            extensions.assign(required, required + count);
+        }
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        uint32_t layerCount = 0;
+        vkEnumerateInstanceLayerProperties(&amp;layerCount, nullptr);
+        std::vector&lt;VkLayerProperties&gt; layers(layerCount);
+        vkEnumerateInstanceLayerProperties(&amp;layerCount, layers.data());
+        bool debug = std::any_of(layers.begin(), layers.end(), [](const auto&amp; x) {
+            return std::strcmp(x.layerName, &quot;VK_LAYER_KHRONOS_validation&quot;) == 0;
+        });
+        const char* layer = &quot;VK_LAYER_KHRONOS_validation&quot;;
+        if (!debug)
+            std::cerr &lt;&lt; &quot;Validation layer not installed; rendering remains available\n&quot;;
+        VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
+        app.pApplicationName = &quot;Native Vulkan Course&quot;;
+        app.apiVersion = VK_API_VERSION_1_3;
+        VkDebugUtilsMessengerCreateInfoEXT di{
+            VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+        di.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+        di.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>框架路线仍需声明特性和队列要求。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 234—265 行</p><pre><code>inline int nvproMain(int argc, char** argv, int chapter) {
+    bool smoke = false;
+    for (int i = 1; i &lt; argc; ++i)
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+
+    // 课程编号与公共场景模式分别管理：第 4 课看纹理上传，第 6 课看 PBR。
+    int mode = chapter == 4 ? 6 : chapter == 6 ? 9 : chapter;
+    nvShaders = std::filesystem::absolute(argv[0]).parent_path() / &quot;shaders&quot;;
+    NvContextOwner owner;
+    auto&amp; context = owner.context;
+    nvValidationErrors = 0;
+    nvvk::ContextInitInfo setup{};
+    setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+    setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
+    setup.enableValidationLayers = true;
+    setup.verbose = false;
+    setup.applicationName = &quot;nvpro_core2 Course&quot;;
+    if (!smoke &amp;&amp; chapter != 1 &amp;&amp; chapter != 5) {
+        nvvk::addSurfaceExtensions(setup.instanceExtensions);
+        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
+    }
+    vkCheck(context.init(setup));
+    VkDebugUtilsMessengerCreateInfoEXT debug{
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debug.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debug.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debug.pfnUserCallback = nvValidation;
+    vkCheck(
+        vkCreateDebugUtilsMessengerEXT(context.getInstance(), &amp;debug, nullptr, &amp;owner.messenger));
+    {
+        auto q = context.getQueueInfo(0);
+        VkContextRef c{context.getInstance(),</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>从 adapter、device、queue 看设备建立。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 59—90 行</p><pre><code>struct DxDevice {
+    ComPtr&lt;IDXGIFactory6&gt; factory;
+    ComPtr&lt;ID3D12Device&gt; device;
+    ComPtr&lt;ID3D12CommandQueue&gt; queue;
+    ComPtr&lt;ID3D12CommandAllocator&gt; allocator;
+    ComPtr&lt;ID3D12GraphicsCommandList&gt; cmd;
+    ComPtr&lt;ID3D12Fence&gt; fence;
+    ComPtr&lt;ID3D12InfoQueue&gt; messages;
+    HANDLE event = nullptr;
+    UINT64 value = 0;
+    explicit DxDevice(bool warp = false) {
+        UINT flags = 0;
+        ComPtr&lt;ID3D12Debug&gt; debug;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&amp;debug)))) {
+            debug-&gt;EnableDebugLayer();
+            flags |= DXGI_CREATE_FACTORY_DEBUG;
+            std::cout &lt;&lt; &quot;D3D12 debug layer enabled\n&quot;;
+        } else
+            std::cout
+                &lt;&lt; &quot;D3D12 debug layer unavailable; install Windows Graphics Tools for validation\n&quot;;
+        dxCheck(CreateDXGIFactory2(flags, IID_PPV_ARGS(&amp;factory)));
+        ComPtr&lt;IDXGIAdapter1&gt; adapter;
+        if (warp) {
+            dxCheck(factory-&gt;EnumWarpAdapter(IID_PPV_ARGS(&amp;adapter)));
+            dxCheck(
+                D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&amp;device)));
+        } else {
+            for (UINT i = 0; factory-&gt;EnumAdapterByGpuPreference(
+                                 i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&amp;adapter)) !=
+                             DXGI_ERROR_NOT_FOUND;
+                 ++i) {
+                DXGI_ADAPTER_DESC1 desc;</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="01_context_device" hidden><h2>01 · 窗口、设备与队列</h2><p>区分窗口系统连接、GPU 设备和提交接口。</p><p><a class="deep-link" href="01_context_device.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：窗口、context、surface、device 分别拥有什么？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>窗口</td><td>GLFW + context</td><td>GLFW_NO_API + surface</td><td>Application + surface</td><td>GLFW_NO_API + HWND</td></tr><tr><td>提交</td><td>context / driver</td><td>VkQueue</td><td>Context queue</td><td>CommandQueue</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>先 current context，再加载 GL 入口；GPU 对象先于 context 销毁。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr></table><p class="source-label"><a href="../../OpenGL/common/app.hpp" target="_blank" rel="noopener">OpenGL/common/app.hpp</a> · 25—77 行</p><pre><code>    App(int argc, char** argv, const char* title) {
+        for (int i = 1; i &lt; argc; ++i) {
+            smoke |= std::string(argv[i]) == &quot;--smoke&quot;;
+            capture |= std::string(argv[i]) == &quot;--capture&quot;;
+            variant |= std::string(argv[i]) == &quot;--variant&quot;;
+        }
+        expectGeometry = std::string(title).find(&quot;01_window&quot;) != 0;
+        assets = std::filesystem::absolute(argv[0]).parent_path() / &quot;shaders&quot;;
+        glfwSetErrorCallback([](int c, const char* s) {
+            std::cerr &lt;&lt; &quot;GLFW &quot; &lt;&lt; c &lt;&lt; &quot;: &quot; &lt;&lt; s &lt;&lt; &#x27;\n&#x27;;
+        });
+        if (!glfwInit())
+            throw std::runtime_error(&quot;GLFW initialization failed&quot;);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+        if (smoke)
+            glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+        if (!window) {
+            glfwTerminate();
+            throw std::runtime_error(&quot;Cannot create OpenGL 3.3 core context&quot;);
+        }
+
+        // 必须先让上下文在当前线程生效，再由 GLAD 加载 OpenGL 函数入口。
+        glfwMakeContextCurrent(window);
+        if (!gladLoadGL(glfwGetProcAddress)) {
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            throw std::runtime_error(&quot;GLAD load failed&quot;);
+        }
+        glfwSwapInterval(smoke ? 0 : 1);
+        std::cout &lt;&lt; &quot;GPU: &quot; &lt;&lt; glGetString(GL_RENDERER) &lt;&lt; &quot;\nOpenGL: &quot; &lt;&lt; glGetString(GL_VERSION)
+                  &lt;&lt; &#x27;\n&#x27;;
+        last = float(glfwGetTime());
+    }
+    ~App() {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+    App(const App&amp;) = delete;
+    App&amp; operator=(const App&amp;) = delete;
+    int key(int k) const {
+        return smoke &amp;&amp; variant &amp;&amp; k == GLFW_KEY_SPACE ? GLFW_PRESS : glfwGetKey(window, k);
+    }
+    float time() const {
+        return smoke ? 1.0f : float(glfwGetTime());
+    }
+
+    // 每帧先处理事件并读取 framebuffer 尺寸；高 DPI 下它可能不同于窗口逻辑尺寸。</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>扩展属于实例或设备，队列族还要检查实际呈现支持。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr></table><p class="source-label"><a href="../../Vulkan/native/common/native_app.hpp" target="_blank" rel="noopener">Vulkan/native/common/native_app.hpp</a> · 29—70 行</p><pre><code>    NativeDevice(GLFWwindow* window) {
+        uint32_t count = 0;
+        std::vector&lt;const char*&gt; extensions;
+        if (window) {
+            const char** required = glfwGetRequiredInstanceExtensions(&amp;count);
+            extensions.assign(required, required + count);
+        }
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        uint32_t layerCount = 0;
+        vkEnumerateInstanceLayerProperties(&amp;layerCount, nullptr);
+        std::vector&lt;VkLayerProperties&gt; layers(layerCount);
+        vkEnumerateInstanceLayerProperties(&amp;layerCount, layers.data());
+        bool debug = std::any_of(layers.begin(), layers.end(), [](const auto&amp; x) {
+            return std::strcmp(x.layerName, &quot;VK_LAYER_KHRONOS_validation&quot;) == 0;
+        });
+        const char* layer = &quot;VK_LAYER_KHRONOS_validation&quot;;
+        if (!debug)
+            std::cerr &lt;&lt; &quot;Validation layer not installed; rendering remains available\n&quot;;
+        VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
+        app.pApplicationName = &quot;Native Vulkan Course&quot;;
+        app.apiVersion = VK_API_VERSION_1_3;
+        VkDebugUtilsMessengerCreateInfoEXT di{
+            VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+        di.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+        di.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        di.pfnUserCallback = validation;
+        VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+        info.pApplicationInfo = &amp;app;
+        info.enabledExtensionCount = uint32_t(extensions.size());
+        info.ppEnabledExtensionNames = extensions.data();
+        if (debug) {
+            info.enabledLayerCount = 1;
+            info.ppEnabledLayerNames = &amp;layer;
+            info.pNext = &amp;di;
+        }
+        vkCheck(vkCreateInstance(&amp;info, nullptr, &amp;c.instance));
+        auto create = reinterpret_cast&lt;PFN_vkCreateDebugUtilsMessengerEXT&gt;(
+            vkGetInstanceProcAddr(c.instance, &quot;vkCreateDebugUtilsMessengerEXT&quot;));
+        if (debug &amp;&amp; create)</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>Context 减少创建代码，需求选择与失败处理仍由应用负责。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 245—276 行</p><pre><code>    nvvk::ContextInitInfo setup{};
+    setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+    setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
+    setup.enableValidationLayers = true;
+    setup.verbose = false;
+    setup.applicationName = &quot;nvpro_core2 Course&quot;;
+    if (!smoke &amp;&amp; chapter != 1 &amp;&amp; chapter != 5) {
+        nvvk::addSurfaceExtensions(setup.instanceExtensions);
+        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
+    }
+    vkCheck(context.init(setup));
+    VkDebugUtilsMessengerCreateInfoEXT debug{
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debug.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debug.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debug.pfnUserCallback = nvValidation;
+    vkCheck(
+        vkCreateDebugUtilsMessengerEXT(context.getInstance(), &amp;debug, nullptr, &amp;owner.messenger));
+    {
+        auto q = context.getQueueInfo(0);
+        VkContextRef c{context.getInstance(),
+                       context.getPhysicalDevice(),
+                       context.getDevice(),
+                       q.queue,
+                       q.familyIndex};
+        if (chapter == 1) {
+            VkPhysicalDeviceProperties p;
+            vkGetPhysicalDeviceProperties(c.physical, &amp;p);
+            std::cout &lt;&lt; &quot;nvpro_core2 context: &quot; &lt;&lt; p.deviceName &lt;&lt; &#x27;\n&#x27;;
+        } else if (chapter == 5)
+            computeSquares(c, nvShaders);
+        else {</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>在设备创建前启用调试层；WARP 是软件参考路径。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 69—110 行</p><pre><code>    explicit DxDevice(bool warp = false) {
+        UINT flags = 0;
+        ComPtr&lt;ID3D12Debug&gt; debug;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&amp;debug)))) {
+            debug-&gt;EnableDebugLayer();
+            flags |= DXGI_CREATE_FACTORY_DEBUG;
+            std::cout &lt;&lt; &quot;D3D12 debug layer enabled\n&quot;;
+        } else
+            std::cout
+                &lt;&lt; &quot;D3D12 debug layer unavailable; install Windows Graphics Tools for validation\n&quot;;
+        dxCheck(CreateDXGIFactory2(flags, IID_PPV_ARGS(&amp;factory)));
+        ComPtr&lt;IDXGIAdapter1&gt; adapter;
+        if (warp) {
+            dxCheck(factory-&gt;EnumWarpAdapter(IID_PPV_ARGS(&amp;adapter)));
+            dxCheck(
+                D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&amp;device)));
+        } else {
+            for (UINT i = 0; factory-&gt;EnumAdapterByGpuPreference(
+                                 i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&amp;adapter)) !=
+                             DXGI_ERROR_NOT_FOUND;
+                 ++i) {
+                DXGI_ADAPTER_DESC1 desc;
+                adapter-&gt;GetDesc1(&amp;desc);
+                if (!(desc.Flags &amp; DXGI_ADAPTER_FLAG_SOFTWARE) &amp;&amp;
+                    SUCCEEDED(D3D12CreateDevice(
+                        adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&amp;device))))
+                    break;
+                adapter.Reset();
+            }
+            if (!device)
+                throw std::runtime_error(&quot;No D3D12 feature level 12_0 adapter; try --warp&quot;);
+        }
+        DXGI_ADAPTER_DESC1 desc;
+        adapter-&gt;GetDesc1(&amp;desc);
+        std::wcout &lt;&lt; L&quot;GPU: &quot; &lt;&lt; desc.Description &lt;&lt; L&#x27;\n&#x27;;
+        device.As(&amp;messages);
+        D3D12_COMMAND_QUEUE_DESC qi{};
+        qi.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+        dxCheck(device-&gt;CreateCommandQueue(&amp;qi, IID_PPV_ARGS(&amp;queue)));
+        dxCheck(device-&gt;CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                               IID_PPV_ARGS(&amp;allocator)));
+        dxCheck(device-&gt;CreateCommandList(</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="02_triangle_pipeline" hidden><h2>02 · 三角形、管线与着色器</h2><p>按输入、阶段、输出、提交定位一个 draw。</p><p><a class="deep-link" href="02_triangle_pipeline.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：shader 成功编译后，为何仍可能黑屏？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>着色器产物</td><td>Program</td><td>SPIR-V / Pipeline</td><td>相同 SceneVk</td><td>SM5.1 / PSO</td></tr><tr><td>此课顶点</td><td>VBO</td><td>gl_VertexIndex</td><td>gl_VertexIndex</td><td>SV_VertexID</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>OpenGL 02 使用实际 VBO，和另两条程序生成顶点的路径有范围差别。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr></table><p class="source-label"><a href="../../OpenGL/lessons/02_triangle/main.cpp" target="_blank" rel="noopener">OpenGL/lessons/02_triangle/main.cpp</a> · 5—22 行</p><pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;02_triangle - OpenGL Course&quot;);
+    Shader shader(app, &quot;basic.vert&quot;, &quot;color.frag&quot;);
+    Mesh mesh(
+        {-.7f, -.5f, 0, 1, 0, 0, 0, 0, .7f, -.5f, 0, 0, 1, 0, 1, 0, 0, .6f, 0, 0, 0, 1, .5f, 1});
+    while (app.begin()) {
+        app.clear();
+        shader.use();
+        glm::mat4 mvp(1.f);
+        shader.set(&quot;mvp&quot;, mvp);
+        shader.set(&quot;pulse&quot;, 1.f);
+        mesh.draw();
+        app.end();
+    }
+    return 0;
+} catch (const std::exception&amp; e) {
+    return failure(e);
+}</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>动态渲染仍要求 pipeline 声明附件格式；还要设置 viewport/scissor。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 373—404 行</p><pre><code>        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+        gp.pNext = &amp;rendering;
+        gp.stageCount = 2;
+        gp.pStages = stages;
+        gp.pVertexInputState = &amp;vi;
+        gp.pInputAssemblyState = &amp;ia;
+        gp.pViewportState = &amp;viewport;
+        gp.pRasterizationState = &amp;raster;
+        gp.pMultisampleState = &amp;ms;
+        gp.pDepthStencilState = &amp;depth;
+        gp.pColorBlendState = &amp;blend;
+        gp.pDynamicState = &amp;dynamic;
+        gp.layout = pipelineLayout;
+        VkResult result =
+            vkCreateGraphicsPipelines(c.device, VK_NULL_HANDLE, 1, &amp;gp, nullptr, &amp;pipeline);
+        vkDestroyShaderModule(c.device, vs, nullptr);
+        vkDestroyShaderModule(c.device, ps, nullptr);
+        vkCheck(result, &quot;Graphics pipeline&quot;);
+    }
+
+    // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
+    void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
+        auto f = frame(mode, float(size.width) / size.height, true);
+        uniform.upload(&amp;f, sizeof(f));
+        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkRect2D scissor{{0, 0}, size};
+        vkCmdSetViewport(cmd, 0, 1, &amp;viewport);
+        vkCmdSetScissor(cmd, 0, 1, &amp;scissor);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindDescriptorSets(
+            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &amp;descriptor, 0, nullptr);
+        if (mode &gt;= 4) {</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>场景写入离屏 RenderTarget，最后才被 ImGui 采样。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 130—171 行</p><pre><code>    void onRender(VkCommandBuffer cmd) override {
+        // 每次更新前等待队列，保证共用 UBO 和离屏目标不会与前一帧并发读写。
+        vkCheck(vkQueueWaitIdle(c.queue));
+
+        // GENERAL 布局不代表自动同步：仍需声明前一次读写与本次颜色写入的依赖。
+        barrier(cmd,
+                target.getColorImage(),
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+        barrier(cmd,
+                target.getDepthImage(),
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                VK_ACCESS_2_MEMORY_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                    VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_IMAGE_ASPECT_DEPTH_BIT);
+        nvvk::RenderTargetState state;
+        target.fillState(state);
+        state.colorAttachments[0].clearValue.color = {{.035f, .055f, .09f, 1}};
+        state.depthAttachment.clearValue.depthStencil = {1, 0};
+        nvvk::RenderTargetState::AttachmentOps ops;
+        state.cmdBeginRendering(cmd, ops);
+        if (scene)
+            scene-&gt;render(
+                cmd, target.getSize(), smoke ? 1.f : float(ImGui::GetTime()), roughnessScale);
+        vkCmdEndRendering(cmd);
+        barrier(cmd,
+                target.getColorImage(),
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
+    }</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>由顶点 ID 生成位置/颜色，先把输入布局问题排除。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr></table><p class="source-label"><a href="../../DirectX12/shaders/scene.hlsl" target="_blank" rel="noopener">DirectX12/shaders/scene.hlsl</a> · 39—55 行</p><pre><code>Pixel TriangleMain(uint id : SV_VertexID) {
+    float2 points[3] = {float2(-.7, -.6), float2(.7, -.6), float2(0, .6)};
+    float3 colors[3] = {float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1)};
+    Pixel p;
+    p.pos = float4(points[id], 0, 1);
+    p.normal = colors[id];
+    p.uv = 0;
+    p.world = p.pos.xyz;
+    return p;
+}
+
+// 直接光 Cook-Torrance：GGX 分布、Schlick-GGX 遮蔽及 Schlick 菲涅耳。
+// 与 Vulkan GLSL 使用相同场景和参数，方便逐项对照；此处未实现 IBL。
+float3 PBR(float3 N, float3 V, float3 P, float metal, float r) {
+    const float PI = 3.14159265359;
+    float3 albedo = float3(.8, .25, .07), sum = .02 * albedo * (1 - metal),
+           f0 = lerp(.04.xxx, albedo, metal);</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="03_geometry_memory" hidden><h2>03 · 顶点、索引与内存</h2><p>将 CPU 数据、资源、内存与布局逐项对应。</p><p><a class="deep-link" href="03_geometry_memory.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：为什么立方体可以有 24 个顶点而非 8 个？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>布局</td><td>VAO / stride / offset</td><td>binding + attribute</td><td>复用 Vertex + VMA 上传</td><td>input layout + VBV</td></tr><tr><td>静态几何现状</td><td>BufferData</td><td>host-visible coherent</td><td>device-local staging 示例</td><td>UPLOAD heap</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>EBO 绑定属于 VAO 状态，attribute stride 与 CPU 数据一致。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/03_indexed/README.html">03_indexed</a></td></tr></table><p class="source-label"><a href="../../OpenGL/common/app.hpp" target="_blank" rel="noopener">OpenGL/common/app.hpp</a> · 217—264 行</p><pre><code>struct Mesh {
+    GLuint vao = 0, vbo = 0, ebo = 0;
+    GLsizei count = 0;
+    bool indexed = false;
+    Mesh(const std::vector&lt;float&gt;&amp; data, const std::vector&lt;unsigned&gt;&amp; indices = {}) {
+        indexed = !indices.empty();
+        count = GLsizei(indexed ? indices.size() : data.size() / 8);
+        glGenVertexArrays(1, &amp;vao);
+        glGenBuffers(1, &amp;vbo);
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(
+            GL_ARRAY_BUFFER, GLsizeiptr(data.size() * sizeof(float)), data.data(), GL_STATIC_DRAW);
+
+        // attribute 描述写入当前 VAO；stride 和 offset 必须与 CPU 顶点布局一致。
+        for (GLuint i = 0; i &lt; 3; ++i) {
+            glEnableVertexAttribArray(i);
+            glVertexAttribPointer(
+                i,
+                i == 2 ? 2 : 3,
+                GL_FLOAT,
+                GL_FALSE,
+                8 * sizeof(float),
+                reinterpret_cast&lt;void*&gt;(size_t(i == 2 ? 6 : i * 3) * sizeof(float)));
+        }
+
+        // 索引缓冲绑定也是 VAO 状态，因此要在解绑 VAO 前完成设置。
+        if (indexed) {
+            glGenBuffers(1, &amp;ebo);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         GLsizeiptr(indices.size() * sizeof(unsigned)),
+                         indices.data(),
+                         GL_STATIC_DRAW);
+        }
+        glBindVertexArray(0);
+    }
+    ~Mesh() {
+        glDeleteBuffers(1, &amp;ebo);
+        glDeleteBuffers(1, &amp;vbo);
+        glDeleteVertexArrays(1, &amp;vao);
+    }
+    Mesh(const Mesh&amp;) = delete;
+    Mesh&amp; operator=(const Mesh&amp;) = delete;
+    void draw() const {
+        glBindVertexArray(vao);
+        if (indexed)
+            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>先满足 memoryTypeBits 与属性，再绑定资源；coherent 不等于执行同步。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk04_vertex_buffer/README.html">vk04_vertex_buffer</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 29—73 行</p><pre><code>struct VkBufferResource {
+    VkDevice device{};
+    VkBuffer buffer{};
+    VkDeviceMemory memory{};
+    VkDeviceSize size{};
+    VkBufferResource() = default;
+    VkBufferResource(const VkBufferResource&amp;) = delete;
+    VkBufferResource&amp; operator=(const VkBufferResource&amp;) = delete;
+    void init(const VkContextRef&amp; c,
+              VkDeviceSize bytes,
+              VkBufferUsageFlags usage,
+              VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
+        device = c.device;
+        size = bytes;
+        VkBufferCreateInfo info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        info.size = bytes;
+        info.usage = usage;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        vkCheck(vkCreateBuffer(device, &amp;info, nullptr, &amp;buffer));
+        VkMemoryRequirements req;
+        vkGetBufferMemoryRequirements(device, buffer, &amp;req);
+        VkMemoryAllocateInfo alloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+        alloc.allocationSize = req.size;
+        alloc.memoryTypeIndex = memoryType(c, req.memoryTypeBits, flags);
+        vkCheck(vkAllocateMemory(device, &amp;alloc, nullptr, &amp;memory));
+        vkCheck(vkBindBufferMemory(device, buffer, memory, 0));
+    }
+
+    // 此处缓冲使用 HOST_VISIBLE | HOST_COHERENT；非 coherent 内存还需显式 flush。
+    void upload(const void* data, size_t bytes) {
+        void* p;
+        vkCheck(vkMapMemory(device, memory, 0, size, 0, &amp;p));
+        std::memcpy(p, data, bytes);
+        vkUnmapMemory(device, memory);
+    }
+    ~VkBufferResource() {
+        if (buffer)
+            vkDestroyBuffer(device, buffer, nullptr);
+        if (memory)
+            vkFreeMemory(device, memory, nullptr);
+    }
+};
+struct VkImageResource {
+    VkDevice device{};</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>本段上传 device-local 顶点；纹理路径在 SceneVk，不能混作同一 helper。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 88—107 行</p><pre><code>        if (mode == 6) {
+            auto&amp; vertices = scene-&gt;mesh.vertices;
+            vkCheck(allocator.createBuffer(uploadedVertices,
+                                           vertices.size() * sizeof(Vertex),
+                                           VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT));
+
+            // 先把数据加入 staging，再录制拷贝并等待 GPU；完成后才能释放临时上传器。
+            nvvk::StagingUploader upload;
+            upload.init(&amp;allocator);
+            vkCheck(upload.appendBuffer(uploadedVertices, 0, std::span&lt;const Vertex&gt;(vertices)));
+            auto cmd = app-&gt;createTempCmdBuffer();
+            upload.cmdUploadAppended(cmd);
+            app-&gt;submitAndWaitTempCmdBuffer(cmd);
+            upload.deinit();
+            scene-&gt;overrideVertices = uploadedVertices.buffer;
+            std::cout &lt;&lt; &quot;VMA device-local vertex upload complete\n&quot;;
+        }
+    }
+
+    // 视口大小变化时重建 RenderTarget，并把新的 image view 交给 ImGui 显示。</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>UPLOAD 顶点和 index buffer view 保持清楚，性能优化可再改 DEFAULT。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx04_vertex_buffer/README.html">dx04_vertex_buffer</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 246—283 行</p><pre><code>    DxScene(DxDevice&amp; context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
+        if (mode &gt;= 4) {
+            UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
+            vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+            void* mapped;
+            D3D12_RANGE empty{0, 0};
+            dxCheck(vertices-&gt;Map(0, &amp;empty, &amp;mapped));
+            std::memcpy(mapped, mesh.vertices.data(), size);
+            vertices-&gt;Unmap(0, nullptr);
+            vb = {vertices-&gt;GetGPUVirtualAddress(), size, sizeof(Vertex)};
+            if (!mesh.indices.empty()) {
+                UINT bytes = UINT(mesh.indices.size() * 4);
+                indices =
+                    c.buffer(bytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+                dxCheck(indices-&gt;Map(0, &amp;empty, &amp;mapped));
+                std::memcpy(mapped, mesh.indices.data(), bytes);
+                indices-&gt;Unmap(0, nullptr);
+                ib = {indices-&gt;GetGPUVirtualAddress(), bytes, DXGI_FORMAT_R32_UINT};
+            }
+        }
+
+        // CBV GPU 地址要求 256 字节对齐，因此给 64 字节的帧矩阵预留 256 字节。
+        uniform = c.buffer(256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+        D3D12_HEAP_PROPERTIES hp{};
+        hp.Type = D3D12_HEAP_TYPE_DEFAULT;
+        D3D12_RESOURCE_DESC image{};
+        image.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        image.Width = image.Height = 64;
+        image.DepthOrArraySize = 1;
+        image.MipLevels = 1;
+        image.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        image.SampleDesc.Count = 1;
+        dxCheck(c.device-&gt;CreateCommittedResource(&amp;hp,
+                                                  D3D12_HEAP_FLAG_NONE,
+                                                  &amp;image,
+                                                  D3D12_RESOURCE_STATE_COPY_DEST,
+                                                  nullptr,
+                                                  IID_PPV_ARGS(&amp;texture)));</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="04_transforms_camera" hidden><h2>04 · 矩阵、相机与坐标</h2><p>同时核对数学记法、存储布局、深度与 Y 方向。</p><p><a class="deep-link" href="04_transforms_camera.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：为什么不能只加一次 transpose 来修复所有移植问题？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>深度 NDC</td><td>-1..1</td><td>0..1</td><td>0..1</td><td>0..1</td></tr><tr><td>相机现状</td><td>自由相机</td><td>共享固定相机</td><td>共享固定相机 + UI</td><td>共享固定相机</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>运动乘 dt；pitch 受限；view 与 projection 分别负责不同空间。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/08_camera/README.html">08_camera</a></td></tr></table><p class="source-label"><a href="../../OpenGL/common/app.hpp" target="_blank" rel="noopener">OpenGL/common/app.hpp</a> · 333—382 行</p><pre><code>struct Camera {
+    glm::vec3 pos{0, 1.2f, 6}, front{0, 0, -1};
+    float yaw = -90, pitch = -8, fov = 45;
+    double oldX = 0, oldY = 0;
+    bool first = true;
+    void update(App&amp; a) {
+        // 按住右键才捕获鼠标，松开后可以正常操作桌面。
+        bool capture = glfwGetMouseButton(a.window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+        glfwSetInputMode(
+            a.window, GLFW_CURSOR, capture ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        double x, y;
+        glfwGetCursorPos(a.window, &amp;x, &amp;y);
+        if (capture &amp;&amp; !first) {
+            yaw += float(x - oldX) * .1f;
+            pitch = std::clamp(pitch + float(oldY - y) * .1f, -89.f, 89.f);
+        }
+        first = !capture;
+        oldX = x;
+        oldY = y;
+        front =
+            glm::normalize(glm::vec3(std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch)),
+                                     std::sin(glm::radians(pitch)),
+                                     std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch))));
+
+        // 运动速度乘以帧间隔，避免移动速度随帧率改变。
+        float speed = 3.f * a.dt;
+        auto right = glm::normalize(glm::cross(front, glm::vec3(0, 1, 0)));
+        if (glfwGetKey(a.window, GLFW_KEY_W) == GLFW_PRESS)
+            pos += front * speed;
+        if (glfwGetKey(a.window, GLFW_KEY_S) == GLFW_PRESS)
+            pos -= front * speed;
+        if (glfwGetKey(a.window, GLFW_KEY_A) == GLFW_PRESS)
+            pos -= right * speed;
+        if (glfwGetKey(a.window, GLFW_KEY_D) == GLFW_PRESS)
+            pos += right * speed;
+        if (glfwGetKey(a.window, GLFW_KEY_Q) == GLFW_PRESS)
+            pos.y -= speed;
+        if (glfwGetKey(a.window, GLFW_KEY_E) == GLFW_PRESS)
+            pos.y += speed;
+    }
+    glm::mat4 view() const {
+        return glm::lookAt(pos, pos + front, glm::vec3(0, 1, 0));
+    }
+    glm::mat4 projection(const App&amp; a) const {
+        return glm::perspective(glm::radians(fov), a.aspect(), .1f, 100.f);
+    }
+};
+inline int failure(const std::exception&amp; e) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; e.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>共享右手空间，Vulkan 正 viewport 下额外翻转投影 Y。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr></table><p class="source-label"><a href="../../shared/scene.hpp" target="_blank" rel="noopener">shared/scene.hpp</a> · 86—101 行</p><pre><code>inline Frame frame(int mode, float aspect, bool vulkan) {
+    Frame f;
+    if (mode &lt;= 4)
+        return f;
+    float distance = mode &gt;= 9 ? 14.f : mode == 7 ? 10.f : 4.f;
+    auto p = glm::perspectiveRH_ZO(glm::radians(45.f), aspect, .1f, 100.f);
+
+    // 两条路线都使用 0..1 深度；Vulkan 正高度 viewport 额外翻转投影 Y。
+    if (vulkan)
+        p[1][1] *= -1;
+    f.viewProjection = p * glm::lookAtRH(glm::vec3(0, mode &gt;= 9 ? 0 : 1.5f, distance),
+                                         glm::vec3(0),
+                                         glm::vec3(0, 1, 0));
+    return f;
+}
+</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>框架不改变 SceneVk 的数学约定；UI 调整的是材质参数。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 394—413 行</p><pre><code>    void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
+        auto f = frame(mode, float(size.width) / size.height, true);
+        uniform.upload(&amp;f, sizeof(f));
+        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkRect2D scissor{{0, 0}, size};
+        vkCmdSetViewport(cmd, 0, 1, &amp;viewport);
+        vkCmdSetScissor(cmd, 0, 1, &amp;scissor);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindDescriptorSets(
+            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &amp;descriptor, 0, nullptr);
+        if (mode &gt;= 4) {
+            VkBuffer vb = overrideVertices ? overrideVertices : vertices.buffer;
+            VkDeviceSize offset = 0;
+            vkCmdBindVertexBuffers(cmd, 0, 1, &amp;vb, &amp;offset);
+            if (indices.buffer)
+                vkCmdBindIndexBuffer(cmd, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        }
+        for (auto d : draws(mode, time)) {
+            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
+            vkCmdPushConstants(cmd,</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>column_major / mul(M,v) 匹配 GLM；当前法线简化依赖旋转/均匀缩放。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr></table><p class="source-label"><a href="../../DirectX12/shaders/scene.hlsl" target="_blank" rel="noopener">DirectX12/shaders/scene.hlsl</a> · 25—41 行</p><pre><code>Pixel VertexMain(Vertex input, uint instance : SV_InstanceID) {
+    Pixel p;
+    float3 local = input.pos;
+    if ((int)settings.x == 7)
+        local += float3((int)(instance % 5) - 2, 0, -(int)(instance / 5)) * 1.5;
+    float4 world = mul(model, float4(local, 1));
+    p.world = world.xyz;
+    p.normal = mul((float3x3)model, input.normal);
+    p.uv = input.uv;
+    p.pos = mul(viewProjection, world);
+    return p;
+}
+
+// SV_VertexID 直接生成顶点，适合先学习 PSO 和绘制提交。
+Pixel TriangleMain(uint id : SV_VertexID) {
+    float2 points[3] = {float2(-.7, -.6), float2(.7, -.6), float2(0, .6)};
+    float3 colors[3] = {float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1)};</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="05_binding_constants" hidden><h2>05 · 常量与资源绑定</h2><p>区分数据、接口布局、实际引用与每 draw 更新。</p><p><a class="deep-link" href="05_binding_constants.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：root parameter 下标为什么可以不同于 HLSL register？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>帧数据</td><td>uniform / UBO</td><td>binding 0 UBO</td><td>相同 descriptor</td><td>root CBV b0</td></tr><tr><td>对象数据</td><td>uniform</td><td>80 字节 push</td><td>80 字节 push</td><td>20 DWORD b1</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>block index、binding point 与实际 buffer 三层分开检查。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/28_ubo/README.html">28_ubo</a></td></tr></table><p class="source-label"><a href="../../OpenGL/lessons/28_ubo/main.cpp" target="_blank" rel="noopener">OpenGL/lessons/28_ubo/main.cpp</a> · 15—41 行</p><pre><code>    GLuint block = glGetUniformBlockIndex(shader.id, &quot;CameraBlock&quot;);
+    if (block == GL_INVALID_INDEX)
+        throw std::runtime_error(&quot;Missing uniform block&quot;);
+    glUniformBlockBinding(shader.id, block, 0);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, buffer);
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        auto projection = camera.projection(app), view = camera.view();
+        glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+        glBufferSubData(
+            GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+        shader.use();
+        shader.set(&quot;opacity&quot;, 1.f);
+        for (int n = 0; n &lt; 5; ++n) {
+            auto model = glm::translate(glm::mat4(1), glm::vec3((n - 2) * 1.3f, 0, 0));
+            shader.set(&quot;model&quot;, glm::rotate(model, app.time() * .3f + n, glm::vec3(.2f, 1, .1f)));
+            shader.set(&quot;baseColor&quot;, glm::vec3(.15f * n, .6f, 1 - .15f * n));
+            box.draw();
+        }
+        app.end();
+    }
+    glDeleteBuffers(1, &amp;buffer);
+    return 0;
+} catch (const std::exception&amp; e) {
+    return failure(e);</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 265—302 行</p><pre><code>        VkDescriptorSetLayoutBinding bindings[2] = {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {1,
+             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+             1,
+             VK_SHADER_STAGE_FRAGMENT_BIT,
+             nullptr}};
+        VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+        li.bindingCount = 2;
+        li.pBindings = bindings;
+        vkCheck(vkCreateDescriptorSetLayout(c.device, &amp;li, nullptr, &amp;setLayout));
+        VkDescriptorPoolSize sizes[2] = {{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
+                                         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}};
+        VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+        pool.maxSets = 1;
+        pool.poolSizeCount = 2;
+        pool.pPoolSizes = sizes;
+        vkCheck(vkCreateDescriptorPool(c.device, &amp;pool, nullptr, &amp;descriptorPool));
+        VkDescriptorSetAllocateInfo da{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+        da.descriptorPool = descriptorPool;
+        da.descriptorSetCount = 1;
+        da.pSetLayouts = &amp;setLayout;
+        vkCheck(vkAllocateDescriptorSets(c.device, &amp;da, &amp;descriptor));
+        VkDescriptorBufferInfo ub{uniform.buffer, 0, sizeof(Frame)};
+        VkDescriptorImageInfo image{
+            sampler, texture.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+        VkWriteDescriptorSet writes[2]{};
+        for (auto&amp; w : writes) {
+            w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            w.dstSet = descriptor;
+            w.descriptorCount = 1;
+        }
+        writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[0].pBufferInfo = &amp;ub;
+        writes[1].dstBinding = 1;
+        writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writes[1].pImageInfo = &amp;image;
+        vkUpdateDescriptorSets(c.device, 2, writes, 0, nullptr);</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 411—429 行</p><pre><code>        for (auto d : draws(mode, time)) {
+            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
+            vkCmdPushConstants(cmd,
+                               pipelineLayout,
+                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                               0,
+                               sizeof(d),
+                               &amp;d);
+            if (mode == 3)
+                vkCmdDraw(cmd, 3, 1, 0, 0);
+            else if (mode == 4)
+                vkCmdDraw(cmd, uint32_t(mesh.vertices.size()), 1, 0, 0);
+            else
+                vkCmdDrawIndexed(cmd, uint32_t(mesh.indices.size()), mode == 7 ? 25 : 1, 0, 0, 0);
+        }
+    }
+    ~SceneVk() {
+        if (pipeline)
+            vkDestroyPipeline(c.device, pipeline, nullptr);</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>root parameter 2 指 t0，0 指 b0；两种编号不能混同。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 328—363 行</p><pre><code>        D3D12_ROOT_PARAMETER params[3]{};
+        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        params[0].Descriptor.ShaderRegister = 0;
+        params[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        params[1].Constants = {1, 0, 20};
+        params[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+        D3D12_DESCRIPTOR_RANGE range{};
+        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        range.NumDescriptors = 1;
+        range.BaseShaderRegister = 0;
+        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        params[2].DescriptorTable = {1, &amp;range};
+        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        D3D12_STATIC_SAMPLER_DESC sampler{};
+        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.MaxLOD = D3D12_FLOAT32_MAX;
+        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        D3D12_ROOT_SIGNATURE_DESC root{};
+        root.NumParameters = 3;
+        root.pParameters = params;
+        root.NumStaticSamplers = 1;
+        root.pStaticSamplers = &amp;sampler;
+        root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        signature = rootSignature(c, root);
+        auto vs = compileHlsl(mode == 3 ? &quot;TriangleMain&quot; : &quot;VertexMain&quot;, &quot;vs_5_1&quot;),
+             ps = compileHlsl(&quot;PixelMain&quot;, &quot;ps_5_1&quot;);
+        D3D12_INPUT_ELEMENT_DESC elements[] = {{&quot;POSITION&quot;,
+                                                0,
+                                                DXGI_FORMAT_R32G32B32_FLOAT,
+                                                0,
+                                                0,
+                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="06_textures_color" hidden><h2>06 · 纹理、Mip 与颜色空间</h2><p>沿解码、上传、view、采样、显示追踪一张纹理。</p><p><a class="deep-link" href="06_textures_color.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：过滤模式能不能修复错误的 row pitch？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>采样接口</td><td>texture unit</td><td>image view + sampler</td><td>复用 SceneVk</td><td>SRV + static sampler</td></tr><tr><td>Mip 现状</td><td>有生成路径</td><td>单级</td><td>单级</td><td>单级</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>sRGB 用于颜色，normal/roughness 等数据应保持线性。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/05_texture/README.html">05_texture</a></td></tr></table><p class="source-label"><a href="../../OpenGL/common/advanced.hpp" target="_blank" rel="noopener">OpenGL/common/advanced.hpp</a> · 35—54 行</p><pre><code>    void upload(int w, int h, const unsigned char* bytes, bool srgb) {
+        if (!id)
+            glGenTextures(1, &amp;id);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8,
+                     w,
+                     h,
+                     0,
+                     GL_RGBA,
+                     GL_UNSIGNED_BYTE,
+                     bytes);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    ~ImageTexture() {</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>staging 到 optimal image，先传输后采样并建立依赖。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk06_texture_descriptor/README.html">vk06_texture_descriptor</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 224—267 行</p><pre><code>        auto data = checker();
+        VkBufferResource upload;
+        upload.init(c, data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+        upload.upload(data.data(), data.size());
+        texture.init(c,
+                     {64, 64},
+                     VK_FORMAT_R8G8B8A8_SRGB,
+                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                     VK_IMAGE_ASPECT_COLOR_BIT);
+
+        // 纹理先切到传输目标布局，拷贝完成后再切到 shader 只读布局供片元阶段采样。
+        immediate(c, [&amp;](VkCommandBuffer cmd) {
+            barrier(cmd,
+                    texture.image,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_NONE,
+                    0,
+                    VK_PIPELINE_STAGE_2_COPY_BIT,
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT);
+            VkBufferImageCopy copy{};
+            copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+            copy.imageExtent = {64, 64, 1};
+            vkCmdCopyBufferToImage(
+                cmd, upload.buffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &amp;copy);
+            barrier(cmd,
+                    texture.image,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_COPY_BIT,
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
+        });
+        VkSamplerCreateInfo si{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+        si.magFilter = si.minFilter = VK_FILTER_LINEAR;
+        si.addressModeU = si.addressModeV = si.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        si.maxLod = 0;
+        vkCheck(vkCreateSampler(c.device, &amp;si, nullptr, &amp;sampler));
+
+        // binding 0 对应每帧 UBO，binding 1 对应纹理和采样器；编号与 GLSL 保持一致。
+        VkDescriptorSetLayoutBinding bindings[2] = {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {1,</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>框架层负责分配目标和顶点上传；纹理细节沿 SceneVk 展开。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 61—94 行</p><pre><code>    void onAttach(nvapp::Application* application) override {
+        app = application;
+        auto queue = app-&gt;getQueue(0);
+        c = {app-&gt;getInstance(),
+             app-&gt;getPhysicalDevice(),
+             app-&gt;getDevice(),
+             queue.queue,
+             queue.familyIndex};
+
+        // VMA 管理分配与绑定，调用方仍需声明用途并保证 GPU 使用期间资源存活。
+        VmaAllocatorCreateInfo ai{};
+        ai.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+        ai.physicalDevice = c.physical;
+        ai.device = c.device;
+        ai.instance = c.instance;
+        ai.vulkanApiVersion = VK_API_VERSION_1_4;
+        vkCheck(allocator.init(ai));
+        nvvk::RenderTarget::CreateInfo info{};
+        info.alloc = &amp;allocator;
+        info.colorFormats = {VK_FORMAT_R8G8B8A8_UNORM};
+        info.depthFormat = VK_FORMAT_D32_SFLOAT;
+        info.colorUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                          VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        info.debugName = &quot;Course viewport&quot;;
+        vkCheck(target.init(info));
+        if (mode &gt;= 3)
+            scene = std::make_unique&lt;SceneVk&gt;(c, mode, VK_FORMAT_R8G8B8A8_UNORM, nvShaders);
+        if (mode == 6) {
+            auto&amp; vertices = scene-&gt;mesh.vertices;
+            vkCheck(allocator.createBuffer(uploadedVertices,
+                                           vertices.size() * sizeof(Vertex),
+                                           VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT));
+
+            // 先把数据加入 staging，再录制拷贝并等待 GPU；完成后才能释放临时上传器。</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>按 RowPitch 逐行填 upload；创建 SRV 不会复制像素。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx06_texture_srv/README.html">dx06_texture_srv</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 284—323 行</p><pre><code>        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
+        UINT rows;
+        UINT64 rowBytes, total;
+
+        // 纹理上传不能假定行数据紧密排列；按 footprint 的对齐行距逐行复制。
+        c.device-&gt;GetCopyableFootprints(&amp;image, 0, 1, 0, &amp;footprint, &amp;rows, &amp;rowBytes, &amp;total);
+        auto upload = c.buffer(total, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+        void* mapped;
+        D3D12_RANGE empty{0, 0};
+        dxCheck(upload-&gt;Map(0, &amp;empty, &amp;mapped));
+        auto data = checker();
+        for (UINT y = 0; y &lt; rows; ++y)
+            std::memcpy(static_cast&lt;uint8_t*&gt;(mapped) + footprint.Offset +
+                            size_t(y) * footprint.Footprint.RowPitch,
+                        data.data() + size_t(y) * 64 * 4,
+                        64 * 4);
+        upload-&gt;Unmap(0, nullptr);
+        c.begin();
+        D3D12_TEXTURE_COPY_LOCATION source{}, destination{};
+        source.pResource = upload.Get();
+        source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        source.PlacedFootprint = footprint;
+        destination.pResource = texture.Get();
+        destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        c.cmd-&gt;CopyTextureRegion(&amp;destination, 0, 0, 0, &amp;source, nullptr);
+        auto b = transition(texture.Get(),
+                            D3D12_RESOURCE_STATE_COPY_DEST,
+                            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        c.cmd-&gt;ResourceBarrier(1, &amp;b);
+        c.submit();
+        D3D12_DESCRIPTOR_HEAP_DESC heap{};
+        heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        heap.NumDescriptors = 1;
+        heap.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        dxCheck(c.device-&gt;CreateDescriptorHeap(&amp;heap, IID_PPV_ARGS(&amp;srvHeap)));
+        D3D12_SHADER_RESOURCE_VIEW_DESC srv{};
+        srv.Format = image.Format;
+        srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srv.Texture2D.MipLevels = 1;</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="07_targets_depth_msaa" hidden><h2>07 · 目标、深度与 MSAA</h2><p>分别检查格式、尺寸、样本数、清除、访问和呈现。</p><p><a class="deep-link" href="07_targets_depth_msaa.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：为什么绑定新目标后还必须检查 viewport？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>深度</td><td>depth attachment</td><td>D32 image/view</td><td>RenderTarget depth</td><td>D32 / DSV</td></tr><tr><td>MSAA 实现</td><td>29 已实现</td><td>待迁移</td><td>待迁移</td><td>待迁移</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>多样本绘制与 resolve 是两个步骤；MSAA 不消除所有纹理闪烁。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/29_msaa/README.html">29_msaa</a></td></tr></table><p class="source-label"><a href="../../OpenGL/lessons/29_msaa/main.cpp" target="_blank" rel="noopener">OpenGL/lessons/29_msaa/main.cpp</a> · 33—56 行</p><pre><code>        glBindFramebuffer(GL_READ_FRAMEBUFFER, msaa.fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolved.fbo);
+        glBlitFramebuffer(0,
+                          0,
+                          app.width,
+                          app.height,
+                          0,
+                          0,
+                          app.width,
+                          app.height,
+                          GL_COLOR_BUFFER_BIT,
+                          GL_NEAREST);
+        defaultTarget(app);
+        glDisable(GL_DEPTH_TEST);
+        screen.use();
+        screen.set(&quot;tex&quot;, 0);
+        screen.set(&quot;grayscale&quot;, 0);
+        bind2D(resolved.colors[0], 0);
+        plane.draw();
+        app.end();
+    }
+    return 0;
+} catch (const std::exception&amp; e) {
+    return failure(e);</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>动态渲染指定 load/store；当前单样本离屏 blit 不等于完整后处理。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk10_offscreen/README.html">vk10_offscreen</a></td></tr></table><p class="source-label"><a href="../../Vulkan/native/common/native_app.hpp" target="_blank" rel="noopener">Vulkan/native/common/native_app.hpp</a> · 363—400 行</p><pre><code>            VkRenderingAttachmentInfo color{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+            color.imageView = targetView;
+            color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            color.clearValue.color = {{.035f, .055f, .09f, 1}};
+            VkRenderingAttachmentInfo depth{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+            depth.imageView = swap.depth.view;
+            depth.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            depth.clearValue.depthStencil = {1, 0};
+            VkRenderingInfo render{VK_STRUCTURE_TYPE_RENDERING_INFO};
+            render.renderArea = {{0, 0}, swap.extent};
+            render.layerCount = 1;
+            render.colorAttachmentCount = 1;
+            render.pColorAttachments = &amp;color;
+            render.pDepthAttachment = &amp;depth;
+            vkCmdBeginRendering(cmd, &amp;render);
+            if (swap.scene)
+                swap.scene-&gt;render(cmd, swap.extent, smoke ? 1.f : float(glfwGetTime()));
+            vkCmdEndRendering(cmd);
+            if (mode == 10) {
+                barrier(cmd,
+                        target,
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                        VK_PIPELINE_STAGE_2_BLIT_BIT,
+                        VK_ACCESS_2_TRANSFER_READ_BIT);
+                barrier(cmd,
+                        swap.images[imageIndex],
+                        VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        VK_PIPELINE_STAGE_2_NONE,
+                        0,
+                        VK_PIPELINE_STAGE_2_BLIT_BIT,</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>尺寸变化重建目标后，也要更新用于 UI 的 image view。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv02_application/README.html">nv02_application</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 108—115 行</p><pre><code>    void onResize(VkCommandBuffer cmd, const VkExtent2D&amp; size) override {
+        vkCheck(target.update(cmd, size));
+        if (!smoke)
+            display.update(target.getUiImageView());
+    }
+    void onUIRender() override {
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+            app-&gt;close();</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>先等 GPU 并释放旧 back buffer 引用，才能 ResizeBuffers。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx10_offscreen/README.html">dx10_offscreen</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 478—511 行</p><pre><code>    void resize(int w, int h) {
+        if (width == w &amp;&amp; height == h)
+            return;
+        c.wait();
+        for (auto&amp; image : colors)
+            image.Reset();
+        depth.Reset();
+        offscreen.Reset();
+        dxCheck(swap-&gt;ResizeBuffers(2, UINT(w), UINT(h), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
+        width = w;
+        height = h;
+        for (UINT i = 0; i &lt; 2; ++i) {
+            dxCheck(swap-&gt;GetBuffer(i, IID_PPV_ARGS(&amp;colors[i])));
+            c.device-&gt;CreateRenderTargetView(colors[i].Get(), nullptr, rtv(i));
+        }
+        D3D12_HEAP_PROPERTIES heap{};
+        heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+        D3D12_RESOURCE_DESC desc{};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        desc.Width = UINT64(w);
+        desc.Height = UINT(h);
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = 1;
+        desc.Format = DXGI_FORMAT_D32_FLOAT;
+        desc.SampleDesc.Count = 1;
+        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        D3D12_CLEAR_VALUE clear{};
+        clear.Format = desc.Format;
+        clear.DepthStencil.Depth = 1;
+        dxCheck(c.device-&gt;CreateCommittedResource(&amp;heap,
+                                                  D3D12_HEAP_FLAG_NONE,
+                                                  &amp;desc,
+                                                  D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                                                  &amp;clear,</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="08_synchronization" hidden><h2>08 · 同步与可见性</h2><p>分别证明执行、内存可见性和资源生命周期。</p><p><a class="deep-link" href="08_synchronization.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：GENERAL 布局为什么仍可能需要 barrier？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>CPU 完成条件</td><td>GLsync / API 规则</td><td>Fence</td><td>框架与自定义等待</td><td>Fence + event</td></tr><tr><td>GPU 依赖</td><td>按操作规则</td><td>stage/access/layout</td><td>仍需显式依赖</td><td>transition/UAV + queue fence</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>常规有序 FBO→采样由 GL 规则协调；不能推导成所有 GPU 写后读都自动安全。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/11_framebuffer/README.html">11_framebuffer</a></td></tr></table><p class="source-label"><a href="../../OpenGL/lessons/11_framebuffer/main.cpp" target="_blank" rel="noopener">OpenGL/lessons/11_framebuffer/main.cpp</a> · 12—43 行</p><pre><code>    while (app.begin()) {
+        if (app.width == 0 || app.height == 0) {
+            app.end();
+            continue;
+        }
+        camera.update(app);
+        target.resize(app.width, app.height);
+        // 第一遍：向离屏颜色纹理和深度附件画立方体。
+        glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
+        glEnable(GL_DEPTH_TEST);
+        app.clear();
+        scene.use();
+        texture.bind();
+        scene.set(&quot;tex&quot;, 0);
+        auto model = glm::rotate(glm::mat4(1), app.time(), glm::vec3(.3f, 1, 0));
+        scene.set(&quot;mvp&quot;, camera.projection(app) * camera.view() * model);
+        box.draw();
+        // 第二遍：默认帧缓冲上的全屏矩形。按住空格显示原图，松开为灰度。
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        app.clear();
+        screen.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, target.color);
+        screen.set(&quot;tex&quot;, 0);
+        screen.set(&quot;grayscale&quot;, glfwGetKey(app.window, GLFW_KEY_SPACE) != GLFW_PRESS);
+        plane.draw();
+        app.end();
+    }
+    return 0;
+} catch (const std::exception&amp; e) {
+    return failure(e);</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>屏障声明前后阶段、访问及布局；并非只修改一个枚举。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk06_texture_descriptor/README.html">vk06_texture_descriptor</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 129—163 行</p><pre><code>inline void barrier(VkCommandBuffer cmd,
+                    VkImage image,
+                    VkImageLayout before,
+                    VkImageLayout after,
+                    VkPipelineStageFlags2 srcStage,
+                    VkAccessFlags2 srcAccess,
+                    VkPipelineStageFlags2 dstStage,
+                    VkAccessFlags2 dstAccess,
+                    VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT) {
+    VkImageMemoryBarrier2 b{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
+    b.srcStageMask = srcStage;
+    b.srcAccessMask = srcAccess;
+    b.dstStageMask = dstStage;
+    b.dstAccessMask = dstAccess;
+    b.oldLayout = before;
+    b.newLayout = after;
+    b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    b.image = image;
+    b.subresourceRange = {aspect, 0, 1, 0, 1};
+    VkDependencyInfo dependency{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
+    dependency.imageMemoryBarrierCount = 1;
+    dependency.pImageMemoryBarriers = &amp;b;
+    vkCmdPipelineBarrier2(cmd, &amp;dependency);
+}
+
+// 教学用一次性提交：CPU 等 fence 后再释放命令池及临时上传资源。
+inline void immediate(const VkContextRef&amp; c, const std::function&lt;void(VkCommandBuffer)&gt;&amp; record) {
+    VkCommandPool pool{};
+    VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+    pi.queueFamilyIndex = c.family;
+    vkCheck(vkCreateCommandPool(c.device, &amp;pi, nullptr, &amp;pool));
+    VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    ai.commandPool = pool;
+    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>GENERAL→GENERAL 仍声明颜色写入与后续采样依赖。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 130—177 行</p><pre><code>    void onRender(VkCommandBuffer cmd) override {
+        // 每次更新前等待队列，保证共用 UBO 和离屏目标不会与前一帧并发读写。
+        vkCheck(vkQueueWaitIdle(c.queue));
+
+        // GENERAL 布局不代表自动同步：仍需声明前一次读写与本次颜色写入的依赖。
+        barrier(cmd,
+                target.getColorImage(),
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+        barrier(cmd,
+                target.getDepthImage(),
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                VK_ACCESS_2_MEMORY_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                    VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_IMAGE_ASPECT_DEPTH_BIT);
+        nvvk::RenderTargetState state;
+        target.fillState(state);
+        state.colorAttachments[0].clearValue.color = {{.035f, .055f, .09f, 1}};
+        state.depthAttachment.clearValue.depthStencil = {1, 0};
+        nvvk::RenderTargetState::AttachmentOps ops;
+        state.cmdBeginRendering(cmd, ops);
+        if (scene)
+            scene-&gt;render(
+                cmd, target.getSize(), smoke ? 1.f : float(ImGui::GetTime()), roughnessScale);
+        vkCmdEndRendering(cmd);
+        barrier(cmd,
+                target.getColorImage(),
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
+    }
+
+    // 无窗口检查同样读回真实离屏目标；传输写入经 host 屏障后才能由 CPU 检查。
+    void onLastHeadlessFrame() override {
+        auto size = target.getSize();
+        VkBufferResource readback;
+        readback.init(</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>CPU 等 fence 只解决完成条件；资源状态还要与实际访问一致。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 132—145 行</p><pre><code>    void wait() {
+        dxCheck(queue-&gt;Signal(fence.Get(), ++value));
+        if (fence-&gt;GetCompletedValue() &lt; value) {
+            dxCheck(fence-&gt;SetEventOnCompletion(value, event));
+            if (WaitForSingleObject(event, 30000) != WAIT_OBJECT_0)
+                throw std::runtime_error(&quot;GPU fence timeout&quot;);
+        }
+    }
+    void checkMessages() {
+        if (!messages)
+            return;
+        UINT64 count = messages-&gt;GetNumStoredMessagesAllowedByRetrievalFilter();
+        for (UINT64 i = 0; i &lt; count; ++i) {
+            SIZE_T bytes = 0;</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="09_commands_frames" hidden><h2>09 · 命令、帧槽与多帧设计</h2><p>区分录制和执行，按使用期设计每帧资源。</p><p><a class="deep-link" href="09_commands_frames.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：为什么 frameSlot 与 imageIndex 不是同一个索引？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>命令存储</td><td>驱动负责</td><td>CommandPool/Buffer</td><td>Application 管理命令</td><td>Allocator/List</td></tr><tr><td>当前重叠</td><td>驱动路径</td><td>教学串行</td><td>自定义场景串行</td><td>教学串行</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/07_cube/README.html">07_cube</a></td></tr></table><p class="source-label"><a href="../../OpenGL/common/app.hpp" target="_blank" rel="noopener">OpenGL/common/app.hpp</a> · 91—114 行</p><pre><code>    void end() {
+
+        // 自动验证使用固定帧数并在交换缓冲前读回当前后缓冲，检查是否真正绘出几何。
+        if (smoke &amp;&amp; frames == 3) {
+            std::vector&lt;unsigned char&gt; rgb(size_t(width) * height * 3);
+            glPixelStorei(GL_PACK_ALIGNMENT, 1);
+            glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb.data());
+            glPixelStorei(GL_PACK_ALIGNMENT, 4);
+            size_t changed = 0;
+            for (size_t i = 0; i &lt; rgb.size(); i += 3)
+                if (std::abs(int(rgb[i]) - 9) &gt; 3 || std::abs(int(rgb[i + 1]) - 14) &gt; 3 ||
+                    std::abs(int(rgb[i + 2]) - 23) &gt; 3)
+                    ++changed;
+            std::cout &lt;&lt; &quot;Rendered non-background pixels: &quot; &lt;&lt; changed &lt;&lt; &#x27;\n&#x27;;
+            int lo = 255, hi = 0;
+            for (size_t k = 0; k &lt; rgb.size(); k += 3) {
+                int l = int(rgb[k]) + rgb[k + 1] + rgb[k + 2];
+                lo = std::min(lo, l / 3);
+                hi = std::max(hi, l / 3);
+            }
+            if (expectGeometry &amp;&amp; (changed &lt; 100 || hi - lo &lt; 10))
+                throw std::runtime_error(&quot;Smoke test: geometry is missing&quot;);
+            if (capture) {
+                std::ofstream out(assets.parent_path() / (std::string(glfwGetWindowTitle(window)) +</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>成功 acquire 后才 reset fence，避免无提交却等待已重置 fence。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk02_swapchain/README.html">vk02_swapchain</a></td></tr></table><p class="source-label"><a href="../../Vulkan/native/common/native_app.hpp" target="_blank" rel="noopener">Vulkan/native/common/native_app.hpp</a> · 325—355 行</p><pre><code>            vkCheck(vkWaitForFences(d.c.device, 1, &amp;fence, VK_TRUE, UINT64_MAX));
+            uint32_t imageIndex;
+
+            // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。
+            VkResult a = vkAcquireNextImageKHR(
+                d.c.device, swap.handle, UINT64_MAX, acquired, {}, &amp;imageIndex);
+            if (a == VK_ERROR_OUT_OF_DATE_KHR) {
+                swap.recreate();
+                continue;
+            }
+            if (a != VK_SUBOPTIMAL_KHR)
+                vkCheck(a);
+
+            // 只有成功获取图像、确定会提交时才重置 fence，避免下次永久等待。
+            vkCheck(vkResetFences(d.c.device, 1, &amp;fence));
+            vkCheck(vkResetCommandBuffer(cmd, 0));
+            VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+            vkCheck(vkBeginCommandBuffer(cmd, &amp;begin));
+            VkImage target = mode == 10 ? swap.offscreen.image : swap.images[imageIndex];
+            VkImageView targetView = mode == 10 ? swap.offscreen.view : swap.views[imageIndex];
+            barrier(cmd,
+                    target,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_NONE,
+                    0,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+            barrier(cmd,
+                    swap.depth.image,
+                    VK_IMAGE_LAYOUT_UNDEFINED,</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>自定义资源和框架帧调度都要满足各自生命周期。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 223—234 行</p><pre><code>    void onDetach() override {
+        vkDeviceWaitIdle(c.device);
+        if (!smoke)
+            display.deinit();
+        scene.reset();
+        if (uploadedVertices.buffer)
+            allocator.destroyBuffer(uploadedVertices);
+        target.deinit();
+        allocator.deinit();
+    }
+};
+inline int nvproMain(int argc, char** argv, int chapter) {</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>allocator Reset 由前次 submit 的等待保护，多帧版本须改变该契约。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx02_swapchain/README.html">dx02_swapchain</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 120—145 行</p><pre><code>    void begin() {
+        dxCheck(allocator-&gt;Reset());
+        dxCheck(cmd-&gt;Reset(allocator.Get(), nullptr));
+    }
+    void submit() {
+        dxCheck(cmd-&gt;Close());
+        ID3D12CommandList* lists[] = {cmd.Get()};
+        queue-&gt;ExecuteCommandLists(1, lists);
+        wait();
+    }
+
+    // 队列 signal fence 后，CPU 等事件确认进度；提交返回不等于 GPU 已完成。
+    void wait() {
+        dxCheck(queue-&gt;Signal(fence.Get(), ++value));
+        if (fence-&gt;GetCompletedValue() &lt; value) {
+            dxCheck(fence-&gt;SetEventOnCompletion(value, event));
+            if (WaitForSingleObject(event, 30000) != WAIT_OBJECT_0)
+                throw std::runtime_error(&quot;GPU fence timeout&quot;);
+        }
+    }
+    void checkMessages() {
+        if (!messages)
+            return;
+        UINT64 count = messages-&gt;GetNumStoredMessagesAllowedByRetrievalFilter();
+        for (UINT64 i = 0; i &lt; count; ++i) {
+            SIZE_T bytes = 0;</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="10_compute_readback" hidden><h2>10 · 计算与读回</h2><p>从线程索引到 host 检查逐项验证 GPU 工作。</p><p><a class="deep-link" href="10_compute_readback.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：256 改为 257 时需要同时改哪四处？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>可写缓冲</td><td>当前无 compute 课</td><td>storage buffer</td><td>相同 compute helper</td><td>UAV</td></tr><tr><td>组大小</td><td>3.3 基线外</td><td>64 × 4 组</td><td>64 × 4 组</td><td>64 × 4 组</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">基线外</p><p>当前 OpenGL 3.3 路线没有 compute 实现；粒子实例化不能作为 compute 对照。</p><p class="scope-note">此项没有对应的已完成实现。请阅读精讲中的迁移步骤与验收条件。</p></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>全局调用索引覆盖 256 项，host 逐项核对，不仅检查第一个值。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/shaders/square.comp" target="_blank" rel="noopener">Vulkan/common/shaders/square.comp</a> · 2—12 行</p><pre><code>layout(local_size_x = 64) in;
+layout(binding = 0) buffer Values {
+    uint values[];
+};
+
+// 每工作组 64 个线程；host dispatch 4 组，结果通过 storage buffer 读回。
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i &lt; 256)
+        values[i] = i * i + 1;
+}</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>Context 提供队列和设备；计算管线与资源依赖仍是 Vulkan。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv05_compute_readback/README.html">nv05_compute_readback</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 442—478 行</p><pre><code>inline void computeSquares(const VkContextRef&amp; c, const std::filesystem::path&amp; shaders) {
+    VkBufferResource storage;
+    storage.init(c, 256 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    VkDescriptorSetLayoutBinding binding{
+        0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
+    VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    li.bindingCount = 1;
+    li.pBindings = &amp;binding;
+    VkDescriptorSetLayout layout;
+    vkCheck(vkCreateDescriptorSetLayout(c.device, &amp;li, nullptr, &amp;layout));
+    VkPipelineLayoutCreateInfo pl{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    pl.setLayoutCount = 1;
+    pl.pSetLayouts = &amp;layout;
+    VkPipelineLayout pipelineLayout;
+    vkCheck(vkCreatePipelineLayout(c.device, &amp;pl, nullptr, &amp;pipelineLayout));
+    VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1};
+    VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    pool.maxSets = 1;
+    pool.poolSizeCount = 1;
+    pool.pPoolSizes = &amp;size;
+    VkDescriptorPool descriptorPool;
+    vkCheck(vkCreateDescriptorPool(c.device, &amp;pool, nullptr, &amp;descriptorPool));
+    VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    ai.descriptorPool = descriptorPool;
+    ai.descriptorSetCount = 1;
+    ai.pSetLayouts = &amp;layout;
+    VkDescriptorSet set;
+    vkCheck(vkAllocateDescriptorSets(c.device, &amp;ai, &amp;set));
+    VkDescriptorBufferInfo bi{storage.buffer, 0, 256 * 4};
+    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    write.dstSet = set;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    write.pBufferInfo = &amp;bi;
+    vkUpdateDescriptorSets(c.device, 1, &amp;write, 0, nullptr);
+    VkShaderModule cs = shaderModule(c.device, shaders / &quot;square.comp.spv&quot;);
+    VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>DEFAULT UAV 结果拷贝到 READBACK，经 fence 后 Map。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 195—242 行</p><pre><code>inline void dxCompute(DxDevice&amp; c) {
+    auto storage = c.buffer(1024,
+                            D3D12_HEAP_TYPE_DEFAULT,
+                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+         readback = c.buffer(1024, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+    D3D12_ROOT_PARAMETER root{};
+    root.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    root.Descriptor.ShaderRegister = 0;
+    D3D12_ROOT_SIGNATURE_DESC desc{};
+    desc.NumParameters = 1;
+    desc.pParameters = &amp;root;
+    auto signature = rootSignature(c, desc);
+    auto cs = compileHlsl(&quot;ComputeMain&quot;, &quot;cs_5_1&quot;);
+    D3D12_COMPUTE_PIPELINE_STATE_DESC pso{};
+    pso.pRootSignature = signature.Get();
+    pso.CS = {cs-&gt;GetBufferPointer(), cs-&gt;GetBufferSize()};
+    ComPtr&lt;ID3D12PipelineState&gt; pipeline;
+    dxCheck(c.device-&gt;CreateComputePipelineState(&amp;pso, IID_PPV_ARGS(&amp;pipeline)));
+    c.begin();
+    c.cmd-&gt;SetComputeRootSignature(signature.Get());
+    c.cmd-&gt;SetPipelineState(pipeline.Get());
+    c.cmd-&gt;SetComputeRootUnorderedAccessView(0, storage-&gt;GetGPUVirtualAddress());
+    c.cmd-&gt;Dispatch(4, 1, 1);
+    auto b = transition(
+        storage.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    c.cmd-&gt;ResourceBarrier(1, &amp;b);
+    c.cmd-&gt;CopyBufferRegion(readback.Get(), 0, storage.Get(), 0, 1024);
+    c.submit();
+    void* mapped;
+    D3D12_RANGE readRange{0, 1024};
+    dxCheck(readback-&gt;Map(0, &amp;readRange, &amp;mapped));
+    for (uint32_t i = 0; i &lt; 256; ++i)
+        if (static_cast&lt;uint32_t*&gt;(mapped)[i] != i * i + 1)
+            throw std::runtime_error(&quot;GPU compute mismatch&quot;);
+    D3D12_RANGE written{0, 0};
+    readback-&gt;Unmap(0, &amp;written);
+    std::cout &lt;&lt; &quot;Verified all 256 GPU compute results\n&quot;;
+    c.checkMessages();
+}
+class DxScene {
+public:
+    DxDevice&amp; c;
+    int mode;
+    Geometry mesh;
+    ComPtr&lt;ID3D12Resource&gt; vertices, indices, uniform, texture;
+    ComPtr&lt;ID3D12DescriptorHeap&gt; srvHeap;
+    ComPtr&lt;ID3D12RootSignature&gt; signature;</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="11_models_animation" hidden><h2>11 · 模型、节点与骨骼迁移</h2><p>把文件解析、CPU 场景与后端资源分离。</p><p><a class="deep-link" href="11_models_animation.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：为什么绑定姿态矩阵与当前骨骼矩阵不能混为一谈？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>导入/动画</td><td>14/15/31 已实现</td><td>待迁移</td><td>待迁移</td><td>待迁移</td></tr><tr><td>可共享内容</td><td>Assimp / 场景 / 动画采样</td><td>CPU 数据层</td><td>CPU 数据层</td><td>CPU 数据层</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>按 mesh 节点变换与 inverse bind pose 构造局部蒙皮矩阵。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/31_skeletal/README.html">31_skeletal</a></td></tr></table><p class="source-label"><a href="../../OpenGL/common/model.hpp" target="_blank" rel="noopener">OpenGL/common/model.hpp</a> · 304—332 行</p><pre><code>    void draw(const Shader&amp; s, const glm::mat4&amp; rootTransform = glm::mat4(1)) const {
+        for (const auto&amp; mesh : meshes) {
+            auto global = globals.at(mesh-&gt;node);
+            s.set(&quot;model&quot;, rootTransform * global);
+            s.set(&quot;skinned&quot;, !mesh-&gt;bones.empty());
+
+            // 骨骼矩阵先转回网格局部空间，再乘 inverse bind pose，供顶点蒙皮使用。
+            for (size_t b = 0; b &lt; mesh-&gt;bones.size(); ++b) {
+                auto found = globals.find(mesh-&gt;bones[b]);
+                if (found == globals.end())
+                    throw std::runtime_error(&quot;Bone node missing&quot;);
+                s.set((&quot;bones[&quot; + std::to_string(b) + &quot;]&quot;).c_str(),
+                      glm::inverse(global) * found-&gt;second * mesh-&gt;offsets[b]);
+            }
+            const auto&amp; mat = materials.at(mesh-&gt;material);
+            mat.albedo-&gt;bind(0);
+            mat.normal-&gt;bind(1);
+            mat.mr-&gt;bind(2);
+            mat.ao-&gt;bind(3);
+            s.set(&quot;baseColor&quot;, mat.color);
+            s.set(&quot;metallic&quot;, mat.metallic);
+            s.set(&quot;roughness&quot;, mat.roughness);
+            s.set(&quot;useMaps&quot;, 1);
+            s.set(&quot;useTexture&quot;, 1);
+            s.set(&quot;useNormal&quot;, mat.hasNormal);
+            mesh-&gt;draw();
+        }
+    }
+};</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">迁移设计</p><p>设计：CPU MeshData → VkBuffer；骨骼 UBO/SSBO；节点/材质解析可共享。</p><p class="scope-note">此项没有对应的已完成实现。请阅读精讲中的迁移步骤与验收条件。</p></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">迁移设计</p><p>框架有资产相关辅助，但本课程未接入完整 glTF/skin；需要单独实现并验收。</p><p class="scope-note">此项没有对应的已完成实现。请阅读精讲中的迁移步骤与验收条件。</p></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">迁移设计</p><p>设计：扩展 VBV/input layout 加 joints/weights，骨骼经 CBV/SRV 提供。</p><p class="scope-note">此项没有对应的已完成实现。请阅读精讲中的迁移步骤与验收条件。</p></article></div></section><section class="comparison-topic" data-topic-panel="12_lighting_pbr_ibl" hidden><h2>12 · 直接光 PBR 与 IBL</h2><p>统一几何、材质、光源与编码后再比较像素。</p><p><a class="deep-link" href="12_lighting_pbr_ibl.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：四张 PBR 截图为什么不能直接当逐像素回归？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>直接光</td><td>23/24</td><td>vk09</td><td>nv06</td><td>dx09</td></tr><tr><td>IBL</td><td>25 已实现</td><td>未完整迁移</td><td>未完整迁移</td><td>未完整迁移</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>OpenGL 同时有 IBL；先关闭环境项再与显式后端的直接光比较。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/25_ibl/README.html">25_ibl</a></td></tr></table><p class="source-label"><a href="../../OpenGL/shaders/pbr.frag" target="_blank" rel="noopener">OpenGL/shaders/pbr.frag</a> · 43—74 行</p><pre><code>vec3 directBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float metal, float rough, vec3 radiance) {
+    vec3 H = normalize(V + L);
+    float NoV = max(dot(N, V), 0.0001), NoL = max(dot(N, L), 0.0);
+    vec3 F = fresnel(max(dot(V, H), 0.0), mix(vec3(0.04), albedo, metal));
+    float D = distributionGGX(max(dot(N, H), 0.0), rough),
+          G = geometrySchlick(NoV, rough) * geometrySchlick(NoL, rough);
+    vec3 spec = D * G * F / max(4.0 * NoV * NoL, 0.0001);
+    vec3 kd = (1.0 - F) * (1.0 - metal);
+    return (kd * albedo / PI + spec) * radiance * NoL;
+}
+
+void main() {
+    vec3 N = normalize(normal), V = normalize(eye - worldPos), albedo = baseColor;
+    float metal = metallic, rough = roughness, ao = 1.0;
+
+    // glTF 金属粗糙度贴图用 G 通道存粗糙度、B 通道存金属度，AO 单独采样。
+    if (useMaps) {
+        albedo *= texture(albedoMap, uv).rgb;
+        vec3 mr = texture(mrMap, uv).rgb;
+        metal *= mr.b;
+        rough *= mr.g;
+        ao = texture(aoMap, uv).r;
+    }
+    if (useNormal)
+        N = normalize(tangentFrame(N) * (texture(normalMap, uv).xyz * 2.0 - 1.0));
+    rough = clamp(rough, 0.045, 1.0);
+    metal = clamp(metal, 0.0, 1.0);
+    vec3 positions[4] = vec3[](vec3(-6, 6, 8), vec3(6, 6, 8), vec3(-6, -4, 6), vec3(6, -4, 6));
+    vec3 result = vec3(0);
+    for (int i = 0; i &lt; 4; ++i) {
+        vec3 d = positions[i] - worldPos;
+        result += directBRDF(N, V, normalize(d), albedo, metal, rough, vec3(90) / dot(d, d));</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>D/G/F 和距离衰减在 GLSL 中显式计算；当前没有 IBL。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/shaders/scene.frag" target="_blank" rel="noopener">Vulkan/common/shaders/scene.frag</a> · 17—42 行</p><pre><code>vec3 pbr(vec3 N, vec3 V, vec3 P, float metal, float r) {
+    vec3 albedo = vec3(.8, .25, .07), sum = vec3(.02) * albedo * (1.0 - metal),
+         f0 = mix(vec3(.04), albedo, metal);
+    for (int i = 0; i &lt; 4; ++i) {
+        vec3 lp = vec3(i % 2 == 0 ? -6 : 6, i &lt; 2 ? 6 : -4, 8);
+        vec3 delta = lp - P, L = normalize(delta), H = normalize(V + L);
+        float NoV = max(dot(N, V), .001), NoL = max(dot(N, L), 0), NoH = max(dot(N, H), 0);
+        float a = r * r, a2 = a * a, d = NoH * NoH * (a2 - 1) + 1,
+              D = a2 / max(PI * d * d, .000001);
+        float k = (r + 1) * (r + 1) / 8;
+        float G = NoV / (NoV * (1 - k) + k) * NoL / (NoL * (1 - k) + k);
+        vec3 F = f0 + (1 - f0) * pow(1 - max(dot(V, H), 0), 5);
+        sum += ((1 - F) * (1 - metal) * albedo / PI + D * G * F / max(4 * NoV * NoL, .001)) * 90 /
+               dot(delta, delta) * NoL;
+    }
+    return sum;
+}
+
+void main() {
+    int mode = int(draw.settings.x);
+    vec3 N = normalize(normal), c;
+    if (mode &lt;= 4)
+        c = clamp(normal, 0, 1);
+    else if (mode &gt;= 9)
+        c = pbr(
+            N, normalize(vec3(0, 0, 14) - worldPos), worldPos, draw.settings.y, draw.settings.z);</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>调粗糙度后交给相同 SceneVk；UI 和呈现路径不同。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 113—134 行</p><pre><code>    void onUIRender() override {
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+            app-&gt;close();
+        if (smoke)
+            return;
+        ImGui::Begin(&quot;Settings&quot;);
+        ImGui::TextUnformatted(&quot;Vulkan / nvpro_core2 course&quot;);
+        ImGui::Text(&quot;Scene mode: %d&quot;, mode);
+        if (mode &gt;= 9)
+            ImGui::SliderFloat(&quot;Roughness scale&quot;, &amp;roughnessScale, .2f, 2.f);
+        ImGui::TextUnformatted(&quot;Esc: close. Resize the viewport to rebuild attachments.&quot;);
+        ImGui::End();
+        ImGui::Begin(&quot;Viewport&quot;);
+        if (target.getSize().width)
+            ImGui::Image(display, ImGui::GetContentRegionAvail());
+        ImGui::End();
+    }
+    void onRender(VkCommandBuffer cmd) override {
+        // 每次更新前等待队列，保证共用 UBO 和离屏目标不会与前一帧并发读写。
+        vkCheck(vkQueueWaitIdle(c.queue));
+
+        // GENERAL 布局不代表自动同步：仍需声明前一次读写与本次颜色写入的依赖。</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>对照 GLSL 的相同直接光参数；先统一空间与 gamma。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr></table><p class="source-label"><a href="../../DirectX12/shaders/scene.hlsl" target="_blank" rel="noopener">DirectX12/shaders/scene.hlsl</a> · 52—79 行</p><pre><code>float3 PBR(float3 N, float3 V, float3 P, float metal, float r) {
+    const float PI = 3.14159265359;
+    float3 albedo = float3(.8, .25, .07), sum = .02 * albedo * (1 - metal),
+           f0 = lerp(.04.xxx, albedo, metal);
+    for (int i = 0; i &lt; 4; ++i) {
+        float3 lp = float3(i % 2 == 0 ? -6 : 6, i &lt; 2 ? 6 : -4, 8);
+        float3 delta = lp - P, L = normalize(delta), H = normalize(V + L);
+        float NoV = max(dot(N, V), .001), NoL = max(dot(N, L), 0), NoH = max(dot(N, H), 0);
+        float a = r * r, a2 = a * a, d = NoH * NoH * (a2 - 1) + 1,
+              D = a2 / max(PI * d * d, .000001);
+        float k = (r + 1) * (r + 1) / 8;
+        float G = NoV / (NoV * (1 - k) + k) * NoL / (NoL * (1 - k) + k);
+        float3 F = f0 + (1 - f0) * pow(1 - max(dot(V, H), 0), 5);
+        sum += ((1 - F) * (1 - metal) * albedo / PI + D * G * F / max(4 * NoV * NoL, .001)) * 90 /
+               dot(delta, delta) * NoL;
+    }
+    return sum;
+}
+
+// 区分调试颜色、纹理光照和 PBR 分支，最后执行 tone mapping/gamma。
+float4 PixelMain(Pixel p) : SV_Target {
+    int mode = (int)settings.x;
+    float3 N = normalize(p.normal), c;
+    if (mode &lt;= 4)
+        c = saturate(p.normal);
+    else if (mode &gt;= 9)
+        c = PBR(N, normalize(float3(0, 0, 14) - p.world), p.world, settings.y, settings.z);
+    else {</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="13_multipass_effects" hidden><h2>13 · 阴影、SSAO 与后处理</h2><p>先列资源和 pass 依赖，再翻译后端命令。</p><p><a class="deep-link" href="13_multipass_effects.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：为什么只迁移一张最终图而不看中间附件不可靠？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>完整效果</td><td>阴影/Bloom/SSAO 等已实现</td><td>仅离屏基础</td><td>离屏视口基础</td><td>仅离屏基础</td></tr><tr><td>下步</td><td>核对中间附件</td><td>全屏采样 pass</td><td>自定义依赖</td><td>SRV + full-screen PSO</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>先有 G-buffer，再估算遮挡、降噪，最后合成环境光。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/27_ssao/README.html">27_ssao</a></td></tr></table><p class="source-label"><a href="../../OpenGL/lessons/27_ssao/main.cpp" target="_blank" rel="noopener">OpenGL/lessons/27_ssao/main.cpp</a> · 70—116 行</p><pre><code>        // 第二遍：从 G-buffer 和噪声构造采样方向，估算局部遮挡。
+        occlusion.bind();
+        ao.use();
+        ao.set(&quot;positionTex&quot;, 0);
+        ao.set(&quot;normalTex&quot;, 1);
+        ao.set(&quot;noiseTex&quot;, 2);
+        ao.set(&quot;projection&quot;, camera.projection(app));
+        for (int k = 0; k &lt; 32; ++k)
+            ao.set((&quot;samples[&quot; + std::to_string(k) + &quot;]&quot;).c_str(), kernel[k]);
+        bind2D(gbuffer.colors[0], 0);
+        bind2D(gbuffer.colors[1], 1);
+        bind2D(noiseTexture, 2);
+        plane.draw();
+
+        // 第三遍：按几何边界降噪，减少随机样本产生的颗粒感。
+        filtered.bind();
+        blur.use();
+        blur.set(&quot;tex&quot;, 0);
+        blur.set(&quot;positionTex&quot;, 1);
+        blur.set(&quot;normalTex&quot;, 2);
+        bind2D(occlusion.colors[0], 0);
+        bind2D(gbuffer.colors[0], 1);
+        bind2D(gbuffer.colors[1], 2);
+        plane.draw();
+
+        // 最后一遍：合成光照；AO 仅调制环境项，可用按键查看中间结果。
+        defaultTarget(app);
+        app.clear();
+        lighting.use();
+        lighting.set(&quot;positionTex&quot;, 0);
+        lighting.set(&quot;normalTex&quot;, 1);
+        lighting.set(&quot;albedoTex&quot;, 2);
+        lighting.set(&quot;aoTex&quot;, 3);
+        lighting.set(&quot;view&quot;, camera.view());
+        lighting.set(&quot;useAO&quot;, app.key(GLFW_KEY_SPACE) != GLFW_PRESS);
+        lighting.set(&quot;debugView&quot;,
+                     glfwGetKey(app.window, GLFW_KEY_1) == GLFW_PRESS   ? 1
+                     : glfwGetKey(app.window, GLFW_KEY_2) == GLFW_PRESS ? 2
+                                                                        : 0);
+        bind2D(gbuffer.colors[0], 0);
+        bind2D(gbuffer.colors[1], 1);
+        bind2D(gbuffer.colors[2], 2);
+        bind2D(filtered.colors[0], 3);
+        plane.draw();
+        app.end();
+    }
+    glDeleteTextures(1, &amp;noiseTexture);</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">迁移设计</p><p>vk10 已有离屏/blit；完整 Bloom/SSAO 仍需资源、采样管线及逐遍依赖。</p><p class="scope-note">此项没有对应的已完成实现。请阅读精讲中的迁移步骤与验收条件。</p></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">迁移设计</p><p>RenderTarget 与 ImGui 仅是接入点；新增多遍效果仍要自己描述写后读。</p><p class="scope-note">此项没有对应的已完成实现。请阅读精讲中的迁移步骤与验收条件。</p></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">迁移设计</p><p>dx10 是 CopyResource，迁移后处理需新增可采样目标和全屏像素管线。</p><p class="scope-note">此项没有对应的已完成实现。请阅读精讲中的迁移步骤与验收条件。</p></article></div></section><section class="comparison-topic" data-topic-panel="14_debug_performance" hidden><h2>14 · 调试、抓帧与公平测量</h2><p>把 CPU、API、GPU 图像与时间证据分开。</p><p><a class="deep-link" href="14_debug_performance.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：为什么 Debug FPS 无法公平排序三个 API？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>正确性入口</td><td>shader log / glGetError</td><td>Validation / VUID</td><td>Validation + headless</td><td>InfoQueue / debug layer</td></tr><tr><td>性能比较</td><td>需统一场景与工作量</td><td>当前串行非 benchmark</td><td>额外 UI 要分离</td><td>当前串行非 benchmark</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>帧尾错误号辅助定位；完整问题还需要查看绑定和实际 draw。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr></table><p class="source-label"><a href="../../OpenGL/common/app.hpp" target="_blank" rel="noopener">OpenGL/common/app.hpp</a> · 123—130 行</p><pre><code>        GLenum e = glGetError();
+        if (e != GL_NO_ERROR)
+            throw std::runtime_error(&quot;OpenGL error: &quot; + std::to_string(e));
+        glfwSwapBuffers(window);
+        ++frames;
+    }
+    void clear() {
+        glClearColor(0.035f, 0.055f, 0.09f, 1);</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>验证错误与外部 loader 诊断分开，先处理首个根因。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr></table><p class="source-label"><a href="../../Vulkan/native/common/native_app.hpp" target="_blank" rel="noopener">Vulkan/native/common/native_app.hpp</a> · 9—26 行</p><pre><code>inline VKAPI_ATTR VkBool32 VKAPI_CALL validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+                                                 VkDebugUtilsMessageTypeFlagsEXT type,
+                                                 const VkDebugUtilsMessengerCallbackDataEXT* data,
+                                                 void*) {
+    if (severity &amp; VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        if (type &amp; VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
+            ++validationErrors;
+            std::cerr &lt;&lt; &quot;VALIDATION ERROR: &quot;;
+        } else
+            std::cerr &lt;&lt; &quot;VULKAN LOADER DIAGNOSTIC: &quot;;
+        std::cerr &lt;&lt; data-&gt;pMessage &lt;&lt; &#x27;\n&#x27;;
+    }
+    return VK_FALSE;
+}
+
+// 手动创建 Instance → PhysicalDevice/queue family → Device/Queue；销毁时反向处理。
+struct NativeDevice {
+    VkContextRef c;</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>无窗口模式读回真实视口目标，不能代替长期交互和性能验证。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 174—203 行</p><pre><code>    void onLastHeadlessFrame() override {
+        auto size = target.getSize();
+        VkBufferResource readback;
+        readback.init(
+            c, VkDeviceSize(size.width) * size.height * 4, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+        immediate(c, [&amp;](VkCommandBuffer cmd) {
+            barrier(cmd,
+                    target.getColorImage(),
+                    VK_IMAGE_LAYOUT_GENERAL,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    VK_ACCESS_2_MEMORY_WRITE_BIT,
+                    VK_PIPELINE_STAGE_2_COPY_BIT,
+                    VK_ACCESS_2_TRANSFER_READ_BIT);
+            VkBufferImageCopy copy{};
+            copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+            copy.imageExtent = {size.width, size.height, 1};
+            vkCmdCopyImageToBuffer(cmd,
+                                   target.getColorImage(),
+                                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                   readback.buffer,
+                                   1,
+                                   &amp;copy);
+            VkMemoryBarrier2 host{VK_STRUCTURE_TYPE_MEMORY_BARRIER_2};
+            host.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+            host.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+            host.dstStageMask = VK_PIPELINE_STAGE_2_HOST_BIT;
+            host.dstAccessMask = VK_ACCESS_2_HOST_READ_BIT;
+            VkDependencyInfo dependency{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
+            dependency.memoryBarrierCount = 1;</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>ERROR/CORRUPTION 使 smoke 失败；抓帧再看数据和管线。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 140—165 行</p><pre><code>    void checkMessages() {
+        if (!messages)
+            return;
+        UINT64 count = messages-&gt;GetNumStoredMessagesAllowedByRetrievalFilter();
+        for (UINT64 i = 0; i &lt; count; ++i) {
+            SIZE_T bytes = 0;
+            messages-&gt;GetMessage(i, nullptr, &amp;bytes);
+            std::vector&lt;uint8_t&gt; storage(bytes);
+            auto m = reinterpret_cast&lt;D3D12_MESSAGE*&gt;(storage.data());
+            dxCheck(messages-&gt;GetMessage(i, m, &amp;bytes));
+            if (m-&gt;Severity == D3D12_MESSAGE_SEVERITY_ERROR ||
+                m-&gt;Severity == D3D12_MESSAGE_SEVERITY_CORRUPTION)
+                throw std::runtime_error(std::string(&quot;D3D12 validation: &quot;) + m-&gt;pDescription);
+        }
+        messages-&gt;ClearStoredMessages();
+    }
+    ComPtr&lt;ID3D12Resource&gt; buffer(UINT64 size,
+                                  D3D12_HEAP_TYPE heap,
+                                  D3D12_RESOURCE_STATES state,
+                                  D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE) {
+        D3D12_HEAP_PROPERTIES hp{};
+        hp.Type = heap;
+        D3D12_RESOURCE_DESC rd{};
+        rd.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        rd.Width = size;
+        rd.Height = 1;</code></pre></article></div></section><section class="comparison-topic" data-topic-panel="15_framework_architecture" hidden><h2>15 · 框架与多后端架构</h2><p>共享数据与意图，保留各 API 的合法实现。</p><p><a class="deep-link" href="15_framework_architecture.html">阅读完整精讲、实验和参考答案 →</a></p><p class="question">先想一想：移除 nvpro 后哪些部分可以保持不变？</p><div class="matrix-scroll"><table><tr><th>问题</th><th>OpenGL</th><th>Vulkan 原生</th><th>Vulkan / nvpro_core2</th><th>DirectX 12</th></tr><tr><td>共享层</td><td>场景/数学/材质含义</td><td>场景/数学/BRDF</td><td>复用 SceneVk</td><td>场景/数学/BRDF</td></tr><tr><td>后端层</td><td>context state</td><td>资源/命令/同步</td><td>框架设施 + 自定义 pass</td><td>资源/命令/同步</td></tr></table></div><div class="api-grid"><article class="api-card" data-api="gl"><h3>OpenGL</h3><p class="status-badge">已实现</p><p>先观察组合效果需要哪些对象，再分离平台、资产与渲染责任。</p><table><tr><td>示例</td></tr><tr><td><a href="../../OpenGL/lessons/34_gallery/README.html">34_gallery</a></td></tr></table><p class="source-label"><a href="../../OpenGL/lessons/34_gallery/main.cpp" target="_blank" rel="noopener">OpenGL/lessons/34_gallery/main.cpp</a> · 6—33 行</p><pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;34_gallery - OpenGL Course&quot;);
+    Environment env(app);
+    Model robot(asset(app, &quot;models/robot.gltf&quot;));
+    Mesh ball(sphere()), box(cube()), plane(quad(), quadIndices());
+    Camera camera;
+    camera.pos = {0, 1, 10};
+    camera.pitch = -6;
+    Shader model(app, &quot;model.vert&quot;, &quot;pbr.frag&quot;), pbr(app, &quot;advanced.vert&quot;, &quot;pbr.frag&quot;),
+        sky(app, &quot;sky.vert&quot;, &quot;sky.frag&quot;), bright(app, &quot;screen.vert&quot;, &quot;bright.frag&quot;),
+        blur(app, &quot;screen.vert&quot;, &quot;blur.frag&quot;), tone(app, &quot;screen.vert&quot;, &quot;tone.frag&quot;);
+    RenderTarget scene, highlights, ping, pong;
+    while (app.begin()) {
+        if (app.width &lt; 1 || app.height &lt; 1) {
+            app.end();
+            continue;
+        }
+        camera.update(app);
+        scene.resize(app.width, app.height);
+        highlights.resize(app.width, app.height);
+        ping.resize(app.width, app.height);
+        pong.resize(app.width, app.height);
+        scene.bind();
+        glEnable(GL_DEPTH_TEST);
+        app.clear();
+        env.bindIBL();
+        model.use();
+        pbrDefaults(model);</code></pre></article><article class="api-card" data-api="vk"><h3>Vulkan 原生</h3><p class="status-badge">已实现</p><p>底层渲染器接收借用上下文，不负责创建窗口/交换链。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr></table><p class="source-label"><a href="../../Vulkan/common/scene_vk.hpp" target="_blank" rel="noopener">Vulkan/common/scene_vk.hpp</a> · 192—219 行</p><pre><code>class SceneVk {
+public:
+    VkContextRef c;
+    int mode;
+    VkFormat colorFormat;
+    Geometry mesh;
+    VkBufferResource vertices, indices, uniform;
+    VkImageResource texture;
+    VkSampler sampler{};
+    VkDescriptorSetLayout setLayout{};
+    VkDescriptorPool descriptorPool{};
+    VkDescriptorSet descriptor{};
+    VkPipelineLayout pipelineLayout{};
+    VkPipeline pipeline{};
+    VkBuffer overrideVertices{};
+    SceneVk(const VkContextRef&amp; context,
+            int lesson,
+            VkFormat format,
+            const std::filesystem::path&amp; shaders)
+        : c(context), mode(lesson), colorFormat(format), mesh(geometry(lesson)) {
+        if (mode &gt;= 4) {
+            vertices.init(
+                c, mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+            vertices.upload(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
+            if (!mesh.indices.empty()) {
+                indices.init(c, mesh.indices.size() * 4, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+                indices.upload(mesh.indices.data(), mesh.indices.size() * 4);
+            }</code></pre></article><article class="api-card" data-api="nv"><h3>Vulkan / nvpro_core2</h3><p class="status-badge">已实现</p><p>生命周期回调管理自定义资源；不是第四个图形 API。</p><table><tr><td>示例</td></tr><tr><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr></table><p class="source-label"><a href="../../Vulkan/nvpro/common/nvapp_course.hpp" target="_blank" rel="noopener">Vulkan/nvpro/common/nvapp_course.hpp</a> · 44—78 行</p><pre><code>class NvLesson : public nvapp::IAppElement {
+    nvapp::Application* app{};
+    VkContextRef c;
+    nvvk::ResourceAllocator allocator;
+    nvvk::RenderTarget target;
+    nvapp::ImTexture display;
+    std::unique_ptr&lt;SceneVk&gt; scene;
+    nvvk::Buffer uploadedVertices;
+    int mode;
+    bool smoke;
+    float roughnessScale = 1;
+    std::filesystem::path output;
+
+public:
+    NvLesson(int m, bool test, const std::filesystem::path&amp; path)
+        : mode(m), smoke(test), output(path) {
+    }
+    void onAttach(nvapp::Application* application) override {
+        app = application;
+        auto queue = app-&gt;getQueue(0);
+        c = {app-&gt;getInstance(),
+             app-&gt;getPhysicalDevice(),
+             app-&gt;getDevice(),
+             queue.queue,
+             queue.familyIndex};
+
+        // VMA 管理分配与绑定，调用方仍需声明用途并保证 GPU 使用期间资源存活。
+        VmaAllocatorCreateInfo ai{};
+        ai.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+        ai.physicalDevice = c.physical;
+        ai.device = c.device;
+        ai.instance = c.instance;
+        ai.vulkanApiVersion = VK_API_VERSION_1_4;
+        vkCheck(allocator.init(ai));
+        nvvk::RenderTarget::CreateInfo info{};</code></pre></article><article class="api-card" data-api="dx"><h3>DirectX 12</h3><p class="status-badge">已实现</p><p>独立 DxScene/DxWindow 先可解释，再考虑抽象统一 Renderer。</p><table><tr><td>示例</td></tr><tr><td><a href="../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr></table><p class="source-label"><a href="../../DirectX12/common/dx12_course.hpp" target="_blank" rel="noopener">DirectX12/common/dx12_course.hpp</a> · 235—259 行</p><pre><code>class DxScene {
+public:
+    DxDevice&amp; c;
+    int mode;
+    Geometry mesh;
+    ComPtr&lt;ID3D12Resource&gt; vertices, indices, uniform, texture;
+    ComPtr&lt;ID3D12DescriptorHeap&gt; srvHeap;
+    ComPtr&lt;ID3D12RootSignature&gt; signature;
+    ComPtr&lt;ID3D12PipelineState&gt; pipeline;
+    D3D12_VERTEX_BUFFER_VIEW vb{};
+    D3D12_INDEX_BUFFER_VIEW ib{};
+    DxScene(DxDevice&amp; context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
+        if (mode &gt;= 4) {
+            UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
+            vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+            void* mapped;
+            D3D12_RANGE empty{0, 0};
+            dxCheck(vertices-&gt;Map(0, &amp;empty, &amp;mapped));
+            std::memcpy(mapped, mesh.vertices.data(), size);
+            vertices-&gt;Unmap(0, nullptr);
+            vb = {vertices-&gt;GetGPUVirtualAddress(), size, sizeof(Vertex)};
+            if (!mesh.indices.empty()) {
+                UINT bytes = UINT(mesh.indices.size() * 4);
+                indices =
+                    c.buffer(bytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);</code></pre></article></div></section></div></div>
+<p class="footer-note">选主题 → 读精讲 → 查真实代码 → 预测修改结果 → 运行与记录。直接打开 HTML 可阅读和切换；点击运行请从“开始学习.cmd”进入。</p></main></body></html>

@@ -1,8 +1,9 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 17 课：模板测试与描边</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 17 课：模板测试与描边</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 17 课：模板测试与描边</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 17 课：模板测试与描边</h1>
 <p><a href="../../README.html">课程首页</a> · <a href="../16_blending/README.html">上一课</a> · <a href="../18_cubemap/README.html">下一课</a></p>
 <h2>目标与运行</h2>
-<pre><code>cd OpenGL
-.\scripts\run.ps1 -Lesson 17_stencil</code></pre>
+<pre><code>cmake --preset opengl
+cmake --build --preset opengl-debug --target 17_stencil --parallel 4
+.\OpenGL\build\bin\Debug\17_stencil.exe</code></pre>
 <p>预期画面：旋转立方体外侧有清晰蓝色描边。</p>
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
@@ -15,7 +16,7 @@
 <p>模型膨胀法的轮廓宽度随距离和曲率变化，并非像素恒定的描边。法线挤出、屏幕深度/法线边缘检测是不同方案，不要把这一课的技巧当成万能轮廓系统。</p>
 <h2>修改练习</h2>
 <p>改变膨胀倍数；增加第二个互相遮挡的物体；试着保留深度测试，比较轮廓。</p>
-<p>修改后重新执行 <code>cmake --build build --config Debug --target 17_stencil --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<p>修改后重新执行 <code>cmake --build --preset opengl-debug --target 17_stencil --parallel 4</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
 <h2>自测与参考答案</h2>
 <p>为什么需要清除模板而且恢复写掩码？</p>
 <p>旧帧的标记不再对应新帧位置；mask 为 0 时清除也可能无效。</p>
@@ -23,4 +24,48 @@
 <p>运行 <code>17_stencil.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
 <h2>参考截图</h2>
 <p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
-<p><img alt="17_stencil" src="../../docs/previews/17_stencil.png"></p></main></html>
+<p><img alt="17_stencil" src="../../docs/previews/17_stencil.png"></p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>第一遍给模型覆盖处写 stencil，第二遍画放大模型并排除已经标记的像素。颜色、深度、stencil 的写掩码与比较函数分别生效，必须逐项记录。</p>
+<p>配套精讲：<a href="../../../docs/compare/07_targets_depth_msaa.html">三 API 对照 · 目标、深度与 MSAA</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="main.cpp#L5">OpenGL/lessons/17_stencil/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;17_stencil - OpenGL Course&quot;);
+    Shader solid(app, &quot;advanced.vert&quot;, &quot;surface.frag&quot;), outline(app, &quot;advanced.vert&quot;, &quot;solid.frag&quot;);
+    Mesh mesh(cube());
+    Camera camera;
+    RenderTarget target(1, false);
+    Shader screen(app, &quot;screen.vert&quot;, &quot;screen.frag&quot;);
+    Mesh plane(quad(), quadIndices());
+    while (app.begin()) {
+        if (app.width &lt; 1 || app.height &lt; 1) {
+            app.end();
+            continue;
+        }
+        camera.update(app);
+        target.resize(app.width, app.height);
+        target.bind();
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_STENCIL_TEST);
+        glStencilMask(0xFF);
+        app.clear();
+        glClear(GL_STENCIL_BUFFER_BIT);
+        auto model = glm::rotate(glm::mat4(1), app.time() * .3f, glm::vec3(0, 1, 0));
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        solid.use();
+        surfaceDefaults(solid);</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="README.html">17_stencil</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk10_offscreen/README.html">vk10_offscreen</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv02_application/README.html">nv02_application</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx10_offscreen/README.html">dx10_offscreen</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>描边穿过遮挡物时应该检查哪一层？</p>
+<p>参考推导：检查第二遍的深度测试策略与 stencil 条件；放大模型本身正确并不能决定描边应否被前景遮挡。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

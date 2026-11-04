@@ -1,10 +1,12 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 03 课：索引绘制与线框</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 03 课：索引绘制与线框</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 03 课：索引绘制与线框</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 03 课：索引绘制与线框</h1>
 <p><a href="../../README.html">课程首页</a> · <a href="../02_triangle/README.html">上一课</a> · <a href="../04_uniform/README.html">下一课</a></p>
 <h2>学完你应该能够</h2>
 <p>说明“复用顶点与 EBO”，运行并修改本课示例。</p>
 <h2>运行与观察</h2>
-<p>在教程根目录执行：</p>
-<pre><code>.\scripts\run.ps1 -Lesson 03_indexed</code></pre>
+<p>在合集根目录执行（包含四条路线 preset 的目录）：</p>
+<pre><code>cmake --preset opengl
+cmake --build --preset opengl-debug --target 03_indexed --parallel 4
+.\OpenGL\build\bin\Debug\03_indexed.exe</code></pre>
 <p>预期画面：渐变矩形；按住空格显示两个三角形的线框。</p>
 <h2>原理与代码阅读</h2>
 <p>矩形可拆成两个三角形。直接绘制需要 6 个顶点，但实际上只有 4 个角。EBO 存索引 0,1,2,2,3,0，使两个三角形复用顶点。此课用 glDrawElements，count=6 是索引数量。</p>
@@ -14,9 +16,47 @@
 <p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
 <h2>动手练习</h2>
 <p>改成菱形；有意删除最后三个索引，观察只剩半个矩形。</p>
-<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build --preset opengl-debug --target 03_indexed --parallel 4</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
 <h2>自测</h2>
 <p>索引数据用 unsigned short 时要同时修改什么？</p>
 <p>参考答案：EBO 上传元素大小与 glDrawElements 的 type 都要改成相应大小及 GL_UNSIGNED_SHORT。</p>
 <h2>出错时优先检查</h2>
-<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>四边形由四套顶点属性与六个 uint 索引构成。DrawElements 的 count 是索引数，不是顶点数；EBO 绑定随 VAO 保存。先手画 0、1、2 和 2、3、0 两个三角形，再看屏幕。</p>
+<p>配套精讲：<a href="../../../docs/compare/03_geometry_memory.html">三 API 对照 · 顶点、索引与内存</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="main.cpp#L5">OpenGL/lessons/03_indexed/main.cpp</a>，第 5—24 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;03_indexed - OpenGL Course&quot;);
+    Shader shader(app, &quot;basic.vert&quot;, &quot;color.frag&quot;);
+    Mesh mesh(quad(), quadIndices());
+    while (app.begin()) {
+        app.clear();
+        shader.use();
+        glm::mat4 mvp(1.f);
+        // 按住空格看线框：一个矩形由两个三角形组成。
+        glPolygonMode(GL_FRONT_AND_BACK,
+                      glfwGetKey(app.window, GLFW_KEY_SPACE) == GLFW_PRESS ? GL_LINE : GL_FILL);
+        shader.set(&quot;mvp&quot;, mvp);
+        shader.set(&quot;pulse&quot;, 1.f);
+        mesh.draw();
+        app.end();
+    }
+    return 0;
+} catch (const std::exception&amp; e) {
+    return failure(e);
+}</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="README.html">03_indexed</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk04_vertex_buffer/README.html">vk04_vertex_buffer</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx04_vertex_buffer/README.html">dx04_vertex_buffer</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>把 count 从六改为三应看到什么？</p>
+<p>参考推导：只剩一个三角形。若变成随机刺状几何，应检查类型、偏移和缓冲内容，而不是先改投影。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

@@ -42,7 +42,6 @@ VBV 的 BufferLocation 是 CPU 地址吗？
 
 参考：不是，它是资源的 GPU 虚拟地址。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -54,3 +53,66 @@ VBV 的 BufferLocation 是 CPU 地址吗？
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![dx04_vertex_buffer](../../../docs/previews/dx04_vertex_buffer.png)
+
+
+## 深入学习：数据、接口与执行
+
+资源保存字节，VBV 提供地址、长度和 stride，input layout 再描述语义与偏移。UPLOAD heap 直接用于教学读取；静态高性能几何可进一步迁到 DEFAULT。
+
+配套精讲：[三 API 对照 · 顶点、索引与内存](../../../docs/compare/03_geometry_memory.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L246)，第 246—275 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+    DxScene(DxDevice& context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
+        if (mode >= 4) {
+            UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
+            vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+            void* mapped;
+            D3D12_RANGE empty{0, 0};
+            dxCheck(vertices->Map(0, &empty, &mapped));
+            std::memcpy(mapped, mesh.vertices.data(), size);
+            vertices->Unmap(0, nullptr);
+            vb = {vertices->GetGPUVirtualAddress(), size, sizeof(Vertex)};
+            if (!mesh.indices.empty()) {
+                UINT bytes = UINT(mesh.indices.size() * 4);
+                indices =
+                    c.buffer(bytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+                dxCheck(indices->Map(0, &empty, &mapped));
+                std::memcpy(mapped, mesh.indices.data(), bytes);
+                indices->Unmap(0, nullptr);
+                ib = {indices->GetGPUVirtualAddress(), bytes, DXGI_FORMAT_R32_UINT};
+            }
+        }
+
+        // CBV GPU 地址要求 256 字节对齐，因此给 64 字节的帧矩阵预留 256 字节。
+        uniform = c.buffer(256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+        D3D12_HEAP_PROPERTIES hp{};
+        hp.Type = D3D12_HEAP_TYPE_DEFAULT;
+        D3D12_RESOURCE_DESC image{};
+        image.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        image.Width = image.Height = 64;
+        image.DepthOrArraySize = 1;
+        image.MipLevels = 1;
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [03_indexed](../../../OpenGL/lessons/03_indexed/README.md) |
+| Vulkan 原生 | [vk04_vertex_buffer](../../../Vulkan/native/lessons/vk04_vertex_buffer/README.md) |
+| Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md) |
+| DirectX 12 | [dx04_vertex_buffer](README.md) |
+
+### 先预测，再验证
+
+VBV 正确是否保证 NORMAL 语义正确？
+
+参考推导：不能。还要核对 input layout 的 format/offset 和 HLSL 输入声明，地址正确不等于解释正确。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

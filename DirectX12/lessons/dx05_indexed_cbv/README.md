@@ -42,7 +42,6 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 
 参考：常量缓冲视图/地址的对齐约束与数据本身大小不同，需满足 D3D12 对齐要求。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -54,3 +53,66 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![dx05_indexed_cbv](../../../docs/previews/dx05_indexed_cbv.png)
+
+
+## 深入学习：数据、接口与执行
+
+Frame 地址通过 root CBV 提供，Draw 是 20 DWORD root constants，SRV table 在另一 root parameter。parameter 下标、register 编号与 descriptor heap offset 各自独立。
+
+配套精讲：[三 API 对照 · 常量与资源绑定](../../../docs/compare/05_binding_constants.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L328)，第 328—357 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+        D3D12_ROOT_PARAMETER params[3]{};
+        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        params[0].Descriptor.ShaderRegister = 0;
+        params[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        params[1].Constants = {1, 0, 20};
+        params[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+        D3D12_DESCRIPTOR_RANGE range{};
+        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        range.NumDescriptors = 1;
+        range.BaseShaderRegister = 0;
+        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        params[2].DescriptorTable = {1, &range};
+        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        D3D12_STATIC_SAMPLER_DESC sampler{};
+        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.MaxLOD = D3D12_FLOAT32_MAX;
+        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        D3D12_ROOT_SIGNATURE_DESC root{};
+        root.NumParameters = 3;
+        root.pParameters = params;
+        root.NumStaticSamplers = 1;
+        root.pStaticSamplers = &sampler;
+        root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        signature = rootSignature(c, root);
+        auto vs = compileHlsl(mode == 3 ? "TriangleMain" : "VertexMain", "vs_5_1"),
+             ps = compileHlsl("PixelMain", "ps_5_1");
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [28_ubo](../../../OpenGL/lessons/28_ubo/README.md) |
+| Vulkan 原生 | [vk05_indexed_uniform](../../../Vulkan/native/lessons/vk05_indexed_uniform/README.md) |
+| Vulkan / nvpro_core2 | [nv06_pbr_viewport](../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.md) |
+| DirectX 12 | [dx05_indexed_cbv](README.md) |
+
+### 先预测，再验证
+
+为什么 64 字节矩阵仍给 256 字节空间？
+
+参考推导：需满足常量缓冲地址的 256 字节对齐要求；数据大小和接口对齐是两层约束。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

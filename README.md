@@ -15,6 +15,12 @@
 
 新路线优先把显式 API 的资源和同步讲清楚。Vulkan/DX12 的 PBR 是直接光实现；OpenGL 的完整 IBL、模型导入等高级功能还没有全部迁移，具体实现范围在各路线 README 说明。
 
+## 深入学习与三 API 对照
+
+[打开对照实验室](docs/compare/index.html) · [16 章详细精讲](docs/COMPARE.md) · [功能完成度](docs/FEATURE_MATRIX.md) · [统一实验协议](docs/EXPERIMENTS.md)
+
+精讲按窗口/设备、三角形、内存、矩阵、绑定、纹理、目标、同步、多帧、计算、模型、PBR/IBL、多遍、调试和框架组织。每章解释目的、参数与责任，并连接真实源码、实验和参考答案。所有 60 个课程也补充针对性的深入说明与横向导航。[参考资料](docs/REFERENCES.md)记录你提供的 Vulkan/BootWiki 教程与当前工程的版本差异。
+
 ## 快速运行入口
 
 先编译对应路线，再通过本地阅读器点击下表按钮。

@@ -38,3 +38,8 @@ ctest --preset vulkan-native-debug
 参见合集 [调试指南](../../docs/DEBUGGING.md)。Esc 关闭图形窗口；设备/计算课输出日志后立即退出；`--smoke` 用固定时间执行并写 GPU 读回图像。
 
 本路线尚未移植 OpenGL 的模型加载、完整 IBL、Bloom/SSAO、骨骼动画等所有高级效果。当前 PBR 是单次散射直接光；同步使用单帧串行等待，未实现高吞吐多帧资源环。窗口支持尺寸重建；更完整的设备丢失恢复、多窗口和跨平台适配属于后续扩展。
+
+
+## 深入精讲与横向阅读
+
+本路线每课已加入数据/接口/执行推导、真实源码切片和预测实验。配合[16 章三 API 精讲](../../docs/COMPARE.md)与[并排源码实验室](../../docs/compare/index.html)阅读；[功能矩阵](../../docs/FEATURE_MATRIX.md)区分已经实现与待迁移内容。

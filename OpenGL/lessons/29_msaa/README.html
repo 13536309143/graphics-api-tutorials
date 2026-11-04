@@ -1,8 +1,9 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 29 课：离屏 MSAA 与 Resolve</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 29 课：离屏 MSAA 与 Resolve</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 29 课：离屏 MSAA 与 Resolve</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 29 课：离屏 MSAA 与 Resolve</h1>
 <p><a href="../../README.html">课程首页</a> · <a href="../28_ubo/README.html">上一课</a> · <a href="../30_geometry/README.html">下一课</a></p>
 <h2>目标与运行</h2>
-<pre><code>cd OpenGL
-.\scripts\run.ps1 -Lesson 29_msaa</code></pre>
+<pre><code>cmake --preset opengl
+cmake --build --preset opengl-debug --target 29_msaa --parallel 4
+.\OpenGL\build\bin\Debug\29_msaa.exe</code></pre>
 <p>预期画面：旋转方块的斜边经过 4× MSAA；空格关闭多重采样作对照。</p>
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
@@ -15,7 +16,7 @@
 <p>Resolve 后的纹理可以像其他后处理图像一样采样。若需要自行访问每个样本，可以使用 multisample texture 和 sampler2DMS，本课用 renderbuffer 保持结构简单。</p>
 <h2>修改练习</h2>
 <p>查询并显示可用样本数；请求 2× 与 4× 比较；将窗口缩小观察几何边缘。</p>
-<p>修改后重新执行 <code>cmake --build build --config Debug --target 29_msaa --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<p>修改后重新执行 <code>cmake --build --preset opengl-debug --target 29_msaa --parallel 4</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
 <h2>自测与参考答案</h2>
 <p>MSAA 能解决低分辨率纹理被斜着看时的闪烁吗？</p>
 <p>主要不能，该问题通常需要 mipmap、各向异性过滤和正确采样策略。</p>
@@ -24,4 +25,48 @@
 <h2>参考截图</h2>
 <p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
 <p><img alt="29_msaa" src="../../docs/previews/29_msaa.png"></p>
-<p><a href="../../docs/previews/29_msaa_off.png">查看按住空格时的对照图</a></p></main></html>
+<p><a href="../../docs/previews/29_msaa_off.png">查看按住空格时的对照图</a></p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>多样本 FBO 的颜色/深度使用相同样本数，resolve 写入单样本纹理再显示。看斜边而不是只看模型中心，才能观察几何覆盖的变化。</p>
+<p>配套精讲：<a href="../../../docs/compare/07_targets_depth_msaa.html">三 API 对照 · 目标、深度与 MSAA</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="main.cpp#L5">OpenGL/lessons/29_msaa/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;29_msaa - OpenGL Course&quot;);
+    Multisample msaa;
+    RenderTarget resolved(1, false);
+    Mesh box(cube()), plane(quad(), quadIndices());
+    Shader shader(app, &quot;advanced.vert&quot;, &quot;solid.frag&quot;), screen(app, &quot;screen.vert&quot;, &quot;screen.frag&quot;);
+    Camera camera;
+    while (app.begin()) {
+        if (app.width &lt; 1 || app.height &lt; 1) {
+            app.end();
+            continue;
+        }
+        camera.update(app);
+        resolved.resize(app.width, app.height);
+        msaa.resize(app.width, app.height);
+        glBindFramebuffer(GL_FRAMEBUFFER, msaa.fbo);
+        glEnable(GL_DEPTH_TEST);
+        if (app.key(GLFW_KEY_SPACE) == GLFW_PRESS)
+            glDisable(GL_MULTISAMPLE);
+        else
+            glEnable(GL_MULTISAMPLE);
+        app.clear();
+        shader.use();
+        cameraUniforms(shader, app, camera);
+        shader.set(&quot;model&quot;, glm::rotate(glm::mat4(1), .6f, glm::vec3(.2f, 1, .4f)));
+        shader.set(&quot;baseColor&quot;, glm::vec3(.9f, .8f, .2f));</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="README.html">29_msaa</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk10_offscreen/README.html">vk10_offscreen</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv02_application/README.html">nv02_application</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx10_offscreen/README.html">dx10_offscreen</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>MSAA 打开后远处纹理仍闪烁，是 resolve 一定坏了吗？</p>
+<p>参考推导：不一定。MSAA 主要改善覆盖边缘，纹理缩小过滤和 shader 高频仍需 mip 等方法处理。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

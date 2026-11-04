@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 14_model_obj
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 14_model_obj --parallel 4
+.\OpenGL\build\bin\Debug\14_model_obj.exe
 ```
 
 预期画面：带有真实贴图的车削花瓶，可移动相机查看轮廓和材质。
@@ -35,7 +36,7 @@ aiScene 的数据归 Importer 所有，所以 Importer 必须活到复制完数�
 
 把 vase.mtl 的颜色改为银灰；把花瓶复制成两个节点/对象，观察 mesh 和材质日志。
 
-修改后重新执行 `cmake --build build --config Debug --target 14_model_obj --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 14_model_obj --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -53,3 +54,62 @@ aiScene 的数据归 Importer 所有，所以 Importer 必须活到复制完数�
 以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。
 
 ![14_model_obj](../../docs/previews/14_model_obj.png)
+
+
+## 深入学习：数据、接口与执行
+
+OBJ 导入后可能有多个 mesh 和 material，不能只取第一个数组。Assimp 统一拓扑后仍需上传顶点/索引并应用所属节点变换，材质图片路径相对模型目录解析。
+
+配套精讲：[三 API 对照 · 模型、节点与骨骼迁移](../../../docs/compare/11_models_animation.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/14_model_obj/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "14_model_obj - OpenGL Course");
+    auto modelPath = asset(app, "models/vase.obj");
+    for (int k = 1; k + 1 < argc; ++k)
+        if (std::string(argv[k]) == "--model")
+            modelPath = std::filesystem::absolute(argv[++k]);
+    Model model(modelPath);
+    Shader shader(app, "model.vert", "pbr.frag");
+    Camera camera;
+    camera.pos = glm::vec3(3, 1.0f, 6);
+    camera.pitch = -7;
+    camera.yaw = -116.565f;
+    glEnable(GL_DEPTH_TEST);
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        shader.use();
+        pbrDefaults(shader);
+        cameraUniforms(shader, app, camera);
+        // 空格按下时暂停在 bind pose，便于对照骨骼形变。
+        model.update(app.key(GLFW_KEY_SPACE) == GLFW_PRESS ? 0.f : app.time());
+        model.draw(shader);
+        app.end();
+    }
+    return 0;
+} catch (const std::exception& e) {
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [14_model_obj](README.md) |
+| Vulkan 原生 | 迁移设计：设计：CPU MeshData → VkBuffer；骨骼 UBO/SSBO；节点/材质解析可共享。 |
+| Vulkan / nvpro_core2 | 迁移设计：框架有资产相关辅助，但本课程未接入完整 glTF/skin；需要单独实现并验收。 |
+| DirectX 12 | 迁移设计：设计：扩展 VBV/input layout 加 joints/weights，骨骼经 CBV/SRV 提供。 |
+
+### 先预测，再验证
+
+模型有轮廓但贴图丢失，应把问题定位在哪些层？
+
+参考推导：先检查材质索引、图片路径/解码、sRGB 用途和纹理绑定；几何可见说明无需首先重写窗口或相机。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

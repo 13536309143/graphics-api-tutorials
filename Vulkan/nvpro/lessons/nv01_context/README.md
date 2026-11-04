@@ -27,3 +27,66 @@ nvvk::Context 根据 ContextInitInfo 创建实例、设备与队列，简化枚�
 ## 检查
 
 `nv01_context.exe --smoke` 使用 GPU 无窗口运行或控制台检查。渲染课读回 Viewport 图像为 PPM；计算课逐项验证。验证层错误会使测试失败。常规窗口的 resize/minimize、UI 输入和长时间运行需要另外检查，不能以 headless 通过代替全部交互验证。
+
+
+## 深入学习：数据、接口与执行
+
+Context 根据扩展、特性和队列需求创建 Vulkan 对象。先读 setup，再展开框架实现，比较它把原生 NativeDevice 的哪些重复工作封装起来。
+
+配套精讲：[三 API 对照 · 窗口、设备与队列](../../../../docs/compare/01_context_device.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/nvpro/common/nvapp_course.hpp](../../common/nvapp_course.hpp#L245)，第 245—274 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+    nvvk::ContextInitInfo setup{};
+    setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+    setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
+    setup.enableValidationLayers = true;
+    setup.verbose = false;
+    setup.applicationName = "nvpro_core2 Course";
+    if (!smoke && chapter != 1 && chapter != 5) {
+        nvvk::addSurfaceExtensions(setup.instanceExtensions);
+        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
+    }
+    vkCheck(context.init(setup));
+    VkDebugUtilsMessengerCreateInfoEXT debug{
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debug.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debug.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debug.pfnUserCallback = nvValidation;
+    vkCheck(
+        vkCreateDebugUtilsMessengerEXT(context.getInstance(), &debug, nullptr, &owner.messenger));
+    {
+        auto q = context.getQueueInfo(0);
+        VkContextRef c{context.getInstance(),
+                       context.getPhysicalDevice(),
+                       context.getDevice(),
+                       q.queue,
+                       q.familyIndex};
+        if (chapter == 1) {
+            VkPhysicalDeviceProperties p;
+            vkGetPhysicalDeviceProperties(c.physical, &p);
+            std::cout << "nvpro_core2 context: " << p.deviceName << '\n';
+        } else if (chapter == 5)
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [01_window](../../../../OpenGL/lessons/01_window/README.md) |
+| Vulkan 原生 | [vk01_instance_device](../../../native/lessons/vk01_instance_device/README.md) |
+| Vulkan / nvpro_core2 | [nv01_context](README.md) |
+| DirectX 12 | [dx01_device](../../../../DirectX12/lessons/dx01_device/README.md) |
+
+### 先预测，再验证
+
+框架创建成功能否证明自定义资源生命周期正确？
+
+参考推导：不能。Context 只提供环境，应用创建的 image/buffer 和未完成提交仍需独立管理。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

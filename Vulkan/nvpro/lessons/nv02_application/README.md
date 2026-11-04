@@ -34,3 +34,44 @@ nvapp::Application 管理窗口、交换链、UI 和帧提交，IAppElement 提�
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![nv02_application](../../../../docs/previews/nv02_application.png)
+
+
+## 深入学习：数据、接口与执行
+
+Application 驱动回调，RenderTarget 提供离屏附件，ImTexture 将视图连接到 UI。尺寸重建后显示 view 必须更新，headless 检查则不创建普通交互界面。
+
+配套精讲：[三 API 对照 · 目标、深度与 MSAA](../../../../docs/compare/07_targets_depth_msaa.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/nvpro/common/nvapp_course.hpp](../../common/nvapp_course.hpp#L108)，第 108—115 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+    void onResize(VkCommandBuffer cmd, const VkExtent2D& size) override {
+        vkCheck(target.update(cmd, size));
+        if (!smoke)
+            display.update(target.getUiImageView());
+    }
+    void onUIRender() override {
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+            app->close();
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [29_msaa](../../../../OpenGL/lessons/29_msaa/README.md) |
+| Vulkan 原生 | [vk10_offscreen](../../../native/lessons/vk10_offscreen/README.md) |
+| Vulkan / nvpro_core2 | [nv02_application](README.md) |
+| DirectX 12 | [dx10_offscreen](../../../../DirectX12/lessons/dx10_offscreen/README.md) |
+
+### 先预测，再验证
+
+为什么 UI 可见但场景仍可能没画？
+
+参考推导：UI pass 和场景 pass 是两条工作。应在抓帧中找到场景目标及其 clear/draw，而不是只看最后 ImGui draw。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

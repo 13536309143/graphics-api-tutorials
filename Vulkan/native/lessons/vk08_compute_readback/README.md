@@ -38,8 +38,51 @@ computeSquares → storage descriptor → square.comp → dispatch → compute-t
 
 参考：可能是旧值、未完成结果或与 GPU 发生数据竞争，不能视为合法结果。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
 运行 `vk08_compute_readback.exe --smoke` 执行四帧（或设备/计算检查）并退出；颜色课会从 GPU 读回 PPM，计算课验证 256 个数。参见仓库 [调试指南](../../../../docs/DEBUGGING.md)。这些基础例子按帧串行等待，重点是可追踪的生命周期；多帧重叠不能仅删除 wait，需要同时改成帧资源环。
+
+
+## 深入学习：数据、接口与执行
+
+storage buffer 收集 256 项，dispatch 后声明 compute-write 到 host-read，提交等待完成再 map。HOST_COHERENT 只简化缓存管理，不能允许 CPU 抢先读取。
+
+配套精讲：[三 API 对照 · 计算与读回](../../../../docs/compare/10_compute_readback.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/common/shaders/square.comp](../../../common/shaders/square.comp#L2)，第 2—12 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```glsl
+layout(local_size_x = 64) in;
+layout(binding = 0) buffer Values {
+    uint values[];
+};
+
+// 每工作组 64 个线程；host dispatch 4 组，结果通过 storage buffer 读回。
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i < 256)
+        values[i] = i * i + 1;
+}
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | 基线外：当前 OpenGL 3.3 路线没有 compute 实现；粒子实例化不能作为 compute 对照。 |
+| Vulkan 原生 | [vk08_compute_readback](README.md) |
+| Vulkan / nvpro_core2 | [nv05_compute_readback](../../../nvpro/lessons/nv05_compute_readback/README.md) |
+| DirectX 12 | [dx08_compute_uav](../../../../DirectX12/lessons/dx08_compute_uav/README.md) |
+
+### 先预测，再验证
+
+只看 result[0] 为什么不足？
+
+参考推导：线程索引或组数错误仍可能让第零项正确。逐项核对才能发现未覆盖尾部、重复写入和范围错误。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

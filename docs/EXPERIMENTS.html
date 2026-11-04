@@ -1,0 +1,36 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>三 API 统一实验协议与记录表</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>三 API 统一实验协议与记录表</h1>
+<p>对照的目标是解释责任和数据流。把不同场景截四张图放在一起，可以展示效果，但不足以证明像素等价或性能差异。本页给出可反复执行的八组实验；其中带“迁移设计”的部分需要先实现，不宣称已经自动完成。</p>
+<h2>先保存基线</h2>
+<p>记录提交号、设备/驱动、配置、分辨率、相机、时间、shader 参数与是否开启垂直同步。先运行已有 smoke，确保原场景有效，再只改一个因素。每次保存预测、结果和解释；恢复基线后再开始下一个实验。</p>
+<table>
+<tr><td>实验</td><td>控制变量</td><td>观察证据</td><td>合格结果</td></tr>
+<tr><td>A 初始化与呈现</td><td>设备、窗口大小、背景色</td><td>日志、清屏、退出与 resize</td><td>对象层次可解释，无初始化错误</td></tr>
+<tr><td>B 三角形</td><td>固定位置、固定输出洋红</td><td>draw 事件、VS 输出、颜色目标</td><td>能区分输入、管线和呈现失败</td></tr>
+<tr><td>C 几何布局</td><td>同一 Vertex/indices</td><td>mesh viewer、stride、offset</td><td>32 字节 / 0、12、24 与输入对应</td></tr>
+<tr><td>D 每帧/每对象</td><td>固定相机、两个对象</td><td>UBO/CBV 与 push/root 内容</td><td>改一个对象不影响另一个</td></tr>
+<tr><td>E 纹理链路</td><td>同一四象限图、相同 sampler</td><td>upload bytes、row pitch、view</td><td>方向、颜色与采样约定一致</td></tr>
+<tr><td>F 深度/离屏</td><td>相交几何、固定投影</td><td>depth target、state/layout、最终图</td><td>遮挡正确，resize 后仍成立</td></tr>
+<tr><td>G 计算结果</td><td>同一 N 与公式</td><td>全量数值、组大小、完成条件</td><td>vk/nv/dx 逐项正确；GL 当前不覆盖</td></tr>
+<tr><td>H PBR / 多遍</td><td>统一光照和颜色链路</td><td>N、NoL、D/G/F、各中间纹理</td><td>先对齐输入，再讨论剩余差异</td></tr>
+</table>
+<h2>A—F 的执行方式</h2>
+<p>从<a href="compare/index.html">对照实验室</a>选择相应主题，先运行默认 Debug 示例并记录结果。OpenGL、Vulkan、DX12 的 geometry/transform 课不一定是同一个场景；严格比较前按章节建议统一输入。nvpro 在可交互视口中输出，须把视口尺寸也纳入记录，而不是只记录外层窗口大小。</p>
+<p>纹理测试先用四象限颜色判定方向，再用棋盘查看过滤，最后检查 sRGB。深度测试先固定模型不动，确认清除值与比较函数，再恢复动画。每一阶段证据成立后才进入下一阶段。</p>
+<h2>G 的边界与尾部测试</h2>
+<p>先用现有 N=256，确认 64 线程×4 组及所有结果正确。扩展到 257 时同时改变容量、组数、shader 上界和 CPU 参考循环。再改公式为 3*i+7，故意只改一端以证明验证能失败，然后修正两端。OpenGL 的 3.3 路线没有计算课，不拿实例粒子替代此测试。</p>
+<h2>H 的分级目标</h2>
+<p>直接光 PBR 可以先在 vk09 与 dx09 之间对齐共享输入，再把 nv06 的 UI 倍率固定，最后把 OpenGL 场景调整到相同光源/相机并关闭 IBL。当前截图不能默认逐像素一致，栅格化细节和浮点差异也需设置合理容差。</p>
+<p>迁移 IBL/SSAO 时，按中间产物分别验收：每个 cubemap 面、粗糙度 mip、BRDF LUT、位置/法线 G-buffer、原始 AO、降噪 AO 和最终合成。它们在显式后端当前属于设计任务。</p>
+<h2>性能实验另立条件</h2>
+<p>本项目尚无统一跨 API benchmark。要比较耗时，先功能对齐，再使用 Release 和相同工作量；预热、重复采样，分别报告 CPU、GPU 和整帧时间。排除 shader 编译/资源创建，并记录串行等待和 UI 成本。不要以本次 Debug smoke 用时推断 API 性能。</p>
+<h2>可复制的实验记录</h2>
+<pre><code>实验编号 / 提交：
+API / 路线 / 配置：
+设备 / 驱动 / 尺寸：
+固定输入（相机、时间、材质、光源）：
+唯一修改：
+修改前预测：
+实际画面 / 日志 / 抓帧证据：
+原因解释：
+是否恢复基线 / smoke 是否仍通过：</code></pre>
+<p>小型综合任务：为一种当前只有 OpenGL 完成的效果写迁移方案。交付资源表、pass 图、三后端绑定/同步推导、至少两个中间调试视图和验收清单。若这些仍说不清，先不扩大代码量。</p></main></html>

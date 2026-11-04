@@ -38,7 +38,6 @@ Swapchain offscreen → SceneVk(format=RGBA8) → COLOR_ATTACHMENT→TRANSFER_SR
 
 参考：usage 是创建资源时对合法用途的声明，后续命令必须符合声明和设备格式能力。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -50,3 +49,42 @@ Swapchain offscreen → SceneVk(format=RGBA8) → COLOR_ATTACHMENT→TRANSFER_SR
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![vk10_offscreen](../../../../docs/previews/vk10_offscreen.png)
+
+
+## 深入学习：数据、接口与执行
+
+离屏图渲染后转 transfer-src，交换链图转 transfer-dst，再 blit 并恢复呈现用途。blit 是传输路径，不会运行自定义后处理片元 shader。
+
+配套精讲：[三 API 对照 · 阴影、SSAO 与后处理](../../../../docs/compare/13_multipass_effects.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/native/lessons/vk10_offscreen/main.cpp](main.cpp#L4)，第 4—9 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    return course::nativeMain(argc, argv, 10);
+} catch (const std::exception& e) {
+    std::cerr << e.what() << "\n";
+    return 1;
+}
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [27_ssao](../../../../OpenGL/lessons/27_ssao/README.md) |
+| Vulkan 原生 | [vk10_offscreen](README.md) |
+| Vulkan / nvpro_core2 | 迁移设计：RenderTarget 与 ImGui 仅是接入点；新增多遍效果仍要自己描述写后读。 |
+| DirectX 12 | 迁移设计：dx10 是 CopyResource，迁移后处理需新增可采样目标和全屏像素管线。 |
+
+### 先预测，再验证
+
+要加入灰度后处理，能只修改 blit 参数吗？
+
+参考推导：不能。需要可采样离屏资源、descriptor、全屏图形管线与写后采样依赖，再把结果输出到交换链。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

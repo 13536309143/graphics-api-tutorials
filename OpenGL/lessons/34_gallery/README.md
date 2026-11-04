@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 34_gallery
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 34_gallery --parallel 4
+.\OpenGL\build\bin\Debug\34_gallery.exe
 ```
 
 预期画面：机器人模型和两列 PBR 球置于 HDR 环境中，带 Bloom；空格关闭 Bloom。
@@ -35,7 +36,7 @@ Model + Environment → scene HDR → bright extraction → ping/pong blur → t
 
 将机器人换成自己的 glTF；接入骨骼动画；把粒子加入 HDR 场景；选择一种阴影与 PBR 的直接光可见性结合。
 
-修改后重新执行 `cmake --build build --config Debug --target 34_gallery --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 34_gallery --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -55,3 +56,62 @@ Model + Environment → scene HDR → bright extraction → ping/pong blur → t
 ![34_gallery](../../docs/previews/34_gallery.png)
 
 [查看按住空格时的对照图](../../docs/previews/34_gallery_off.png)
+
+
+## 深入学习：数据、接口与执行
+
+综合场景适合追踪依赖，不适合初次定位所有问题。先分别验证模型、材质、IBL 与动画，再观察组合时资源绑定和状态恢复是否相互覆盖。
+
+配套精讲：[三 API 对照 · 框架与多后端架构](../../../docs/compare/15_framework_architecture.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/34_gallery/main.cpp](main.cpp#L6)，第 6—31 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "34_gallery - OpenGL Course");
+    Environment env(app);
+    Model robot(asset(app, "models/robot.gltf"));
+    Mesh ball(sphere()), box(cube()), plane(quad(), quadIndices());
+    Camera camera;
+    camera.pos = {0, 1, 10};
+    camera.pitch = -6;
+    Shader model(app, "model.vert", "pbr.frag"), pbr(app, "advanced.vert", "pbr.frag"),
+        sky(app, "sky.vert", "sky.frag"), bright(app, "screen.vert", "bright.frag"),
+        blur(app, "screen.vert", "blur.frag"), tone(app, "screen.vert", "tone.frag");
+    RenderTarget scene, highlights, ping, pong;
+    while (app.begin()) {
+        if (app.width < 1 || app.height < 1) {
+            app.end();
+            continue;
+        }
+        camera.update(app);
+        scene.resize(app.width, app.height);
+        highlights.resize(app.width, app.height);
+        ping.resize(app.width, app.height);
+        pong.resize(app.width, app.height);
+        scene.bind();
+        glEnable(GL_DEPTH_TEST);
+        app.clear();
+        env.bindIBL();
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [34_gallery](README.md) |
+| Vulkan 原生 | [vk09_pbr](../../../Vulkan/native/lessons/vk09_pbr/README.md) |
+| Vulkan / nvpro_core2 | [nv06_pbr_viewport](../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.md) |
+| DirectX 12 | [dx09_pbr](../../../DirectX12/lessons/dx09_pbr/README.md) |
+
+### 先预测，再验证
+
+组合后出错而单课正常，优先如何缩小范围？
+
+参考推导：逐项关闭 pass 或材质功能，并检查共享状态/单元是否被覆盖；不要同时重写资产解析与渲染器。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

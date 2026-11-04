@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 20_parallax
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 20_parallax --parallel 4
+.\OpenGL\build\bin\Debug\20_parallax.exe
 ```
 
 预期画面：平面纹理有视角相关的深度感，空格关闭 POM 和法线贴图。
@@ -33,7 +34,7 @@ surface.frag 的 parallax → height.png → main.cpp 的 heightScale
 
 将相机移到斜侧面；把高度缩放从 0.02 调到 0.12；把层数固定为 8 比较误差。
 
-修改后重新执行 `cmake --build build --config Debug --target 20_parallax --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 20_parallax --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -53,3 +54,62 @@ surface.frag 的 parallax → height.png → main.cpp 的 heightScale
 ![20_parallax](../../docs/previews/20_parallax.png)
 
 [查看按住空格时的对照图](../../docs/previews/20_parallax_off.png)
+
+
+## 深入学习：数据、接口与执行
+
+视差贴图根据切线空间视线与高度偏移 UV，随后才读取颜色/法线。它不真正移动轮廓几何，掠射角和 UV 越界尤其容易暴露近似。
+
+配套精讲：[三 API 对照 · 纹理、Mip 与颜色空间](../../../docs/compare/06_textures_color.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/20_parallax/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "20_parallax - OpenGL Course");
+    Shader shader(app, "advanced.vert", "surface.frag");
+    Mesh plane(quad(), quadIndices());
+    Camera camera;
+    camera.pos = {0, 0, 3};
+    camera.pitch = 0;
+    ImageTexture albedo(asset(app, "textures/albedo.png"), true),
+        normal(asset(app, "textures/normal.png")), height(asset(app, "textures/height.png"));
+    glEnable(GL_DEPTH_TEST);
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        shader.use();
+        surfaceDefaults(shader);
+        cameraUniforms(shader, app, camera);
+        albedo.bind(0);
+        normal.bind(1);
+        height.bind(2);
+        shader.set("useTexture", 1);
+        shader.set("baseColor", glm::vec3(1));
+        shader.set("useNormal", app.key(GLFW_KEY_SPACE) != GLFW_PRESS);
+        shader.set("useParallax", app.key(GLFW_KEY_SPACE) != GLFW_PRESS);
+        shader.set("model", glm::scale(glm::mat4(1), glm::vec3(2)));
+        plane.draw();
+        app.end();
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [20_parallax](README.md) |
+| Vulkan 原生 | [vk06_texture_descriptor](../../../Vulkan/native/lessons/vk06_texture_descriptor/README.md) |
+| Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md) |
+| DirectX 12 | [dx06_texture_srv](../../../DirectX12/lessons/dx06_texture_srv/README.md) |
+
+### 先预测，再验证
+
+为什么侧面轮廓仍然是平的？
+
+参考推导：本方法只修改采样坐标，没有增加几何。若要改变真实轮廓，需其他几何或位移方案，而非无限提高 heightScale。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

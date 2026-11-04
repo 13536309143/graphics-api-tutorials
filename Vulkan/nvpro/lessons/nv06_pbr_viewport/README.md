@@ -34,3 +34,58 @@ SceneVk 继续计算直接光 PBR，nvapp 提供可停靠 Viewport 和交互参�
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![nv06_pbr_viewport](../../../../docs/previews/nv06_pbr_viewport.png)
+
+
+## 深入学习：数据、接口与执行
+
+UI 粗糙度倍率只改变每 Draw 的 roughness，夹取范围避免零粗糙度数值问题。渲染器和 GLSL 与原生 PBR 共享，额外复杂度来自视口与 UI 接入。
+
+配套精讲：[三 API 对照 · 直接光 PBR 与 IBL](../../../../docs/compare/12_lighting_pbr_ibl.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/nvpro/common/nvapp_course.hpp](../../common/nvapp_course.hpp#L113)，第 113—134 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+    void onUIRender() override {
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+            app->close();
+        if (smoke)
+            return;
+        ImGui::Begin("Settings");
+        ImGui::TextUnformatted("Vulkan / nvpro_core2 course");
+        ImGui::Text("Scene mode: %d", mode);
+        if (mode >= 9)
+            ImGui::SliderFloat("Roughness scale", &roughnessScale, .2f, 2.f);
+        ImGui::TextUnformatted("Esc: close. Resize the viewport to rebuild attachments.");
+        ImGui::End();
+        ImGui::Begin("Viewport");
+        if (target.getSize().width)
+            ImGui::Image(display, ImGui::GetContentRegionAvail());
+        ImGui::End();
+    }
+    void onRender(VkCommandBuffer cmd) override {
+        // 每次更新前等待队列，保证共用 UBO 和离屏目标不会与前一帧并发读写。
+        vkCheck(vkQueueWaitIdle(c.queue));
+
+        // GENERAL 布局不代表自动同步：仍需声明前一次读写与本次颜色写入的依赖。
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [25_ibl](../../../../OpenGL/lessons/25_ibl/README.md) |
+| Vulkan 原生 | [vk09_pbr](../../../native/lessons/vk09_pbr/README.md) |
+| Vulkan / nvpro_core2 | [nv06_pbr_viewport](README.md) |
+| DirectX 12 | [dx09_pbr](../../../../DirectX12/lessons/dx09_pbr/README.md) |
+
+### 先预测，再验证
+
+对比原生性能前应隔离什么？
+
+参考推导：统一场景参数、分辨率与等待策略，并分离 UI 合成成本；当前 Debug 帧率不是公平 benchmark。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

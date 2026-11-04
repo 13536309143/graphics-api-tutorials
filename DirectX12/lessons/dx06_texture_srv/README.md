@@ -42,7 +42,6 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 
 参考：D3D12 copy footprint 对行跨度和偏移有额外对齐约束。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -54,3 +53,66 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![dx06_texture_srv](../../../docs/previews/dx06_texture_srv.png)
+
+
+## 深入学习：数据、接口与执行
+
+GetCopyableFootprints 提供上传行距，逐行填入后 CopyTextureRegion，再转换为像素 shader 可读。SRV 是访问描述，不拥有单独一份像素。
+
+配套精讲：[三 API 对照 · 纹理、Mip 与颜色空间](../../../docs/compare/06_textures_color.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L284)，第 284—313 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
+        UINT rows;
+        UINT64 rowBytes, total;
+
+        // 纹理上传不能假定行数据紧密排列；按 footprint 的对齐行距逐行复制。
+        c.device->GetCopyableFootprints(&image, 0, 1, 0, &footprint, &rows, &rowBytes, &total);
+        auto upload = c.buffer(total, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+        void* mapped;
+        D3D12_RANGE empty{0, 0};
+        dxCheck(upload->Map(0, &empty, &mapped));
+        auto data = checker();
+        for (UINT y = 0; y < rows; ++y)
+            std::memcpy(static_cast<uint8_t*>(mapped) + footprint.Offset +
+                            size_t(y) * footprint.Footprint.RowPitch,
+                        data.data() + size_t(y) * 64 * 4,
+                        64 * 4);
+        upload->Unmap(0, nullptr);
+        c.begin();
+        D3D12_TEXTURE_COPY_LOCATION source{}, destination{};
+        source.pResource = upload.Get();
+        source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        source.PlacedFootprint = footprint;
+        destination.pResource = texture.Get();
+        destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        c.cmd->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+        auto b = transition(texture.Get(),
+                            D3D12_RESOURCE_STATE_COPY_DEST,
+                            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        c.cmd->ResourceBarrier(1, &b);
+        c.submit();
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [05_texture](../../../OpenGL/lessons/05_texture/README.md) |
+| Vulkan 原生 | [vk06_texture_descriptor](../../../Vulkan/native/lessons/vk06_texture_descriptor/README.md) |
+| Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md) |
+| DirectX 12 | [dx06_texture_srv](README.md) |
+
+### 先预测，再验证
+
+纹理出现周期性错行，首先检查哪里？
+
+参考推导：核对 CPU 行字节数、footprint Offset/RowPitch、资源格式和 copy location；不要先用 linear filter 模糊错误。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

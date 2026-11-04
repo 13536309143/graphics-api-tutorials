@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk09_pbr · 直接光 PBR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk09_pbr · 直接光 PBR</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk09_pbr · 直接光 PBR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk09_pbr · 直接光 PBR</h1>
 <p><a href="../../README.html">路线首页</a> · <a href="../vk08_compute_readback/README.html">上一课</a> · <a href="../vk10_offscreen/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
@@ -18,9 +18,52 @@ cmake --build --preset vulkan-native-debug --target vk09_pbr --parallel 4
 <h2>自测</h2>
 <p>为什么高金属度球在没有环境光照的侧面很黑？</p>
 <p>参考：金属没有该模型中的漫反射，未被直接光覆盖的反射方向需要真实环境照明来提供能量。</p>
-<p>跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。</p>
 <h2>验证和调试</h2>
 <p>运行 <code>vk09_pbr.exe --smoke</code> 执行四帧（或设备/计算检查）并退出；颜色课会从 GPU 读回 PPM，计算课验证 256 个数。参见仓库 <a href="../../../../docs/DEBUGGING.html">调试指南</a>。这些基础例子按帧串行等待，重点是可追踪的生命周期；多帧重叠不能仅删除 wait，需要同时改成帧资源环。</p>
 <h2>实测画面</h2>
 <p>固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。</p>
-<p><img alt="vk09_pbr" src="../../../../docs/previews/vk09_pbr.png"></p></main></html>
+<p><img alt="vk09_pbr" src="../../../../docs/previews/vk09_pbr.png"></p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>球阵列共用同一网格和 pipeline，每个 Draw 改 metal/roughness。先在 GLSL 输出法线/NoL 隔离输入，再看 D/G/F。当前只有直接光，不含完整环境 IBL。</p>
+<p>配套精讲：<a href="../../../../docs/compare/12_lighting_pbr_ibl.html">三 API 对照 · 直接光 PBR 与 IBL</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../../common/shaders/scene.frag#L17">Vulkan/common/shaders/scene.frag</a>，第 17—42 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>vec3 pbr(vec3 N, vec3 V, vec3 P, float metal, float r) {
+    vec3 albedo = vec3(.8, .25, .07), sum = vec3(.02) * albedo * (1.0 - metal),
+         f0 = mix(vec3(.04), albedo, metal);
+    for (int i = 0; i &lt; 4; ++i) {
+        vec3 lp = vec3(i % 2 == 0 ? -6 : 6, i &lt; 2 ? 6 : -4, 8);
+        vec3 delta = lp - P, L = normalize(delta), H = normalize(V + L);
+        float NoV = max(dot(N, V), .001), NoL = max(dot(N, L), 0), NoH = max(dot(N, H), 0);
+        float a = r * r, a2 = a * a, d = NoH * NoH * (a2 - 1) + 1,
+              D = a2 / max(PI * d * d, .000001);
+        float k = (r + 1) * (r + 1) / 8;
+        float G = NoV / (NoV * (1 - k) + k) * NoL / (NoL * (1 - k) + k);
+        vec3 F = f0 + (1 - f0) * pow(1 - max(dot(V, H), 0), 5);
+        sum += ((1 - F) * (1 - metal) * albedo / PI + D * G * F / max(4 * NoV * NoL, .001)) * 90 /
+               dot(delta, delta) * NoL;
+    }
+    return sum;
+}
+
+void main() {
+    int mode = int(draw.settings.x);
+    vec3 N = normalize(normal), c;
+    if (mode &lt;= 4)
+        c = clamp(normal, 0, 1);
+    else if (mode &gt;= 9)
+        c = pbr(
+            N, normalize(vec3(0, 0, 14) - worldPos), worldPos, draw.settings.y, draw.settings.z);</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="../../../../OpenGL/lessons/25_ibl/README.html">25_ibl</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="README.html">vk09_pbr</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>与 OpenGL IBL 球图不同可否直接认定 Vulkan 错了？</p>
+<p>参考推导：不可以；先统一场景、光源、相机、环境项和显示编码。比较前先定义一致输入。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

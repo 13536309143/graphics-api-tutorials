@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx02_swapchain · 交换链、RTV 与呈现</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx02_swapchain · 交换链、RTV 与呈现</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx02_swapchain · 交换链、RTV 与呈现</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx02_swapchain · 交换链、RTV 与呈现</h1>
 <p><a href="../../README.html">路线首页</a> · <a href="../dx01_device/README.html">上一课</a> · <a href="../dx03_triangle/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
@@ -20,9 +20,52 @@ cmake --build --preset dx12-debug --target dx02_swapchain --parallel 4
 <h2>自测</h2>
 <p>为什么 ResizeBuffers 前既要等 GPU，又要释放旧资源引用？</p>
 <p>参考：GPU 可能仍在访问，而交换链也要求没有外部引用，两个条件都需要满足。</p>
-<p>跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。</p>
 <h2>验证和调试</h2>
 <p>运行 <code>dx02_swapchain.exe --smoke</code> 执行四帧（或设备/计算检查）并退出；颜色课会从 GPU 读回 PPM，计算课验证 256 个数。参见仓库 <a href="../../../docs/DEBUGGING.html">调试指南</a>。这些基础例子按帧串行等待，重点是可追踪的生命周期；多帧重叠不能仅删除 wait，需要同时改成帧资源环。</p>
 <h2>实测画面</h2>
 <p>固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。</p>
-<p><img alt="dx02_swapchain" src="../../../docs/previews/dx02_swapchain.png"></p></main></html>
+<p><img alt="dx02_swapchain" src="../../../docs/previews/dx02_swapchain.png"></p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>DXGI 当前 back buffer index 决定本帧目标；写入前 PRESENT→RENDER_TARGET，结束恢复。allocator Reset 的安全性依赖前次 GPU 已完成。</p>
+<p>配套精讲：<a href="../../../docs/compare/09_commands_frames.html">三 API 对照 · 命令、帧槽与多帧设计</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../common/dx12_course.hpp#L120">DirectX12/common/dx12_course.hpp</a>，第 120—145 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>    void begin() {
+        dxCheck(allocator-&gt;Reset());
+        dxCheck(cmd-&gt;Reset(allocator.Get(), nullptr));
+    }
+    void submit() {
+        dxCheck(cmd-&gt;Close());
+        ID3D12CommandList* lists[] = {cmd.Get()};
+        queue-&gt;ExecuteCommandLists(1, lists);
+        wait();
+    }
+
+    // 队列 signal fence 后，CPU 等事件确认进度；提交返回不等于 GPU 已完成。
+    void wait() {
+        dxCheck(queue-&gt;Signal(fence.Get(), ++value));
+        if (fence-&gt;GetCompletedValue() &lt; value) {
+            dxCheck(fence-&gt;SetEventOnCompletion(value, event));
+            if (WaitForSingleObject(event, 30000) != WAIT_OBJECT_0)
+                throw std::runtime_error(&quot;GPU fence timeout&quot;);
+        }
+    }
+    void checkMessages() {
+        if (!messages)
+            return;
+        UINT64 count = messages-&gt;GetNumStoredMessagesAllowedByRetrievalFilter();
+        for (UINT64 i = 0; i &lt; count; ++i) {
+            SIZE_T bytes = 0;</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="../../../OpenGL/lessons/07_cube/README.html">07_cube</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk02_swapchain/README.html">vk02_swapchain</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="README.html">dx02_swapchain</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>把 submit 里的 wait 删除就得到两帧并行了吗？</p>
+<p>参考推导：没有。还缺每帧 allocator、常量和完成值管理，以及深度/离屏资源的并发保护。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

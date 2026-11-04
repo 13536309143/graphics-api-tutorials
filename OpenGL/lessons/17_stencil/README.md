@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 17_stencil
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 17_stencil --parallel 4
+.\OpenGL\build\bin\Debug\17_stencil.exe
 ```
 
 预期画面：旋转立方体外侧有清晰蓝色描边。
@@ -33,7 +34,7 @@ main.cpp 的两遍对象绘制 → RenderTarget 的 DEPTH24_STENCIL8
 
 改变膨胀倍数；增加第二个互相遮挡的物体；试着保留深度测试，比较轮廓。
 
-修改后重新执行 `cmake --build build --config Debug --target 17_stencil --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 17_stencil --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -51,3 +52,62 @@ main.cpp 的两遍对象绘制 → RenderTarget 的 DEPTH24_STENCIL8
 以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。
 
 ![17_stencil](../../docs/previews/17_stencil.png)
+
+
+## 深入学习：数据、接口与执行
+
+第一遍给模型覆盖处写 stencil，第二遍画放大模型并排除已经标记的像素。颜色、深度、stencil 的写掩码与比较函数分别生效，必须逐项记录。
+
+配套精讲：[三 API 对照 · 目标、深度与 MSAA](../../../docs/compare/07_targets_depth_msaa.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/17_stencil/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "17_stencil - OpenGL Course");
+    Shader solid(app, "advanced.vert", "surface.frag"), outline(app, "advanced.vert", "solid.frag");
+    Mesh mesh(cube());
+    Camera camera;
+    RenderTarget target(1, false);
+    Shader screen(app, "screen.vert", "screen.frag");
+    Mesh plane(quad(), quadIndices());
+    while (app.begin()) {
+        if (app.width < 1 || app.height < 1) {
+            app.end();
+            continue;
+        }
+        camera.update(app);
+        target.resize(app.width, app.height);
+        target.bind();
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_STENCIL_TEST);
+        glStencilMask(0xFF);
+        app.clear();
+        glClear(GL_STENCIL_BUFFER_BIT);
+        auto model = glm::rotate(glm::mat4(1), app.time() * .3f, glm::vec3(0, 1, 0));
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        solid.use();
+        surfaceDefaults(solid);
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [17_stencil](README.md) |
+| Vulkan 原生 | [vk10_offscreen](../../../Vulkan/native/lessons/vk10_offscreen/README.md) |
+| Vulkan / nvpro_core2 | [nv02_application](../../../Vulkan/nvpro/lessons/nv02_application/README.md) |
+| DirectX 12 | [dx10_offscreen](../../../DirectX12/lessons/dx10_offscreen/README.md) |
+
+### 先预测，再验证
+
+描边穿过遮挡物时应该检查哪一层？
+
+参考推导：检查第二遍的深度测试策略与 stencil 条件；放大模型本身正确并不能决定描边应否被前景遮挡。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

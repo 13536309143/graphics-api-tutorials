@@ -38,7 +38,6 @@ HOST_COHERENT 是否意味着不用等待 GPU 就可以任意改写缓冲？
 
 参考：不是。它简化 flush/invalidate，不消除 CPU/GPU 同时访问的同步要求。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -50,3 +49,66 @@ HOST_COHERENT 是否意味着不用等待 GPU 就可以任意改写缓冲？
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![vk04_vertex_buffer](../../../../docs/previews/vk04_vertex_buffer.png)
+
+
+## 深入学习：数据、接口与执行
+
+默认缓冲是 host-visible coherent，上传路径容易追踪但不代表静态几何最佳性能。把 Vertex 的 32 字节布局逐项对应 binding stride 和三个 attribute offsets。
+
+配套精讲：[三 API 对照 · 顶点、索引与内存](../../../../docs/compare/03_geometry_memory.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L29)，第 29—58 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+struct VkBufferResource {
+    VkDevice device{};
+    VkBuffer buffer{};
+    VkDeviceMemory memory{};
+    VkDeviceSize size{};
+    VkBufferResource() = default;
+    VkBufferResource(const VkBufferResource&) = delete;
+    VkBufferResource& operator=(const VkBufferResource&) = delete;
+    void init(const VkContextRef& c,
+              VkDeviceSize bytes,
+              VkBufferUsageFlags usage,
+              VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
+        device = c.device;
+        size = bytes;
+        VkBufferCreateInfo info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        info.size = bytes;
+        info.usage = usage;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        vkCheck(vkCreateBuffer(device, &info, nullptr, &buffer));
+        VkMemoryRequirements req;
+        vkGetBufferMemoryRequirements(device, buffer, &req);
+        VkMemoryAllocateInfo alloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+        alloc.allocationSize = req.size;
+        alloc.memoryTypeIndex = memoryType(c, req.memoryTypeBits, flags);
+        vkCheck(vkAllocateMemory(device, &alloc, nullptr, &memory));
+        vkCheck(vkBindBufferMemory(device, buffer, memory, 0));
+    }
+
+    // 此处缓冲使用 HOST_VISIBLE | HOST_COHERENT；非 coherent 内存还需显式 flush。
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [03_indexed](../../../../OpenGL/lessons/03_indexed/README.md) |
+| Vulkan 原生 | [vk04_vertex_buffer](README.md) |
+| Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../../nvpro/lessons/nv04_vma_staging_texture/README.md) |
+| DirectX 12 | [dx04_vertex_buffer](../../../../DirectX12/lessons/dx04_vertex_buffer/README.md) |
+
+### 先预测，再验证
+
+stride 写成 24 最可能看到什么？
+
+参考推导：后续顶点从错误字节起点读取，形状/颜色/UV 混乱；应先查布局而不是提交同步。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

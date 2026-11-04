@@ -8,10 +8,12 @@
 
 ## 运行与观察
 
-在教程根目录执行：
+在合集根目录执行（包含四条路线 preset 的目录）：
 
 ```powershell
-.\scripts\run.ps1 -Lesson 12_instancing
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 12_instancing --parallel 4
+.\OpenGL\build\bin\Debug\12_instancing.exe
 ```
 
 预期画面：900 个彩色小立方体形成起伏方阵，可移动相机。
@@ -32,7 +34,7 @@ CPU 向驱动发送 draw call 有成本。900 个立方体分别 draw 要提交 
 
 把方阵增大到 100×100；使用 gl_InstanceID 计算颜色；对比逐对象 draw 的 CPU 成本。
 
-每次修改 C++ 或 GLSL 后，从根目录执行 `cmake --build build --config Debug --parallel`。运行同一示例对比修改前后；尝试先预测画面，再修改代码。
+每次修改 C++ 或 GLSL 后，从根目录执行 `cmake --build --preset opengl-debug --target 12_instancing --parallel 4`。运行同一示例对比修改前后；尝试先预测画面，再修改代码。
 
 ## 自测
 
@@ -43,3 +45,62 @@ CPU 向驱动发送 draw call 有成本。900 个立方体分别 draw 要提交 
 ## 出错时优先检查
 
 初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 [排错手册](../../docs/06_排错手册.md)。
+
+
+## 深入学习：数据、接口与执行
+
+实例缓冲的 offset 通过 divisor=1 每实例推进。顶点属性仍每顶点推进，两种频率共同决定读取。一次 draw 的 instance count 与几何顶点数是独立参数。
+
+配套精讲：[三 API 对照 · 顶点、索引与内存](../../../docs/compare/03_geometry_memory.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/12_instancing/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "12_instancing - OpenGL Course");
+    Shader shader(app, "instance.vert", "color.frag");
+    Mesh mesh(cube());
+    Camera camera;
+    camera.pos = glm::vec3(0, 5, 18);
+    camera.pitch = -15;
+    std::vector<glm::vec3> offsets;
+    for (int z = 0; z < 30; ++z)
+        for (int x = 0; x < 30; ++x)
+            offsets.emplace_back((x - 15) * .8f, 0, -z * .8f);
+    GLuint instances;
+    glGenBuffers(1, &instances);
+    glBindVertexArray(mesh.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, instances);
+    glBufferData(GL_ARRAY_BUFFER,
+                 GLsizeiptr(offsets.size() * sizeof(glm::vec3)),
+                 offsets.data(),
+                 GL_STATIC_DRAW);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+    glVertexAttribDivisor(3, 1); // 每个实例读一个 offset，而不是每个顶点读一个。
+    glEnable(GL_DEPTH_TEST);
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [12_instancing](README.md) |
+| Vulkan 原生 | [vk04_vertex_buffer](../../../Vulkan/native/lessons/vk04_vertex_buffer/README.md) |
+| Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md) |
+| DirectX 12 | [dx04_vertex_buffer](../../../DirectX12/lessons/dx04_vertex_buffer/README.md) |
+
+### 先预测，再验证
+
+把 divisor 改为零后为什么立方体会扭曲？
+
+参考推导：offset 变成每顶点读取，顶点各自得到不同偏移；这已经不是每实例放置整个立方体。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

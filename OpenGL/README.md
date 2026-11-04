@@ -92,3 +92,8 @@ lessons/ 每课一个 main.cpp 与 README；common/ 放窗口、shader、网格�
 
 
 合集部署推荐从仓库根目录运行 `cmake --preset opengl`、`cmake --build --preset opengl-debug`。历史验证记录保留原 34 课开发过程；当前合集的验收以 [总验证记录](../docs/VALIDATION.md) 为准。
+
+
+## 深入精讲与横向阅读
+
+本路线每课已加入数据/接口/执行推导、真实源码切片和预测实验。配合[16 章三 API 精讲](../docs/COMPARE.md)与[并排源码实验室](../docs/compare/index.html)阅读；[功能矩阵](../docs/FEATURE_MATRIX.md)区分已经实现与待迁移内容。

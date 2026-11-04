@@ -1,22 +1,26 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>三种 API 的概念对照</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>三种 API 的概念对照</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>三种 API 的责任、数据流与源码对照</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>三种 API 的责任、数据流与源码对照</h1>
+<p><a href="COMPARE.html">进入 16 章精讲</a> · <a href="compare/index.html">交互式并排源码</a> · <a href="FEATURE_MATRIX.html">功能矩阵</a> · <a href="EXPERIMENTS.html">实验协议</a></p>
+<p>三种 API 都要把输入、管线、目标、命令和依赖连接起来。主要区别是这些状态保存在何处、由谁管理内存与执行，以及哪些约束由应用显式声明。nvpro_core2 是 Vulkan 的工具框架，不改变底层规则。</p>
 <table>
-<tr><td>概念</td><td>OpenGL</td><td>Vulkan</td><td>DirectX 12</td></tr>
-<tr><td>GPU/上下文</td><td>context + driver</td><td>Instance / PhysicalDevice / Device</td><td>DXGI Adapter / ID3D12Device</td></tr>
-<tr><td>图形程序与状态</td><td>Program + 分散状态</td><td>Graphics Pipeline + PipelineLayout</td><td>PSO + Root Signature</td></tr>
-<tr><td>几何输入</td><td>VAO/VBO/EBO</td><td>Buffer + vertex input + index type</td><td>Resource + VBV/IBV + input layout</td></tr>
-<tr><td>常量</td><td>uniforms / UBO</td><td>descriptor UBO / push constants</td><td>CBV / root constants</td></tr>
-<tr><td>纹理绑定</td><td>texture unit</td><td>descriptor set image/sampler</td><td>SRV descriptor table / sampler</td></tr>
-<tr><td>目标</td><td>default framebuffer / FBO</td><td>Swapchain images / image views</td><td>DXGI backbuffers / RTV/DSV</td></tr>
-<tr><td>命令</td><td>驱动记录即时调用</td><td>CommandBuffer / QueueSubmit</td><td>CommandList / ExecuteCommandLists</td></tr>
-<tr><td>同步</td><td>隐式规则 + sync 对象</td><td>stages/access/layout + semaphore/fence</td><td>resource state barriers + queue fence</td></tr>
-<tr><td>CPU 可见内存</td><td>map buffer</td><td>memory type + map/flush/invalidate</td><td>upload/readback heap + map</td></tr>
-<tr><td>计算</td><td>compute shader（更高 GL 基线）</td><td>compute pipeline + SSBO</td><td>compute PSO + UAV</td></tr>
+<tr><td>责任</td><td>OpenGL</td><td>Vulkan 原生</td><td>Vulkan / nvpro_core2</td><td>DirectX 12</td></tr>
+<tr><td>初始化</td><td>context / GLAD</td><td>instance / physical / device / queues</td><td>Context</td><td>DXGI adapter / device / queue</td></tr>
+<tr><td>几何解释</td><td>VAO / VBO / EBO</td><td>buffers / input descriptions</td><td>相同机制，含 VMA staging 示例</td><td>resources / VBV / IBV / input layout</td></tr>
+<tr><td>管线</td><td>program + context state</td><td>pipeline + pipeline layout</td><td>复用 SceneVk</td><td>PSO + root signature</td></tr>
+<tr><td>每帧数据</td><td>uniforms / UBO</td><td>UBO descriptor</td><td>相同</td><td>root CBV</td></tr>
+<tr><td>每 draw 数据</td><td>uniforms</td><td>push constants</td><td>相同</td><td>root constants</td></tr>
+<tr><td>纹理访问</td><td>texture unit / sampler</td><td>image view / sampler / descriptor</td><td>复用公共纹理路径</td><td>SRV table / static sampler</td></tr>
+<tr><td>命令</td><td>驱动组织</td><td>command pool / buffer / queue submit</td><td>Application 加自定义 pass</td><td>allocator / list / ExecuteCommandLists</td></tr>
+<tr><td>依赖</td><td>按 API 操作规则</td><td>stage / access / layout + sync objects</td><td>框架不替代自定义依赖</td><td>legacy state barriers + fences</td></tr>
+<tr><td>输出</td><td>default framebuffer / FBO</td><td>swapchain / image views</td><td>RenderTarget / ImGui</td><td>DXGI back buffers / RTV / DSV</td></tr>
 </table>
-<p>Vulkan image layout 与 DX12 resource state 不是逐项等价枚举；它们表达合法使用和依赖的方式不同，移植时要从“谁写、谁读、在哪个队列、何时完成、何时可见”重新推导。改变一个枚举值不意味着已建立所需全部内存依赖。</p>
-<p>本课程共享右手世界坐标、列向量与 0..1 深度投影。Vulkan 正 viewport 的 Y 映射与 D3D12 不同，因此 Vulkan 投影矩阵翻转 Y；不要同时在 shader 和矩阵里重复翻转。OpenGL 原课程保持自己的 -1..1 NDC 深度约定，不能直接拷其 projection 到另两种 API。</p>
-<h2>一次上传的推导</h2>
-<p>CPU 产生 checker 像素 → 写可见上传内存 → copy 到 GPU texture → transfer/copy 写入完成 → 转到 shader 采样用途并建立依赖 → 绑定 descriptor/SRV → draw。上传内存必须活到 copy 完成，绑定视图并不会替代 copy，也不会自动保护 CPU 正在改写的数据。</p>
-<h2>框架边界</h2>
-<p>nvpro_core2 提供 Context、VMA allocator、Application、RenderTarget 和 UI 等工具，但自定义 pass 仍有读写依赖。课程使用 GENERAL layout 的离屏目标时仍录制 color-write→fragment-read 屏障。框架减少重复劳动，不让错误的资源生命周期自动变成合法。</p>
-<h2>下一步</h2>
-<p>在保持场景不变的前提下，为 Vulkan/DX12 实现两帧资源环；再迁移 OpenGL 的 glTF、IBL、Bloom、SSAO 和动画。将不同后端隐藏到统一 Renderer 接口之前，先保留可独立验证的后端程序与调试视图。</p></main></html>
+<h2>一份数据的完整旅程</h2>
+<pre><code>CPU 场景数据 -&gt; 上传内存 -&gt; GPU 资源 -&gt; view/descriptor/输入布局
+                                       -&gt; pipeline + draw -&gt; 目标图像
+                                       -&gt; 下一 pass / 呈现 / CPU 读回</code></pre>
+<p>描述符保存访问引用，不复制图像；创建 view 不会上传像素；录制 draw 不代表执行结束；map 不代表 GPU 已停止读取。每条箭头都应能对应到代码和明确的完成/可见性条件。</p>
+<h2>不能机械一一替换的地方</h2>
+<p>Vulkan image layout 与 DX12 resource state 不是逐项同义枚举。二者的依赖表达不同，应从生产者、消费者、队列和资源生命周期重新推导。GENERAL 也仍可能需要 barrier。OpenGL 的隐式安排不代表零成本，或任何 shader 写后读都无需专门考虑。</p>
+<p>OpenGL 原课程使用 -1..1 NDC 深度；共享 Vulkan/DX12 使用 0..1、右手世界和列向量。Vulkan 在当前正 viewport 路径翻转投影 Y。DX12 不强制左手，矩阵存储与乘法记法也不能混为一谈。</p>
+<h2>学会比较的三个层次</h2>
+<p>概念对比解释为何需要这些对象。实现对比定位本工程真实的创建、更新、绑定与释放。实验对比固定输入并收集日志、资源和画面证据。前两层能帮助迁移代码，性能结论还需要功能对齐后的统一测量；当前串行教学后端不是 benchmark。</p>
+<p>各主题的完整步骤、源码切片、修改练习和答案从精讲路线进入。尚未完成的后端功能在功能矩阵中标明，避免用理论支持代替实现证据。</p></main></html>

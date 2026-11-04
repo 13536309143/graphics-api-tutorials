@@ -1,0 +1,41 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>参考资料、阅读方式与版本差异</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>参考资料、阅读方式与版本差异</h1>
+<p>本轮根据你提供的两份教程，补充“概念目的 → 实际接口 → 源码追踪 → 修改实验 → 错误定位”的阅读层次。章节围绕本仓库的对象、参数和实现组织，外部资料用于查证与延伸阅读，不整页复制译文或整套代码。外部作品仍按各自许可分发。</p>
+<h2>你提供的入口</h2>
+<ul>
+<li><a href="https://docs.vulkan.net.cn/tutorial/latest/00_Introduction.html">Vulkan 中文镜像：Introduction</a>：先读总览建立对象依赖，再读具体资源与渲染步骤。</li>
+<li><a href="https://www.bootwiki.com/opengl/opengl-tutorial1.html">BootWiki：创建一个窗口</a>：从窗口、状态、清屏和交换开始拆解调用。本页使用 GLUT；本仓库保留 GLFW，不把不同窗口库的初始化混接。</li>
+</ul>
+<p>阅读时间：2026-11-04。<code>latest</code> 是可变化入口，以下对比记录本次读到的内容，并非永久版本承诺。</p>
+<table>
+<tr><td>项目</td><td>中文 Vulkan 入口介绍</td><td>当前官方 latest 介绍</td><td>本仓库原生路线</td></tr>
+<tr><td>C++ / API</td><td>C++17 先决条件、原始 C API</td><td>C++20、Vulkan-Hpp RAII</td><td>C++20、原始 C API</td></tr>
+<tr><td>版本</td><td>不能仅从 URL 推断固定版本</td><td>介绍明确以 Vulkan 1.4 为基线</td><td>Vulkan 1.3；nvpro 另为 1.4</td></tr>
+<tr><td>shader</td><td>按具体镜像章节确认</td><td>介绍采用 Slang 为主要语言</td><td>GLSL → glslc → SPIR-V</td></tr>
+<tr><td>rendering / sync</td><td>按具体章节确认</td><td>dynamic rendering、timeline 等现代路线</td><td>dynamic rendering、sync2、binary semaphore/fence</td></tr>
+</table>
+<p>以上摘要只用于辨认路线差异；不要根据“章节号一样”直接交换 C++ 代码。<a href="https://docs.vulkan.org/tutorial/latest/00_Introduction.html">当前官方介绍</a> 和 <a href="https://docs.vulkan.org/tutorial/latest/01_Overview.html">总览</a> 是核对入口。</p>
+<h2>OpenGL 与窗口层</h2>
+<ul>
+<li><a href="https://ogldev.org/www/tutorial01/tutorial01.html">OGLdev 原作者窗口课</a>：对照窗口库与 OpenGL 状态的分工。</li>
+<li><a href="https://www.glfw.org/docs/latest/window">GLFW window guide</a>：查询窗口、framebuffer 尺寸与缓冲交换。</li>
+<li><a href="https://www.glfw.org/docs/latest/vulkan_guide.html">GLFW Vulkan guide</a>：查询 loader、所需扩展和 surface 创建。</li>
+</ul>
+<p>BootWiki 后续目录提供了从变换、光照到模型和高级效果的主题线索。本仓库依据已有 34 课重新组织对照，不把目录中出现的拾取、细分或运动模糊当作当前已实现功能。</p>
+<h2>Vulkan 细节查证</h2>
+<ul>
+<li><a href="https://docs.vulkan.org/tutorial/latest/04_Vertex_buffers/02_Staging_buffer.html">staging buffer</a>：比较 CPU 可见中转与最终 GPU 资源。</li>
+<li><a href="https://docs.vulkan.org/tutorial/latest/05_Uniform_buffers/00_Descriptor_set_layout_and_buffer.html">descriptor layout / buffer</a>：区分资源接口与内容。</li>
+<li><a href="https://docs.vulkan.org/guide/latest/descriptor_dynamic_offset.html">dynamic offset</a>：后续实现帧资源环时核对偏移与范围。</li>
+<li><a href="https://docs.vulkan.org/guide/latest/synchronization.html">synchronization</a>：按生产者和消费者选择依赖。</li>
+<li><a href="https://docs.vulkan.org/guide/latest/validation_overview.html">validation overview</a>：从 VUID 返回有效用法规则。</li>
+</ul>
+<h2>DX12 与框架</h2>
+<ul>
+<li><a href="https://learn.microsoft.com/en-us/windows/win32/direct3d12/root-signatures">Microsoft root signatures</a>：接口、根常量和描述符表。</li>
+<li><a href="https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12">Microsoft resource barriers</a>：legacy transition/UAV 等状态依赖。</li>
+<li><a href="https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles">Microsoft command lists</a>：录制对象、allocator 与执行。</li>
+<li><a href="https://learn.microsoft.com/en-us/windows/win32/direct3d12/porting-from-direct3d-11-to-direct3d-12">Microsoft D3D11→12 迁移说明</a>：观察显式 CPU/GPU 生命周期管理。</li>
+<li><a href="https://github.com/nvpro-samples/nvpro_core2">nvpro_core2 官方仓库</a>：以本仓库固定子模块提交为接口依据，避免直接套最新主分支示例。</li>
+</ul>
+<h2>如何组合使用</h2>
+<p>先从本地对照页打开真实代码，再去外部资料核对一个不理解的术语或约束。出现差异时记录版本与假设，回到本工程决定是保留当前基线还是开启迁移练习。不要为了让某个网上片段编译而同时升级 API、shader 语言和框架版本，这会让新错误难以归因。</p></main></html>

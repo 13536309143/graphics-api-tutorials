@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv06_pbr_viewport · PBR 视口与 UI 参数</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>nv06_pbr_viewport · PBR 视口与 UI 参数</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv06_pbr_viewport · PBR 视口与 UI 参数</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>nv06_pbr_viewport · PBR 视口与 UI 参数</h1>
 <p><a href="../../README.html">路线首页</a> · <a href="../../../native/README.html">原生 Vulkan 对照</a></p>
 <h2>构建与运行</h2>
 <pre><code>cmake --preset vulkan-nvpro
@@ -15,4 +15,44 @@ cmake --build --preset vulkan-nvpro-debug --target nv06_pbr_viewport --parallel 
 <p><code>nv06_pbr_viewport.exe --smoke</code> 使用 GPU 无窗口运行或控制台检查。渲染课读回 Viewport 图像为 PPM；计算课逐项验证。验证层错误会使测试失败。常规窗口的 resize/minimize、UI 输入和长时间运行需要另外检查，不能以 headless 通过代替全部交互验证。</p>
 <h2>实测画面</h2>
 <p>固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。</p>
-<p><img alt="nv06_pbr_viewport" src="../../../../docs/previews/nv06_pbr_viewport.png"></p></main></html>
+<p><img alt="nv06_pbr_viewport" src="../../../../docs/previews/nv06_pbr_viewport.png"></p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>UI 粗糙度倍率只改变每 Draw 的 roughness，夹取范围避免零粗糙度数值问题。渲染器和 GLSL 与原生 PBR 共享，额外复杂度来自视口与 UI 接入。</p>
+<p>配套精讲：<a href="../../../../docs/compare/12_lighting_pbr_ibl.html">三 API 对照 · 直接光 PBR 与 IBL</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="../../common/nvapp_course.hpp#L113">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 113—134 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>    void onUIRender() override {
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+            app-&gt;close();
+        if (smoke)
+            return;
+        ImGui::Begin(&quot;Settings&quot;);
+        ImGui::TextUnformatted(&quot;Vulkan / nvpro_core2 course&quot;);
+        ImGui::Text(&quot;Scene mode: %d&quot;, mode);
+        if (mode &gt;= 9)
+            ImGui::SliderFloat(&quot;Roughness scale&quot;, &amp;roughnessScale, .2f, 2.f);
+        ImGui::TextUnformatted(&quot;Esc: close. Resize the viewport to rebuild attachments.&quot;);
+        ImGui::End();
+        ImGui::Begin(&quot;Viewport&quot;);
+        if (target.getSize().width)
+            ImGui::Image(display, ImGui::GetContentRegionAvail());
+        ImGui::End();
+    }
+    void onRender(VkCommandBuffer cmd) override {
+        // 每次更新前等待队列，保证共用 UBO 和离屏目标不会与前一帧并发读写。
+        vkCheck(vkQueueWaitIdle(c.queue));
+
+        // GENERAL 布局不代表自动同步：仍需声明前一次读写与本次颜色写入的依赖。</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="../../../../OpenGL/lessons/25_ibl/README.html">25_ibl</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>对比原生性能前应隔离什么？</p>
+<p>参考推导：统一场景参数、分辨率与等待策略，并分离 UI 合成成本；当前 Debug 帧率不是公平 benchmark。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

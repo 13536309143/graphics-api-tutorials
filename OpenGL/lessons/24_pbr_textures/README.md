@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 24_pbr_textures
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 24_pbr_textures --parallel 4
+.\OpenGL\build\bin\Debug\24_pbr_textures.exe
 ```
 
 预期画面：35 颗带纹理球，不同金属度/粗糙度因子下有空间变化的材质，空格关闭法线。
@@ -33,7 +34,7 @@ PBR 材质的各张图有不同语义：albedo 是没有烘焙直接光的基础
 
 把 G 和 B 交换看错误；将 roughness 当成 1-glossiness 接入；用纯白 AO 对照。
 
-修改后重新执行 `cmake --build build --config Debug --target 24_pbr_textures --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 24_pbr_textures --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -53,3 +54,62 @@ AO 应直接让灯照到的表面也同样变黑吗？
 ![24_pbr_textures](../../docs/previews/24_pbr_textures.png)
 
 [查看按住空格时的对照图](../../docs/previews/24_pbr_textures_off.png)
+
+
+## 深入学习：数据、接口与执行
+
+albedo 做 sRGB 解码，normal/MR/AO 保持线性。glTF 常见 MR 的 G 为 roughness、B 为 metallic，不能把整张 RGB 当成一种标量或随意交换通道。
+
+配套精讲：[三 API 对照 · 直接光 PBR 与 IBL](../../../docs/compare/12_lighting_pbr_ibl.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/24_pbr_textures/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "24_pbr_textures - OpenGL Course");
+    Shader shader(app, "advanced.vert", "pbr.frag");
+    Mesh ball(sphere());
+    Camera camera;
+    camera.pos = {0, 0, 14};
+    camera.pitch = 0;
+    ImageTexture albedo(asset(app, "textures/albedo.png"), true),
+        normal(asset(app, "textures/normal.png")), mr(asset(app, "textures/metalrough.png")),
+        ao(asset(app, "textures/ao.png"));
+    glEnable(GL_DEPTH_TEST);
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        shader.use();
+        pbrDefaults(shader);
+        cameraUniforms(shader, app, camera);
+        albedo.bind(0);
+        normal.bind(1);
+        mr.bind(2);
+        ao.bind(3);
+        shader.set("useMaps", 1);
+        shader.set("useNormal", app.key(GLFW_KEY_SPACE) != GLFW_PRESS);
+        for (int y = 0; y < 5; ++y)
+            for (int x = 0; x < 7; ++x) {
+                shader.set("metallic", float(y) / 4);
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [24_pbr_textures](README.md) |
+| Vulkan 原生 | [vk09_pbr](../../../Vulkan/native/lessons/vk09_pbr/README.md) |
+| Vulkan / nvpro_core2 | [nv06_pbr_viewport](../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.md) |
+| DirectX 12 | [dx09_pbr](../../../DirectX12/lessons/dx09_pbr/README.md) |
+
+### 先预测，再验证
+
+交换 MR 的 G/B 通道会发生什么？
+
+参考推导：材质的粗糙度与金属度分布交换，高光形状和漫反射比例同时变化。用单通道调试图先确认输入。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

@@ -1,0 +1,217 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>01 · 窗口、上下文、设备和队列</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>01 · 窗口、上下文、设备和队列</h1>
+<p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#01_context_device">交互式对照</a> · <a href="00_learning_path.html">上一章</a> · <a href="02_triangle_pipeline.html">下一章</a></p>
+<p>本章解决“为什么 OpenGL 创建窗口后就能调用绘图函数，而 Vulkan/DX12 还需要很多对象”。目标是能画出初始化依赖图，并区分窗口管理与 GPU 工作管理。</p>
+<h2>窗口不等于渲染设备</h2>
+<p>操作系统窗口提供可见区域和输入事件。OpenGL context 保存当前程序、VAO、纹理等状态；本仓库让 GLFW 同时创建窗口和 context。Vulkan 路线先要求 GLFW 不创建 OpenGL context，再创建 instance、surface 和逻辑设备。DX12 也使用无 OpenGL context 的窗口，通过原生 HWND 把 DXGI 交换链连接到它。</p>
+<table>
+<tr><td>问题</td><td>OpenGL</td><td>Vulkan 原生</td><td>DX12</td></tr>
+<tr><td>谁管理窗口和键盘鼠标？</td><td>GLFW</td><td>GLFW</td><td>GLFW / HWND</td></tr>
+<tr><td>谁决定可用功能？</td><td>context 版本与扩展</td><td>物理设备查询、特性启用</td><td>adapter、feature level、feature queries</td></tr>
+<tr><td>谁接收 GPU 工作？</td><td>当前 context 对应的驱动路径</td><td>创建的 VkQueue</td><td>ID3D12CommandQueue</td></tr>
+<tr><td>谁连接窗口与呈现？</td><td>context 的窗口系统绑定</td><td>SurfaceKHR 与 SwapchainKHR</td><td>DXGI swap chain</td></tr>
+</table>
+<h2>顺着代码走一遍</h2>
+<p>OpenGL 的顺序是 <code>glfwInit → hints → glfwCreateWindow → glfwMakeContextCurrent → gladLoadGL</code>。GLAD 加载的是函数入口；没有正确的当前 context，找到函数地址也不代表可以合法使用对应功能。GPU 对象必须在 context 仍然存在时销毁，因此示例先创建 App，再创建 Shader 和 Mesh，利用局部对象的反向析构顺序。</p>
+<p>原生 Vulkan 的 <code>NativeDevice</code> 先列出窗口系统所需实例扩展，然后创建实例和可选 debug messenger。之后枚举物理设备，检查版本、dynamicRendering、synchronization2，以及队列族是否同时支持 graphics/compute；有窗口时还检查该 surface 的呈现支持。此代码采用同一队列族以减少所有权转移的复杂度，不保证是所有设备上的最优队列选择。</p>
+<p>查询到一个特性与启用一个特性是两件事。前者回答驱动能不能做，后者是在创建设备时声明本程序要使用什么。<code>pNext</code> 把多个版本/扩展的特性结构串成链；不要把查询用的结构和创建时要启用的内容当作没有差别的清单。</p>
+<p>DX12 的 <code>DxDevice</code> 先尝试开启调试层，再创建 factory、选择 adapter、创建设备和 direct queue。<code>--warp</code> 改用软件 adapter，可帮助区分硬件相关问题，但软件执行的帧率不能用于比较显卡性能。feature level 12_0 是本课程门槛，不是“所有 DX12 新功能都支持”的证明。</p>
+<h2>nvpro_core2 的作用</h2>
+<p><code>nvvk::Context</code> 接收实例扩展、设备扩展、特性和队列要求并完成创建。应用仍需声明需求、检查初始化结果和保证拥有者活得足够久。框架内部使用的 Vulkan 对象仍受同样的生命周期规则约束；“被框架封装”不意味着资源不再依赖 device。</p>
+<h2>动手实验与答案</h2>
+<ul>
+<li>分别运行 OpenGL 窗口课、vk01、nv01 和 dx01，记录设备名、API 请求版本以及是否真的创建窗口。预期只有设备检查课可以没有图像；这是其验证目标，不是黑屏错误。</li>
+<li>在原生 Vulkan 设备筛选位置打断点，记录选中 queue family 的 flags 和 present support。预测：把 graphics 条件删除并不能让 graphics pipeline 在任意队列上合法运行。</li>
+<li>画销毁关系。参考答案：先停止 GPU 使用，再释放依赖 device 的资源和管线，最后销毁 device；窗口 surface 与实例也要按依赖顺序处理。C++ 的析构只处理 CPU 控制流，不会自动等待未完成的 GPU 任务。</li>
+</ul>
+<h2>常见错误</h2>
+<p>初始化就失败时先看 GLFW/loader 错误，再看扩展、验证层和功能查询。链接器找不到库与运行时设备不满足特性属于两个阶段，不能靠反复复制 DLL 混着解决。<a href="https://www.glfw.org/docs/latest/vulkan_guide.html">GLFW Vulkan guide</a> 可用于核对窗口与 surface 的边界。</p>
+<h2>与本仓库实现并排核对</h2>
+<p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 范围</td></tr>
+<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr>
+</table>
+<h3>OpenGL · 已实现</h3>
+<p>先 current context，再加载 GL 入口；GPU 对象先于 context 销毁。</p>
+<p><a href="../../OpenGL/common/app.hpp#L25">OpenGL/common/app.hpp</a>，第 25—77 行：</p>
+<pre><code>    App(int argc, char** argv, const char* title) {
+        for (int i = 1; i &lt; argc; ++i) {
+            smoke |= std::string(argv[i]) == &quot;--smoke&quot;;
+            capture |= std::string(argv[i]) == &quot;--capture&quot;;
+            variant |= std::string(argv[i]) == &quot;--variant&quot;;
+        }
+        expectGeometry = std::string(title).find(&quot;01_window&quot;) != 0;
+        assets = std::filesystem::absolute(argv[0]).parent_path() / &quot;shaders&quot;;
+        glfwSetErrorCallback([](int c, const char* s) {
+            std::cerr &lt;&lt; &quot;GLFW &quot; &lt;&lt; c &lt;&lt; &quot;: &quot; &lt;&lt; s &lt;&lt; &#x27;\n&#x27;;
+        });
+        if (!glfwInit())
+            throw std::runtime_error(&quot;GLFW initialization failed&quot;);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+        if (smoke)
+            glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+        if (!window) {
+            glfwTerminate();
+            throw std::runtime_error(&quot;Cannot create OpenGL 3.3 core context&quot;);
+        }
+
+        // 必须先让上下文在当前线程生效，再由 GLAD 加载 OpenGL 函数入口。
+        glfwMakeContextCurrent(window);
+        if (!gladLoadGL(glfwGetProcAddress)) {
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            throw std::runtime_error(&quot;GLAD load failed&quot;);
+        }
+        glfwSwapInterval(smoke ? 0 : 1);
+        std::cout &lt;&lt; &quot;GPU: &quot; &lt;&lt; glGetString(GL_RENDERER) &lt;&lt; &quot;\nOpenGL: &quot; &lt;&lt; glGetString(GL_VERSION)
+                  &lt;&lt; &#x27;\n&#x27;;
+        last = float(glfwGetTime());
+    }
+    ~App() {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+    App(const App&amp;) = delete;
+    App&amp; operator=(const App&amp;) = delete;
+    int key(int k) const {
+        return smoke &amp;&amp; variant &amp;&amp; k == GLFW_KEY_SPACE ? GLFW_PRESS : glfwGetKey(window, k);
+    }
+    float time() const {
+        return smoke ? 1.0f : float(glfwGetTime());
+    }
+
+    // 每帧先处理事件并读取 framebuffer 尺寸；高 DPI 下它可能不同于窗口逻辑尺寸。</code></pre>
+<h3>Vulkan 原生 · 已实现</h3>
+<p>扩展属于实例或设备，队列族还要检查实际呈现支持。</p>
+<p><a href="../../Vulkan/native/common/native_app.hpp#L29">Vulkan/native/common/native_app.hpp</a>，第 29—70 行：</p>
+<pre><code>    NativeDevice(GLFWwindow* window) {
+        uint32_t count = 0;
+        std::vector&lt;const char*&gt; extensions;
+        if (window) {
+            const char** required = glfwGetRequiredInstanceExtensions(&amp;count);
+            extensions.assign(required, required + count);
+        }
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        uint32_t layerCount = 0;
+        vkEnumerateInstanceLayerProperties(&amp;layerCount, nullptr);
+        std::vector&lt;VkLayerProperties&gt; layers(layerCount);
+        vkEnumerateInstanceLayerProperties(&amp;layerCount, layers.data());
+        bool debug = std::any_of(layers.begin(), layers.end(), [](const auto&amp; x) {
+            return std::strcmp(x.layerName, &quot;VK_LAYER_KHRONOS_validation&quot;) == 0;
+        });
+        const char* layer = &quot;VK_LAYER_KHRONOS_validation&quot;;
+        if (!debug)
+            std::cerr &lt;&lt; &quot;Validation layer not installed; rendering remains available\n&quot;;
+        VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
+        app.pApplicationName = &quot;Native Vulkan Course&quot;;
+        app.apiVersion = VK_API_VERSION_1_3;
+        VkDebugUtilsMessengerCreateInfoEXT di{
+            VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+        di.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+        di.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        di.pfnUserCallback = validation;
+        VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+        info.pApplicationInfo = &amp;app;
+        info.enabledExtensionCount = uint32_t(extensions.size());
+        info.ppEnabledExtensionNames = extensions.data();
+        if (debug) {
+            info.enabledLayerCount = 1;
+            info.ppEnabledLayerNames = &amp;layer;
+            info.pNext = &amp;di;
+        }
+        vkCheck(vkCreateInstance(&amp;info, nullptr, &amp;c.instance));
+        auto create = reinterpret_cast&lt;PFN_vkCreateDebugUtilsMessengerEXT&gt;(
+            vkGetInstanceProcAddr(c.instance, &quot;vkCreateDebugUtilsMessengerEXT&quot;));
+        if (debug &amp;&amp; create)</code></pre>
+<h3>Vulkan / nvpro_core2 · 已实现</h3>
+<p>Context 减少创建代码，需求选择与失败处理仍由应用负责。</p>
+<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L245">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 245—276 行：</p>
+<pre><code>    nvvk::ContextInitInfo setup{};
+    setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+    setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
+    setup.enableValidationLayers = true;
+    setup.verbose = false;
+    setup.applicationName = &quot;nvpro_core2 Course&quot;;
+    if (!smoke &amp;&amp; chapter != 1 &amp;&amp; chapter != 5) {
+        nvvk::addSurfaceExtensions(setup.instanceExtensions);
+        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
+    }
+    vkCheck(context.init(setup));
+    VkDebugUtilsMessengerCreateInfoEXT debug{
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debug.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debug.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debug.pfnUserCallback = nvValidation;
+    vkCheck(
+        vkCreateDebugUtilsMessengerEXT(context.getInstance(), &amp;debug, nullptr, &amp;owner.messenger));
+    {
+        auto q = context.getQueueInfo(0);
+        VkContextRef c{context.getInstance(),
+                       context.getPhysicalDevice(),
+                       context.getDevice(),
+                       q.queue,
+                       q.familyIndex};
+        if (chapter == 1) {
+            VkPhysicalDeviceProperties p;
+            vkGetPhysicalDeviceProperties(c.physical, &amp;p);
+            std::cout &lt;&lt; &quot;nvpro_core2 context: &quot; &lt;&lt; p.deviceName &lt;&lt; &#x27;\n&#x27;;
+        } else if (chapter == 5)
+            computeSquares(c, nvShaders);
+        else {</code></pre>
+<h3>DirectX 12 · 已实现</h3>
+<p>在设备创建前启用调试层；WARP 是软件参考路径。</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L69">DirectX12/common/dx12_course.hpp</a>，第 69—110 行：</p>
+<pre><code>    explicit DxDevice(bool warp = false) {
+        UINT flags = 0;
+        ComPtr&lt;ID3D12Debug&gt; debug;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&amp;debug)))) {
+            debug-&gt;EnableDebugLayer();
+            flags |= DXGI_CREATE_FACTORY_DEBUG;
+            std::cout &lt;&lt; &quot;D3D12 debug layer enabled\n&quot;;
+        } else
+            std::cout
+                &lt;&lt; &quot;D3D12 debug layer unavailable; install Windows Graphics Tools for validation\n&quot;;
+        dxCheck(CreateDXGIFactory2(flags, IID_PPV_ARGS(&amp;factory)));
+        ComPtr&lt;IDXGIAdapter1&gt; adapter;
+        if (warp) {
+            dxCheck(factory-&gt;EnumWarpAdapter(IID_PPV_ARGS(&amp;adapter)));
+            dxCheck(
+                D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&amp;device)));
+        } else {
+            for (UINT i = 0; factory-&gt;EnumAdapterByGpuPreference(
+                                 i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&amp;adapter)) !=
+                             DXGI_ERROR_NOT_FOUND;
+                 ++i) {
+                DXGI_ADAPTER_DESC1 desc;
+                adapter-&gt;GetDesc1(&amp;desc);
+                if (!(desc.Flags &amp; DXGI_ADAPTER_FLAG_SOFTWARE) &amp;&amp;
+                    SUCCEEDED(D3D12CreateDevice(
+                        adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&amp;device))))
+                    break;
+                adapter.Reset();
+            }
+            if (!device)
+                throw std::runtime_error(&quot;No D3D12 feature level 12_0 adapter; try --warp&quot;);
+        }
+        DXGI_ADAPTER_DESC1 desc;
+        adapter-&gt;GetDesc1(&amp;desc);
+        std::wcout &lt;&lt; L&quot;GPU: &quot; &lt;&lt; desc.Description &lt;&lt; L&#x27;\n&#x27;;
+        device.As(&amp;messages);
+        D3D12_COMMAND_QUEUE_DESC qi{};
+        qi.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+        dxCheck(device-&gt;CreateCommandQueue(&amp;qi, IID_PPV_ARGS(&amp;queue)));
+        dxCheck(device-&gt;CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                               IID_PPV_ARGS(&amp;allocator)));
+        dxCheck(device-&gt;CreateCommandList(</code></pre></main></html>

@@ -8,10 +8,12 @@
 
 ## 运行与观察
 
-在教程根目录执行：
+在合集根目录执行（包含四条路线 preset 的目录）：
 
 ```powershell
-.\scripts\run.ps1 -Lesson 05_texture
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 05_texture --parallel 4
+.\OpenGL\build\bin\Debug\05_texture.exe
 ```
 
 预期画面：矩形显示橙蓝相间的棋盘纹理。
@@ -32,7 +34,7 @@ GL_TEXTURE_WRAP_S/T 控制越界 UV 的行为；GL_REPEAT 让图案重复。MIN_
 
 把 quad() 的 UV 从 1 改为 4，看重复；将过滤改成 GL_NEAREST 看像素边界。
 
-每次修改 C++ 或 GLSL 后，从根目录执行 `cmake --build build --config Debug --parallel`。运行同一示例对比修改前后；尝试先预测画面，再修改代码。
+每次修改 C++ 或 GLSL 后，从根目录执行 `cmake --build --preset opengl-debug --target 05_texture --parallel 4`。运行同一示例对比修改前后；尝试先预测画面，再修改代码。
 
 ## 自测
 
@@ -43,3 +45,55 @@ GL_TEXTURE_WRAP_S/T 控制越界 UV 的行为；GL_REPEAT 让图案重复。MIN_
 ## 出错时优先检查
 
 初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 [排错手册](../../docs/06_排错手册.md)。
+
+
+## 深入学习：数据、接口与执行
+
+texture unit 是绑定点，sampler uniform 保存的是单元编号，不是 GLuint 纹理句柄。棋盘由 CPU 生成，可以先排除图片解码和文件路径问题，再检查 UV 与过滤。
+
+配套精讲：[三 API 对照 · 纹理、Mip 与颜色空间](../../../docs/compare/06_textures_color.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/05_texture/main.cpp](main.cpp#L5)，第 5—23 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "05_texture - OpenGL Course");
+    Shader shader(app, "basic.vert", "texture.frag");
+    Mesh mesh(quad(), quadIndices());
+    Texture texture;
+    while (app.begin()) {
+        app.clear();
+        shader.use();
+        glm::mat4 mvp(1.f);
+        shader.set("mvp", mvp);
+        texture.bind();
+        shader.set("tex", 0);
+        mesh.draw();
+        app.end();
+    }
+    return 0;
+} catch (const std::exception& e) {
+    return failure(e);
+}
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [05_texture](README.md) |
+| Vulkan 原生 | [vk06_texture_descriptor](../../../Vulkan/native/lessons/vk06_texture_descriptor/README.md) |
+| Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md) |
+| DirectX 12 | [dx06_texture_srv](../../../DirectX12/lessons/dx06_texture_srv/README.md) |
+
+### 先预测，再验证
+
+把棋盘改成四象限颜色，发现上下相反时首先检查什么？
+
+参考推导：检查 UV、CPU 行序和采样方向；改变光源不会修复纹理方向。先验证方向，再验证颜色空间。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

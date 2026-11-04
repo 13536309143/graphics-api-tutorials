@@ -8,10 +8,12 @@
 
 ## 运行与观察
 
-在教程根目录执行：
+在合集根目录执行（包含四条路线 preset 的目录）：
 
 ```powershell
-.\scripts\run.ps1 -Lesson 07_cube
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 07_cube --parallel 4
+.\OpenGL\build\bin\Debug\07_cube.exe
 ```
 
 预期画面：有透视感的棋盘立方体旋转，前面正确遮挡后面。
@@ -32,7 +34,7 @@ cube() 输出每面独立的法线和 UV，36 个顶点构成 12 个三角形。
 
 暂时禁用深度测试看穿插；修改 FOV 为 70 度；调整 near/far。
 
-每次修改 C++ 或 GLSL 后，从根目录执行 `cmake --build build --config Debug --parallel`。运行同一示例对比修改前后；尝试先预测画面，再修改代码。
+每次修改 C++ 或 GLSL 后，从根目录执行 `cmake --build --preset opengl-debug --target 07_cube --parallel 4`。运行同一示例对比修改前后；尝试先预测画面，再修改代码。
 
 ## 自测
 
@@ -43,3 +45,59 @@ cube() 输出每面独立的法线和 UV，36 个顶点构成 12 个三角形。
 ## 出错时优先检查
 
 初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 [排错手册](../../docs/06_排错手册.md)。
+
+
+## 深入学习：数据、接口与执行
+
+本课同时引入透视与深度测试。三维顶点变到 clip space 后还需透视除法；深度缓冲保存最近可见片段，提交顺序不再独自决定遮挡。
+
+配套精讲：[三 API 对照 · 目标、深度与 MSAA](../../../docs/compare/07_targets_depth_msaa.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/07_cube/main.cpp](main.cpp#L5)，第 5—27 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "07_cube - OpenGL Course");
+    Shader shader(app, "basic.vert", "texture.frag");
+    Mesh mesh(cube());
+    Texture texture;
+    Camera camera;
+    glEnable(GL_DEPTH_TEST);
+    while (app.begin()) {
+        app.clear();
+        shader.use();
+        texture.bind();
+        shader.set("tex", 0);
+        auto model = glm::rotate(glm::mat4(1), app.time() * .7f, glm::vec3(.5f, 1, .2f));
+        auto view = glm::lookAt(glm::vec3(2, 1.5f, 3), glm::vec3(0), glm::vec3(0, 1, 0));
+        auto proj = glm::perspective(glm::radians(45.f), app.aspect(), .1f, 100.f);
+        shader.set("mvp", proj * view * model);
+        mesh.draw();
+        app.end();
+    }
+    return 0;
+} catch (const std::exception& e) {
+    return failure(e);
+}
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [07_cube](README.md) |
+| Vulkan 原生 | [vk10_offscreen](../../../Vulkan/native/lessons/vk10_offscreen/README.md) |
+| Vulkan / nvpro_core2 | [nv02_application](../../../Vulkan/nvpro/lessons/nv02_application/README.md) |
+| DirectX 12 | [dx10_offscreen](../../../DirectX12/lessons/dx10_offscreen/README.md) |
+
+### 先预测，再验证
+
+只清颜色而不清上一帧深度，旋转时可能怎样？
+
+参考推导：旧深度会拒绝新帧本应可见的片段，形成残留遮挡。颜色和深度的清除是两项独立工作。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

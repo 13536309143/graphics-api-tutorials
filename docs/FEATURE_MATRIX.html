@@ -1,0 +1,34 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>功能完成度：API 能力与课程实现分开看</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>功能完成度：API 能力与课程实现分开看</h1>
+<p>本页检查的是当前仓库，不是 API 的全部功能清单。已实现指能在现有代码中追踪实际执行路径；迁移设计指有讲解、资源方案和验收任务，但没有对应完成程序。nvpro_core2 是 Vulkan 框架路线。</p>
+<table>
+<tr><td>主题</td><td>OpenGL 3.3 路线</td><td>Vulkan 原生</td><td>Vulkan / nvpro</td><td>DirectX 12</td></tr>
+<tr><td>窗口、清屏、设备</td><td>已实现</td><td>已实现</td><td>已实现</td><td>已实现</td></tr>
+<tr><td>顶点/索引几何</td><td>已实现</td><td>已实现</td><td>共享渲染器已实现</td><td>已实现</td></tr>
+<tr><td>帧常量 / 对象常量</td><td>uniform / UBO</td><td>UBO / push constants</td><td>相同 Vulkan 机制</td><td>root CBV / root constants</td></tr>
+<tr><td>棋盘采样</td><td>已实现</td><td>已实现</td><td>已实现</td><td>已实现</td></tr>
+<tr><td>图片与 glTF 材质</td><td>已实现</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>静态 OBJ/glTF</td><td>14/15</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>自由相机交互</td><td>已实现</td><td>当前固定相机</td><td>当前固定相机 / UI</td><td>当前固定相机</td></tr>
+<tr><td>深度 / 实例化</td><td>已实现</td><td>已实现</td><td>可复用场景</td><td>已实现</td></tr>
+<tr><td>离屏输出</td><td>FBO / 后处理</td><td>offscreen + blit</td><td>RenderTarget + UI</td><td>offscreen + CopyResource</td></tr>
+<tr><td>完整后处理 shader 链</td><td>多个例子已实现</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>mip 生成</td><td>已有路径</td><td>当前单级</td><td>当前单级</td><td>当前单级</td></tr>
+<tr><td>MSAA resolve</td><td>29 已实现</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>GPU compute / 数值读回</td><td>当前基线外</td><td>08 已实现</td><td>05 已实现</td><td>08 已实现</td></tr>
+<tr><td>直接光 PBR</td><td>23/24</td><td>09</td><td>06</td><td>09</td></tr>
+<tr><td>IBL 预计算</td><td>25 已实现</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>HDR / Bloom</td><td>21/22</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>方向光/点光阴影</td><td>13/33</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>Deferred / SSAO</td><td>26/27</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>骨骼动画</td><td>31</td><td>迁移设计</td><td>迁移设计</td><td>迁移设计</td></tr>
+<tr><td>多帧资源环</td><td>驱动相关规则</td><td>当前串行，提供设计</td><td>自定义场景当前串行</td><td>当前串行，提供设计</td></tr>
+<tr><td>公平统一 benchmark</td><td>尚无统一测试器</td><td>同左</td><td>同左</td><td>同左</td></tr>
+<tr><td>Ray tracing / bindless / mesh shader</td><td>当前不覆盖</td><td>当前不覆盖</td><td>当前不覆盖</td><td>当前不覆盖</td></tr>
+</table>
+<h2>不能从表格直接推出的结论</h2>
+<p>Vulkan/DX12 没有 IBL 课程，不等于 API 不支持 IBL。OpenGL 当前没有 compute 课程，指这条 3.3 路线未实现，不是 OpenGL 所有版本都没有计算能力。框架提供某个 helper，也不等于课程已经接入并验收该功能。</p>
+<h2>当前场景的可比程度</h2>
+<p>Vulkan 与 DX12 复用 shared 中的几何、Frame 和 Draw；PBR shader 的直接光参数尽量保持一致。nvpro 复用 SceneVk，但输出目标和 UI 路径不同。OpenGL 保留原有独立场景和学习节奏，没有把所有例子改成与显式后端逐像素一致。</p>
+<p>因此，同主题导航用于理解 API 差异；严格图像回归和性能对比需要先执行<a href="EXPERIMENTS.html">统一实验协议</a>，固定场景、输入、输出与计时。已有四路线预览只证明各自画出了预期内容。</p>
+<h2>推荐补齐顺序</h2>
+<p>先统一自由相机和静态模型，再迁移 mip、全屏后处理、阴影与 HDR/IBL；最后增加骨骼、SSAO 和多帧并行。每次只引入一种主要变量，并保存中间纹理与验证结果。完成后更新本表、对应章节、catalog 和 smoke，而不是只在 README 中增加一个标题。</p></main></html>

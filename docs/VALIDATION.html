@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>验证记录</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>验证记录</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>验证记录</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>验证记录</h1>
 <p>日期：2026-11-04。最终本机工程目录：E:\GraphicsAPI-Tutorials。</p>
 <table>
 <tr><td>路线</td><td>Debug 检查</td><td>内容</td></tr>
@@ -21,5 +21,8 @@
 <h2>源码排版与注释复验</h2>
 <p>2026-11-04 对教程自有 C++、GLSL/HLSL 和 CMake 进行统一排版，并补充中文关键注释。125 个源码/构建文件的格式检查通过；119 个 C++/着色器文件在忽略注释、空白及等价的相邻字符串拼接后，非注释 token 序列保持一致。</p>
 <p>重新构建四条路线，Debug CTest 再次通过 OpenGL 34/34、原生 Vulkan 10/10、nvpro_core2 6/6、DX12 10/10，共 60/60。启动器另在独立构建目录编译通过，避免覆盖正在运行的阅读器。第三方依赖与 nvpro_core2 子模块没有改写。规则与维护命令见 <a href="CODE_STYLE.html">源码排版说明</a>。</p>
+<h2>详细精讲与对照阅读器验证</h2>
+<p>2026-11-04 增加 16 个主题精讲、60 课的深入说明/源码切片/预测实验、功能矩阵、版本参考与统一实验协议。生成 108 对 Markdown/离线 HTML，所有本地文档链接和图片/脚本资源通过完整性检查；重复生成会核对实际源码定位并更新切片。</p>
+<p>浏览器实测主题切换、四路线源码筛选、搜索、窄屏布局和直接 file 方式离线阅读；通过新的对照页实际启动 vk08、nv05、dx08，三者均完成并读到全部 256 项计算校验结果。C++、着色器和 CMake 执行实现未在本轮修改，未把页面验证重算为一次新的 60 课 GPU 复验；先前的 60/60 记录保留。</p>
 <h2>范围</h2>
 <p>本次完成 Windows Debug 的真实 GPU 验证。Release 配置和打包流程已提供，但没有将其描述为全部运行验证；Linux、WARP、所有窗口交互组合、长期运行与多 GPU 未在本次逐项测试。CI 目前验证 Windows 编译，不执行硬件 GPU 测试，也不代替本机验证。Vulkan/DX12 的高级效果迁移范围和串行同步取舍见路线 README。</p></main></html>

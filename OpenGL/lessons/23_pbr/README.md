@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 23_pbr
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 23_pbr --parallel 4
+.\OpenGL\build\bin\Debug\23_pbr.exe
 ```
 
 预期画面：35 颗球：横轴粗糙度从低到高，纵轴金属度从低到高。
@@ -33,7 +34,7 @@ D 使用 GGX 法线分布，粗糙度 r 先转换 alpha=r²，再使用 alpha² 
 
 把金属度固定为 0 和 1；取消 kD 中 (1-metal) 看不守恒效果；比较 GGX 与旧 Phong 的粗糙度控制。
 
-修改后重新执行 `cmake --build build --config Debug --target 23_pbr --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 23_pbr --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -51,3 +52,62 @@ D 使用 GGX 法线分布，粗糙度 r 先转换 alpha=r²，再使用 alpha² 
 以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。
 
 ![23_pbr](../../docs/previews/23_pbr.png)
+
+
+## 深入学习：数据、接口与执行
+
+球阵列改变 metallic/roughness，其他条件保持可控。逐步检查 N、V、L、D、G、F，再组合镜面和漫反射；roughness 的平方约定应在不同 shader 中一致。
+
+配套精讲：[三 API 对照 · 直接光 PBR 与 IBL](../../../docs/compare/12_lighting_pbr_ibl.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/23_pbr/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "23_pbr - OpenGL Course");
+    Shader shader(app, "advanced.vert", "pbr.frag");
+    Mesh ball(sphere());
+    Camera camera;
+    camera.pos = {0, 0, 14};
+    camera.pitch = 0;
+    ImageTexture albedo(asset(app, "textures/albedo.png"), true),
+        normal(asset(app, "textures/normal.png")), mr(asset(app, "textures/metalrough.png")),
+        ao(asset(app, "textures/ao.png"));
+    glEnable(GL_DEPTH_TEST);
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        shader.use();
+        pbrDefaults(shader);
+        cameraUniforms(shader, app, camera);
+        albedo.bind(0);
+        normal.bind(1);
+        mr.bind(2);
+        ao.bind(3);
+        shader.set("useMaps", 0);
+        shader.set("useNormal", 0);
+        for (int y = 0; y < 5; ++y)
+            for (int x = 0; x < 7; ++x) {
+                shader.set("metallic", float(y) / 4);
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [23_pbr](README.md) |
+| Vulkan 原生 | [vk09_pbr](../../../Vulkan/native/lessons/vk09_pbr/README.md) |
+| Vulkan / nvpro_core2 | [nv06_pbr_viewport](../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.md) |
+| DirectX 12 | [dx09_pbr](../../../DirectX12/lessons/dx09_pbr/README.md) |
+
+### 先预测，再验证
+
+金属度提高一定更亮吗？
+
+参考推导：不一定；漫反射减少、镜面颜色变化，实际亮度仍依赖方向与照明。先固定输入再比较。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

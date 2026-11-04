@@ -1,10 +1,12 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 09 课：Phong 光照</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 09 课：Phong 光照</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 09 课：Phong 光照</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 09 课：Phong 光照</h1>
 <p><a href="../../README.html">课程首页</a> · <a href="../08_camera/README.html">上一课</a> · <a href="../10_materials/README.html">下一课</a></p>
 <h2>学完你应该能够</h2>
 <p>说明“Phong：从几何到明暗”，运行并修改本课示例。</p>
 <h2>运行与观察</h2>
-<p>在教程根目录执行：</p>
-<pre><code>.\scripts\run.ps1 -Lesson 09_lighting</code></pre>
+<p>在合集根目录执行（包含四条路线 preset 的目录）：</p>
+<pre><code>cmake --preset opengl
+cmake --build --preset opengl-debug --target 09_lighting --parallel 4
+.\OpenGL\build\bin\Debug\09_lighting.exe</code></pre>
 <p>预期画面：三个不同高光锐度的立方体，光照随时间改变。</p>
 <h2>原理与代码阅读</h2>
 <p>本课使用环境光 ambient、漫反射 diffuse、镜面反射 specular。环境项提供简化的基础亮度；漫反射强度为 max(dot(N,L),0)，N/L 必须归一化；镜面项用 reflect(-L,N) 与视线 V 的夹角，指数 shininess 控制高光集中程度。</p>
@@ -14,9 +16,53 @@
 <p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
 <h2>动手练习</h2>
 <p>改光源高度；关闭环境项；对模型做非均匀缩放对比法线变换。</p>
-<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build build --config Debug --parallel</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
+<p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build --preset opengl-debug --target 09_lighting --parallel 4</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
 <h2>自测</h2>
 <p>相机移动时漫反射和镜面反射分别如何变化？</p>
 <p>参考答案：固定物体与光源时漫反射不依赖视线；镜面项包含 V，因此随相机变化。</p>
 <h2>出错时优先检查</h2>
-<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p></main></html>
+<p>初始化顺序、当前程序、VAO/纹理绑定、uniform 值与坐标范围。Shader 语法错误会显示编译日志，OpenGL 状态错误会在帧尾输出错误编号。参见 <a href="../../docs/06_排错手册.html">排错手册</a>。</p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>先确认 N、L、V 都在世界空间并已归一化，再讨论高光指数。插值后的法线长度会变化，片元阶段还要 normalize。漫反射不依赖相机，镜面项依赖视线。</p>
+<p>配套精讲：<a href="../../../docs/compare/12_lighting_pbr_ibl.html">三 API 对照 · 直接光 PBR 与 IBL</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="main.cpp#L5">OpenGL/lessons/09_lighting/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;09_lighting - OpenGL Course&quot;);
+    Shader shader(app, &quot;lit.vert&quot;, &quot;lit.frag&quot;);
+    Mesh mesh(cube());
+    Texture texture;
+    Camera camera;
+    glEnable(GL_DEPTH_TEST);
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        shader.use();
+        texture.bind();
+        shader.set(&quot;tex&quot;, 0);
+        shader.set(&quot;shadowMap&quot;, 1);
+        shader.set(&quot;view&quot;, camera.view());
+        shader.set(&quot;projection&quot;, camera.projection(app));
+        shader.set(&quot;lightSpace&quot;, glm::mat4(1));
+        shader.set(&quot;shadows&quot;, 0);
+        shader.set(&quot;eye&quot;, camera.pos);
+        shader.set(&quot;light&quot;, glm::vec3(2 * std::sin(app.time()), 3, 2 * std::cos(app.time())));
+        shader.set(&quot;textured&quot;, 0);
+        shader.set(&quot;multi&quot;, 0);
+        for (int n = 0; n &lt; 3; ++n) {
+            auto model = glm::translate(glm::mat4(1), glm::vec3((n - 1) * 1.7f, 0, 0));
+            model = glm::rotate(model, app.time() * .2f, glm::vec3(.2f, 1, 0));
+            shader.set(&quot;model&quot;, model);</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="README.html">09_lighting</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>固定物体和光源，只移动相机，哪种项应变化？</p>
+<p>参考推导：镜面高光随 V 变化，漫反射的 N·L 不因此改变；若整个明暗乱转，先检查坐标空间而不是 shininess。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

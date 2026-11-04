@@ -1,8 +1,9 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 21 课：线性颜色与 HDR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 21 课：线性颜色与 HDR</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 21 课：线性颜色与 HDR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 21 课：线性颜色与 HDR</h1>
 <p><a href="../../README.html">课程首页</a> · <a href="../20_parallax/README.html">上一课</a> · <a href="../22_bloom/README.html">下一课</a></p>
 <h2>目标与运行</h2>
-<pre><code>cd OpenGL
-.\scripts\run.ps1 -Lesson 21_hdr</code></pre>
+<pre><code>cmake --preset opengl
+cmake --build --preset opengl-debug --target 21_hdr --parallel 4
+.\OpenGL\build\bin\Debug\21_hdr.exe</code></pre>
 <p>预期画面：三颗高亮球；上下箭头调整曝光，空格暂时关闭 tone mapping。</p>
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
@@ -15,7 +16,7 @@
 <p>曝光改变传感器/显示对场景的响应，不应修改材质 baseColor 去抵消过曝。空格关闭 tone mapping 后仍进行显示编码，超过 1 的结果在最终缓冲裁剪，高亮细节因此丢失。</p>
 <h2>修改练习</h2>
 <p>分别调高灯强和曝光，解释区别；加入 Reinhard 映射并对比；把附件换 RGB8 看高光信息丢失。</p>
-<p>修改后重新执行 <code>cmake --build build --config Debug --target 21_hdr --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<p>修改后重新执行 <code>cmake --build --preset opengl-debug --target 21_hdr --parallel 4</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
 <h2>自测与参考答案</h2>
 <p>HDR 是否意味着最终显示一定支持 HDR 显示器？</p>
 <p>不是。这里是内部高动态范围渲染，最终仍映射到普通窗口显示范围。</p>
@@ -24,4 +25,48 @@
 <h2>参考截图</h2>
 <p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
 <p><img alt="21_hdr" src="../../docs/previews/21_hdr.png"></p>
-<p><a href="../../docs/previews/21_hdr_off.png">查看按住空格时的对照图</a></p></main></html>
+<p><a href="../../docs/previews/21_hdr_off.png">查看按住空格时的对照图</a></p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>HDR 先用浮点颜色保留超过一的光强，再通过曝光与 tone mapping 映射显示。直接写普通低精度目标会先截断能量，之后降低曝光也找不回来。</p>
+<p>配套精讲：<a href="../../../docs/compare/06_textures_color.html">三 API 对照 · 纹理、Mip 与颜色空间</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="main.cpp#L5">OpenGL/lessons/21_hdr/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;21_hdr - OpenGL Course&quot;);
+    RenderTarget scene(2), ping, pong;
+    Shader shader(app, &quot;advanced.vert&quot;, &quot;hdr_scene.frag&quot;), tone(app, &quot;screen.vert&quot;, &quot;tone.frag&quot;),
+        blur(app, &quot;screen.vert&quot;, &quot;blur.frag&quot;);
+    Mesh ball(sphere()), plane(quad(), quadIndices());
+    Camera camera;
+    camera.pos = {0, 0, 8};
+    camera.pitch = 0;
+    float exposure = 1;
+    while (app.begin()) {
+        if (app.width &lt; 1 || app.height &lt; 1) {
+            app.end();
+            continue;
+        }
+        camera.update(app);
+        if (glfwGetKey(app.window, GLFW_KEY_UP) == GLFW_PRESS)
+            exposure += app.dt;
+        if (glfwGetKey(app.window, GLFW_KEY_DOWN) == GLFW_PRESS)
+            exposure = std::max(.05f, exposure - app.dt);
+        scene.resize(app.width, app.height);
+        ping.resize(app.width, app.height);
+        pong.resize(app.width, app.height);
+        scene.bind();
+        glEnable(GL_DEPTH_TEST);
+        app.clear();</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="README.html">21_hdr</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk06_texture_descriptor/README.html">vk06_texture_descriptor</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx06_texture_srv/README.html">dx06_texture_srv</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>曝光变低后高亮细节仍不存在，先看哪里？</p>
+<p>参考推导：检查场景目标是否真为浮点、光照是否已提前 clamp 或编码。最终公式无法恢复早已丢失的信息。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

@@ -1,0 +1,362 @@
+[
+  {
+    "guide": "OpenGL/lessons/01_window/README.md",
+    "file": "OpenGL/lessons/01_window/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/02_triangle/README.md",
+    "file": "OpenGL/lessons/02_triangle/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/03_indexed/README.md",
+    "file": "OpenGL/lessons/03_indexed/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/04_uniform/README.md",
+    "file": "OpenGL/lessons/04_uniform/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/05_texture/README.md",
+    "file": "OpenGL/lessons/05_texture/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/06_transform/README.md",
+    "file": "OpenGL/lessons/06_transform/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/07_cube/README.md",
+    "file": "OpenGL/lessons/07_cube/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/08_camera/README.md",
+    "file": "OpenGL/lessons/08_camera/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/09_lighting/README.md",
+    "file": "OpenGL/lessons/09_lighting/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/10_materials/README.md",
+    "file": "OpenGL/lessons/10_materials/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/11_framebuffer/README.md",
+    "file": "OpenGL/lessons/11_framebuffer/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/12_instancing/README.md",
+    "file": "OpenGL/lessons/12_instancing/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/13_shadows/README.md",
+    "file": "OpenGL/lessons/13_shadows/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/14_model_obj/README.md",
+    "file": "OpenGL/lessons/14_model_obj/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/15_model_gltf/README.md",
+    "file": "OpenGL/lessons/15_model_gltf/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/16_blending/README.md",
+    "file": "OpenGL/lessons/16_blending/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/17_stencil/README.md",
+    "file": "OpenGL/lessons/17_stencil/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/18_cubemap/README.md",
+    "file": "OpenGL/lessons/18_cubemap/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/19_normal_mapping/README.md",
+    "file": "OpenGL/lessons/19_normal_mapping/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/20_parallax/README.md",
+    "file": "OpenGL/lessons/20_parallax/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/21_hdr/README.md",
+    "file": "OpenGL/lessons/21_hdr/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/22_bloom/README.md",
+    "file": "OpenGL/lessons/22_bloom/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/23_pbr/README.md",
+    "file": "OpenGL/lessons/23_pbr/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/24_pbr_textures/README.md",
+    "file": "OpenGL/lessons/24_pbr_textures/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/25_ibl/README.md",
+    "file": "OpenGL/lessons/25_ibl/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/26_deferred/README.md",
+    "file": "OpenGL/lessons/26_deferred/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/27_ssao/README.md",
+    "file": "OpenGL/lessons/27_ssao/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/28_ubo/README.md",
+    "file": "OpenGL/lessons/28_ubo/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/29_msaa/README.md",
+    "file": "OpenGL/lessons/29_msaa/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/30_geometry/README.md",
+    "file": "OpenGL/lessons/30_geometry/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/31_skeletal/README.md",
+    "file": "OpenGL/lessons/31_skeletal/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/32_particles/README.md",
+    "file": "OpenGL/lessons/32_particles/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/33_point_shadows/README.md",
+    "file": "OpenGL/lessons/33_point_shadows/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "OpenGL/lessons/34_gallery/README.md",
+    "file": "OpenGL/lessons/34_gallery/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk01_instance_device/README.md",
+    "file": "Vulkan/native/common/native_app.hpp",
+    "anchor": "NativeDevice(GLFWwindow",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk02_swapchain/README.md",
+    "file": "Vulkan/native/common/native_app.hpp",
+    "anchor": "vkCheck(vkWaitForFences",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk03_triangle/README.md",
+    "file": "Vulkan/common/scene_vk.hpp",
+    "anchor": "VkGraphicsPipelineCreateInfo gp",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk04_vertex_buffer/README.md",
+    "file": "Vulkan/common/scene_vk.hpp",
+    "anchor": "struct VkBufferResource",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk05_indexed_uniform/README.md",
+    "file": "Vulkan/common/scene_vk.hpp",
+    "anchor": "VkDescriptorSetLayoutBinding bindings",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk06_texture_descriptor/README.md",
+    "file": "Vulkan/common/scene_vk.hpp",
+    "anchor": "auto data = checker",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk07_depth_instancing/README.md",
+    "file": "Vulkan/native/common/native_app.hpp",
+    "anchor": "VkRenderingAttachmentInfo color",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk08_compute_readback/README.md",
+    "file": "Vulkan/common/shaders/square.comp",
+    "anchor": "layout(local_size_x",
+    "count": 18
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk09_pbr/README.md",
+    "file": "Vulkan/common/shaders/scene.frag",
+    "anchor": "vec3 pbr",
+    "count": 26
+  },
+  {
+    "guide": "Vulkan/native/lessons/vk10_offscreen/README.md",
+    "file": "Vulkan/native/lessons/vk10_offscreen/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  },
+  {
+    "guide": "Vulkan/nvpro/lessons/nv01_context/README.md",
+    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+    "anchor": "nvvk::ContextInitInfo setup",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/nvpro/lessons/nv02_application/README.md",
+    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+    "anchor": "void onResize",
+    "count": 8
+  },
+  {
+    "guide": "Vulkan/nvpro/lessons/nv03_triangle/README.md",
+    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+    "anchor": "void onRender",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md",
+    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+    "anchor": "if (mode == 6)",
+    "count": 20
+  },
+  {
+    "guide": "Vulkan/nvpro/lessons/nv05_compute_readback/README.md",
+    "file": "Vulkan/common/scene_vk.hpp",
+    "anchor": "inline void computeSquares",
+    "count": 30
+  },
+  {
+    "guide": "Vulkan/nvpro/lessons/nv06_pbr_viewport/README.md",
+    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+    "anchor": "void onUIRender",
+    "count": 22
+  },
+  {
+    "guide": "DirectX12/lessons/dx01_device/README.md",
+    "file": "DirectX12/common/dx12_course.hpp",
+    "anchor": "explicit DxDevice",
+    "count": 30
+  },
+  {
+    "guide": "DirectX12/lessons/dx02_swapchain/README.md",
+    "file": "DirectX12/common/dx12_course.hpp",
+    "anchor": "void begin()",
+    "count": 26
+  },
+  {
+    "guide": "DirectX12/lessons/dx03_triangle/README.md",
+    "file": "DirectX12/shaders/scene.hlsl",
+    "anchor": "Pixel TriangleMain",
+    "count": 17
+  },
+  {
+    "guide": "DirectX12/lessons/dx04_vertex_buffer/README.md",
+    "file": "DirectX12/common/dx12_course.hpp",
+    "anchor": "DxScene(DxDevice",
+    "count": 30
+  },
+  {
+    "guide": "DirectX12/lessons/dx05_indexed_cbv/README.md",
+    "file": "DirectX12/common/dx12_course.hpp",
+    "anchor": "D3D12_ROOT_PARAMETER params",
+    "count": 30
+  },
+  {
+    "guide": "DirectX12/lessons/dx06_texture_srv/README.md",
+    "file": "DirectX12/common/dx12_course.hpp",
+    "anchor": "D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint",
+    "count": 30
+  },
+  {
+    "guide": "DirectX12/lessons/dx07_depth_instancing/README.md",
+    "file": "DirectX12/common/dx12_course.hpp",
+    "anchor": "void resize(int",
+    "count": 30
+  },
+  {
+    "guide": "DirectX12/lessons/dx08_compute_uav/README.md",
+    "file": "DirectX12/common/dx12_course.hpp",
+    "anchor": "inline void dxCompute",
+    "count": 30
+  },
+  {
+    "guide": "DirectX12/lessons/dx09_pbr/README.md",
+    "file": "DirectX12/shaders/scene.hlsl",
+    "anchor": "float3 PBR",
+    "count": 28
+  },
+  {
+    "guide": "DirectX12/lessons/dx10_offscreen/README.md",
+    "file": "DirectX12/lessons/dx10_offscreen/main.cpp",
+    "anchor": "int main",
+    "count": 26
+  }
+]

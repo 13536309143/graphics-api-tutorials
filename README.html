@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Graphics API Tutorials · C++ / CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="web/runner.css"><script defer src="web/runner.js"></script><main><nav><a href="index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>Graphics API Tutorials · C++ / CMake</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Graphics API Tutorials · C++ / CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="web/runner.css"><script defer src="web/runner.js"></script><main><nav><a href="index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>Graphics API Tutorials · C++ / CMake</h1>
 <p>中文图形 API 学习工程：<strong>OpenGL、原生 Vulkan、nvpro_core2 Vulkan、DirectX 12</strong>。三种 API 分目录，Vulkan 下保留两套路线。共 <strong>60 个可执行课程</strong>：OpenGL 34、原生 Vulkan 10、nvpro_core2 6、DX12 10。</p>
 <p><img alt="跨 API PBR 场景" src="docs/previews/api-comparison.jpg"></p>
 <h2>目录与路线</h2>
@@ -10,6 +10,9 @@
 <tr><td>DirectX 12</td><td><a href="DirectX12/README.html">DirectX12/</a></td><td>DXGI、命令与 fence、PSO/root signature、CBV/SRV/UAV、深度、计算、PBR</td></tr>
 </table>
 <p>新路线优先把显式 API 的资源和同步讲清楚。Vulkan/DX12 的 PBR 是直接光实现；OpenGL 的完整 IBL、模型导入等高级功能还没有全部迁移，具体实现范围在各路线 README 说明。</p>
+<h2>深入学习与三 API 对照</h2>
+<p><a href="docs/compare/index.html">打开对照实验室</a> · <a href="docs/COMPARE.html">16 章详细精讲</a> · <a href="docs/FEATURE_MATRIX.html">功能完成度</a> · <a href="docs/EXPERIMENTS.html">统一实验协议</a></p>
+<p>精讲按窗口/设备、三角形、内存、矩阵、绑定、纹理、目标、同步、多帧、计算、模型、PBR/IBL、多遍、调试和框架组织。每章解释目的、参数与责任，并连接真实源码、实验和参考答案。所有 60 个课程也补充针对性的深入说明与横向导航。<a href="docs/REFERENCES.html">参考资料</a>记录你提供的 Vulkan/BootWiki 教程与当前工程的版本差异。</p>
 <h2>快速运行入口</h2>
 <p>先编译对应路线，再通过本地阅读器点击下表按钮。</p>
 <table>

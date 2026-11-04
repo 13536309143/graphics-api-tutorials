@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 18_cubemap
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 18_cubemap --parallel 4
+.\OpenGL\build\bin\Debug\18_cubemap.exe
 ```
 
 预期画面：反射球与 HDR 环境天空盒；转动相机能观察反射移动。
@@ -33,7 +34,7 @@ Cubemap 由 +X/-X/+Y/-Y/+Z/-Z 六个面组成，使用方向向量而非 UV 采�
 
 改变 HDR 贴图中的光源方向；把反射改为 refract 并处理全反射；比较 sky view 保留平移时的错误。
 
-修改后重新执行 `cmake --build build --config Debug --target 18_cubemap --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 18_cubemap --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -51,3 +52,58 @@ Cubemap 是预先给定的环境内容，没有包含每帧的局部场景。
 以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。
 
 ![18_cubemap](../../docs/previews/18_cubemap.png)
+
+
+## 深入学习：数据、接口与执行
+
+cubemap 以三维方向而不是二维 UV 采样。反射方向来自视线和表面法线；天空盒去掉相机平移，只保留旋转，避免像普通房间那样随相机穿过。
+
+配套精讲：[三 API 对照 · 纹理、Mip 与颜色空间](../../../docs/compare/06_textures_color.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/18_cubemap/main.cpp](main.cpp#L5)，第 5—26 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "18_cubemap - OpenGL Course");
+    Environment env(app, false);
+    Shader shader(app, "advanced.vert", "reflect.frag"), sky(app, "sky.vert", "sky.frag");
+    Mesh ball(sphere()), box(cube());
+    Camera camera;
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        shader.use();
+        cameraUniforms(shader, app, camera);
+        shader.set("environmentMap", 0);
+        bindCube(env.environment, 0);
+        shader.set("model", glm::mat4(1));
+        ball.draw();
+        env.sky(sky, box, app, camera);
+        app.end();
+    }
+    return 0;
+} catch (const std::exception& e) {
+    return failure(e);
+}
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [18_cubemap](README.md) |
+| Vulkan 原生 | [vk06_texture_descriptor](../../../Vulkan/native/lessons/vk06_texture_descriptor/README.md) |
+| Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md) |
+| DirectX 12 | [dx06_texture_srv](../../../DirectX12/lessons/dx06_texture_srv/README.md) |
+
+### 先预测，再验证
+
+环境左右颠倒能否通过调 roughness 修复？
+
+参考推导：不能。核对六面方向、up 向量和反射向量约定；材质参数不能纠正 cubemap 坐标。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 33_point_shadows
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 33_point_shadows --parallel 4
+.\OpenGL\build\bin\Debug\33_point_shadows.exe
 ```
 
 预期画面：移动点光源照亮四个立方体，地面阴影向各方向延伸；空格关闭阴影。
@@ -33,7 +34,7 @@ point_depth.vert/frag → 六个 cubemap 面 → point_shadow.frag
 
 依次显示六面深度；增大分辨率；实现多个方向的 PCF；调整光源高度。
 
-修改后重新执行 `cmake --build build --config Debug --target 33_point_shadows --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 33_point_shadows --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -53,3 +54,62 @@ Cubemap 采样器根据方向的最大绝对分量自动选面并计算面内坐
 ![33_point_shadows](../../docs/previews/33_point_shadows.png)
 
 [查看按住空格时的对照图](../../docs/previews/33_point_shadows_off.png)
+
+
+## 深入学习：数据、接口与执行
+
+点光六个方向分别写深度 cubemap，保存 light 到表面的距离并用相同 farPlane 归一化。采样端和输出端的距离定义必须一致。
+
+配套精讲：[三 API 对照 · 阴影、SSAO 与后处理](../../../docs/compare/13_multipass_effects.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/33_point_shadows/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "33_point_shadows - OpenGL Course");
+    GLuint fbo, depthCube;
+    glGenFramebuffers(1, &fbo);
+    glGenTextures(1, &depthCube);
+    bindCube(depthCube, 0);
+    for (int f = 0; f < 6; ++f)
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + f,
+                     0,
+                     GL_DEPTH_COMPONENT24,
+                     512,
+                     512,
+                     0,
+                     GL_DEPTH_COMPONENT,
+                     GL_FLOAT,
+                     nullptr);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    for (GLenum axis : {GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_WRAP_R})
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, axis, GL_CLAMP_TO_EDGE);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X, depthCube, 0);
+    RenderTarget::check();
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [33_point_shadows](README.md) |
+| Vulkan 原生 | 迁移设计：vk10 已有离屏/blit；完整 Bloom/SSAO 仍需资源、采样管线及逐遍依赖。 |
+| Vulkan / nvpro_core2 | 迁移设计：RenderTarget 与 ImGui 仅是接入点；新增多遍效果仍要自己描述写后读。 |
+| DirectX 12 | 迁移设计：dx10 是 CopyResource，迁移后处理需新增可采样目标和全屏像素管线。 |
+
+### 先预测，再验证
+
+只改一端的 farPlane 会怎样？
+
+参考推导：保存值与比较值不再处于同一尺度，阴影边界整体错误。先统一距离定义再调 bias/PCF。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

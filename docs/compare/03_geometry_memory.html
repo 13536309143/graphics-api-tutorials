@@ -1,0 +1,195 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03 · 顶点、索引与 GPU 内存</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../web/runner.css"><script defer src="../../web/runner.js"></script><main><nav><a href="../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>03 · 顶点、索引与 GPU 内存</h1>
+<p><a href="../COMPARE.html">对照路线</a> · <a href="index.html#03_geometry_memory">交互式对照</a> · <a href="02_triangle_pipeline.html">上一章</a> · <a href="04_transforms_camera.html">下一章</a></p>
+<p>本章把“一个数组”拆成四层：CPU 数据、GPU 资源、底层内存、解释布局的接口。顶点看起来错乱时，四层中的任一层出错都可能得到相似画面。</p>
+<h2>先核对字节，再讨论形状</h2>
+<p>共享 <code>Vertex</code> 是 position 三个 float、normal 三个 float、UV 两个 float，共 32 字节。对应偏移为 0、12、24。若误把 stride 写成 24，第二个顶点就会从前一个顶点的 UV 处开始读取；如果索引类型用 uint16 而内存实际是 uint32，三角形连接也会完全错误。</p>
+<p>OpenGL 基础 <code>Mesh</code> 使用八个连续 float，基本布局同样是 32 字节。导入模型的 <code>ImportedMesh::Vertex</code> 还包含 joints/weights，不能继续套用 32 字节；它使用 <code>offsetof</code> 描述成员，骨骼索引走整数 attribute 接口。</p>
+<table>
+<tr><td>责任</td><td>OpenGL</td><td>Vulkan</td><td>DX12</td></tr>
+<tr><td>储存顶点</td><td>buffer object</td><td>VkBuffer + 绑定内存</td><td>ID3D12Resource</td></tr>
+<tr><td>描述布局</td><td>VAO 中的 attribute 配置</td><td>binding/attribute descriptions</td><td>input layout + VBV</td></tr>
+<tr><td>索引解释</td><td>DrawElements 的 type</td><td>BindIndexBuffer 的 index type</td><td>IBV 的 format</td></tr>
+<tr><td>内存选择</td><td>由驱动管理细节</td><td>memoryTypeBits 与属性筛选</td><td>DEFAULT/UPLOAD/READBACK heap</td></tr>
+</table>
+<h2>本仓库如何上传</h2>
+<p>OpenGL 用 <code>glBufferData</code> 提交顶点；驱动可以在内部复制和调度。原生 Vulkan 的 <code>VkBufferResource</code> 默认申请 HOST_VISIBLE 和 HOST_COHERENT 内存，map 后 memcpy。这让初学者容易追踪数据，但不应被描述为独立显卡静态几何的最佳传输策略。DX12 的顶点/索引同样直接保存在 UPLOAD heap，教学目标是观察资源和输入视图。</p>
+<p>nv04 给出更接近静态几何的路径：VMA 创建 device-local 顶点缓冲，StagingUploader 临时保存 CPU 数据，录制 copy，等待完成，再释放上传器。纹理也有 CPU 可见缓冲到 optimal image 的拷贝，但它在公共 SceneVk 中实现，不能把两条路径混称为同一个 VMA 纹理上传例子。</p>
+<p>“device local”与“host visible”不是逻辑上的互斥概念，统一内存设备可能同时具备。程序应该查询属性和使用场景，不应从显卡品牌猜某个 memory type 索引。非 coherent 内存还涉及 flush/invalidate 及非一致原子尺寸对齐；本代码选 coherent 并没有消除 CPU/GPU 的执行同步要求。</p>
+<h2>索引复用的边界</h2>
+<p>一个立方体不总是八个顶点。同一空间位置在不同面可能具有不同法线或 UV，GPU 顶点索引指向的是一整套属性，因此硬边立方体通常需要每面独立顶点。共享场景建立 24 个顶点和 36 个索引；它与“八个几何角点”并不矛盾。</p>
+<h2>实验：从抓帧验证布局</h2>
+<p>打开 vk04/dx04 或 OpenGL 索引课，在 mesh viewer 中查看前三个 position 和 UV，核对 CPU 数组值。然后只改变一个顶点的 X，确认只有相关三角形移动。完成后恢复基线，再比较索引版和非索引版的顶点数量、索引数量与 draw 参数。</p>
+<p>思考：减少顶点数是否一定更快？参考答案：不一定；索引局部性、缓存命中、顶点阶段成本和带宽共同影响结果。正确性课只验证数据含义，性能结论需要额外测量。</p>
+<p>迁移练习：为原生 Vulkan 顶点增加 staging 路径。写出目标 usage 必须包含的 TRANSFER_DST 和 VERTEX_BUFFER，以及 copy-write 到 vertex-attribute-read 的依赖。该练习是设计任务，当前 vk04 默认仍使用直接可见缓冲。<a href="https://docs.vulkan.org/tutorial/latest/04_Vertex_buffers/02_Staging_buffer.html">官方 staging 章节</a> 可用于核对两级上传思路。</p>
+<h2>与本仓库实现并排核对</h2>
+<p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 范围</td></tr>
+<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/03_indexed/README.html">03_indexed</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk04_vertex_buffer/README.html">vk04_vertex_buffer</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx04_vertex_buffer/README.html">dx04_vertex_buffer</a></td></tr>
+</table>
+<h3>OpenGL · 已实现</h3>
+<p>EBO 绑定属于 VAO 状态，attribute stride 与 CPU 数据一致。</p>
+<p><a href="../../OpenGL/common/app.hpp#L217">OpenGL/common/app.hpp</a>，第 217—264 行：</p>
+<pre><code>struct Mesh {
+    GLuint vao = 0, vbo = 0, ebo = 0;
+    GLsizei count = 0;
+    bool indexed = false;
+    Mesh(const std::vector&lt;float&gt;&amp; data, const std::vector&lt;unsigned&gt;&amp; indices = {}) {
+        indexed = !indices.empty();
+        count = GLsizei(indexed ? indices.size() : data.size() / 8);
+        glGenVertexArrays(1, &amp;vao);
+        glGenBuffers(1, &amp;vbo);
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(
+            GL_ARRAY_BUFFER, GLsizeiptr(data.size() * sizeof(float)), data.data(), GL_STATIC_DRAW);
+
+        // attribute 描述写入当前 VAO；stride 和 offset 必须与 CPU 顶点布局一致。
+        for (GLuint i = 0; i &lt; 3; ++i) {
+            glEnableVertexAttribArray(i);
+            glVertexAttribPointer(
+                i,
+                i == 2 ? 2 : 3,
+                GL_FLOAT,
+                GL_FALSE,
+                8 * sizeof(float),
+                reinterpret_cast&lt;void*&gt;(size_t(i == 2 ? 6 : i * 3) * sizeof(float)));
+        }
+
+        // 索引缓冲绑定也是 VAO 状态，因此要在解绑 VAO 前完成设置。
+        if (indexed) {
+            glGenBuffers(1, &amp;ebo);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         GLsizeiptr(indices.size() * sizeof(unsigned)),
+                         indices.data(),
+                         GL_STATIC_DRAW);
+        }
+        glBindVertexArray(0);
+    }
+    ~Mesh() {
+        glDeleteBuffers(1, &amp;ebo);
+        glDeleteBuffers(1, &amp;vbo);
+        glDeleteVertexArrays(1, &amp;vao);
+    }
+    Mesh(const Mesh&amp;) = delete;
+    Mesh&amp; operator=(const Mesh&amp;) = delete;
+    void draw() const {
+        glBindVertexArray(vao);
+        if (indexed)
+            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);</code></pre>
+<h3>Vulkan 原生 · 已实现</h3>
+<p>先满足 memoryTypeBits 与属性，再绑定资源；coherent 不等于执行同步。</p>
+<p><a href="../../Vulkan/common/scene_vk.hpp#L29">Vulkan/common/scene_vk.hpp</a>，第 29—73 行：</p>
+<pre><code>struct VkBufferResource {
+    VkDevice device{};
+    VkBuffer buffer{};
+    VkDeviceMemory memory{};
+    VkDeviceSize size{};
+    VkBufferResource() = default;
+    VkBufferResource(const VkBufferResource&amp;) = delete;
+    VkBufferResource&amp; operator=(const VkBufferResource&amp;) = delete;
+    void init(const VkContextRef&amp; c,
+              VkDeviceSize bytes,
+              VkBufferUsageFlags usage,
+              VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
+        device = c.device;
+        size = bytes;
+        VkBufferCreateInfo info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        info.size = bytes;
+        info.usage = usage;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        vkCheck(vkCreateBuffer(device, &amp;info, nullptr, &amp;buffer));
+        VkMemoryRequirements req;
+        vkGetBufferMemoryRequirements(device, buffer, &amp;req);
+        VkMemoryAllocateInfo alloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+        alloc.allocationSize = req.size;
+        alloc.memoryTypeIndex = memoryType(c, req.memoryTypeBits, flags);
+        vkCheck(vkAllocateMemory(device, &amp;alloc, nullptr, &amp;memory));
+        vkCheck(vkBindBufferMemory(device, buffer, memory, 0));
+    }
+
+    // 此处缓冲使用 HOST_VISIBLE | HOST_COHERENT；非 coherent 内存还需显式 flush。
+    void upload(const void* data, size_t bytes) {
+        void* p;
+        vkCheck(vkMapMemory(device, memory, 0, size, 0, &amp;p));
+        std::memcpy(p, data, bytes);
+        vkUnmapMemory(device, memory);
+    }
+    ~VkBufferResource() {
+        if (buffer)
+            vkDestroyBuffer(device, buffer, nullptr);
+        if (memory)
+            vkFreeMemory(device, memory, nullptr);
+    }
+};
+struct VkImageResource {
+    VkDevice device{};</code></pre>
+<h3>Vulkan / nvpro_core2 · 已实现</h3>
+<p>本段上传 device-local 顶点；纹理路径在 SceneVk，不能混作同一 helper。</p>
+<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L88">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 88—107 行：</p>
+<pre><code>        if (mode == 6) {
+            auto&amp; vertices = scene-&gt;mesh.vertices;
+            vkCheck(allocator.createBuffer(uploadedVertices,
+                                           vertices.size() * sizeof(Vertex),
+                                           VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT));
+
+            // 先把数据加入 staging，再录制拷贝并等待 GPU；完成后才能释放临时上传器。
+            nvvk::StagingUploader upload;
+            upload.init(&amp;allocator);
+            vkCheck(upload.appendBuffer(uploadedVertices, 0, std::span&lt;const Vertex&gt;(vertices)));
+            auto cmd = app-&gt;createTempCmdBuffer();
+            upload.cmdUploadAppended(cmd);
+            app-&gt;submitAndWaitTempCmdBuffer(cmd);
+            upload.deinit();
+            scene-&gt;overrideVertices = uploadedVertices.buffer;
+            std::cout &lt;&lt; &quot;VMA device-local vertex upload complete\n&quot;;
+        }
+    }
+
+    // 视口大小变化时重建 RenderTarget，并把新的 image view 交给 ImGui 显示。</code></pre>
+<h3>DirectX 12 · 已实现</h3>
+<p>UPLOAD 顶点和 index buffer view 保持清楚，性能优化可再改 DEFAULT。</p>
+<p><a href="../../DirectX12/common/dx12_course.hpp#L246">DirectX12/common/dx12_course.hpp</a>，第 246—283 行：</p>
+<pre><code>    DxScene(DxDevice&amp; context, int lesson) : c(context), mode(lesson), mesh(geometry(mode)) {
+        if (mode &gt;= 4) {
+            UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
+            vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+            void* mapped;
+            D3D12_RANGE empty{0, 0};
+            dxCheck(vertices-&gt;Map(0, &amp;empty, &amp;mapped));
+            std::memcpy(mapped, mesh.vertices.data(), size);
+            vertices-&gt;Unmap(0, nullptr);
+            vb = {vertices-&gt;GetGPUVirtualAddress(), size, sizeof(Vertex)};
+            if (!mesh.indices.empty()) {
+                UINT bytes = UINT(mesh.indices.size() * 4);
+                indices =
+                    c.buffer(bytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+                dxCheck(indices-&gt;Map(0, &amp;empty, &amp;mapped));
+                std::memcpy(mapped, mesh.indices.data(), bytes);
+                indices-&gt;Unmap(0, nullptr);
+                ib = {indices-&gt;GetGPUVirtualAddress(), bytes, DXGI_FORMAT_R32_UINT};
+            }
+        }
+
+        // CBV GPU 地址要求 256 字节对齐，因此给 64 字节的帧矩阵预留 256 字节。
+        uniform = c.buffer(256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+        D3D12_HEAP_PROPERTIES hp{};
+        hp.Type = D3D12_HEAP_TYPE_DEFAULT;
+        D3D12_RESOURCE_DESC image{};
+        image.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        image.Width = image.Height = 64;
+        image.DepthOrArraySize = 1;
+        image.MipLevels = 1;
+        image.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        image.SampleDesc.Count = 1;
+        dxCheck(c.device-&gt;CreateCommittedResource(&amp;hp,
+                                                  D3D12_HEAP_FLAG_NONE,
+                                                  &amp;image,
+                                                  D3D12_RESOURCE_STATE_COPY_DEST,
+                                                  nullptr,
+                                                  IID_PPV_ARGS(&amp;texture)));</code></pre></main></html>

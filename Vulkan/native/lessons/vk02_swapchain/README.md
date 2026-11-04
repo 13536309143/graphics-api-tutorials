@@ -38,7 +38,6 @@ Acquire 成功之后是否可以立刻让 present 使用未提交的图像内容
 
 参考：不可以，需要提交正确命令并用 semaphore 建立渲染完成到 present 的依赖。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -50,3 +49,66 @@ Acquire 成功之后是否可以立刻让 present 使用未提交的图像内容
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![vk02_swapchain](../../../../docs/previews/vk02_swapchain.png)
+
+
+## 深入学习：数据、接口与执行
+
+acquire 返回本轮 imageIndex，提交等待 acquired，present 等待渲染完成信号。成功取得图像后才 reset fence，OUT_OF_DATE 分支不能留下永远不会 signal 的等待。
+
+配套精讲：[三 API 对照 · 命令、帧槽与多帧设计](../../../../docs/compare/09_commands_frames.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L325)，第 325—354 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+            vkCheck(vkWaitForFences(d.c.device, 1, &fence, VK_TRUE, UINT64_MAX));
+            uint32_t imageIndex;
+
+            // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。
+            VkResult a = vkAcquireNextImageKHR(
+                d.c.device, swap.handle, UINT64_MAX, acquired, {}, &imageIndex);
+            if (a == VK_ERROR_OUT_OF_DATE_KHR) {
+                swap.recreate();
+                continue;
+            }
+            if (a != VK_SUBOPTIMAL_KHR)
+                vkCheck(a);
+
+            // 只有成功获取图像、确定会提交时才重置 fence，避免下次永久等待。
+            vkCheck(vkResetFences(d.c.device, 1, &fence));
+            vkCheck(vkResetCommandBuffer(cmd, 0));
+            VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+            vkCheck(vkBeginCommandBuffer(cmd, &begin));
+            VkImage target = mode == 10 ? swap.offscreen.image : swap.images[imageIndex];
+            VkImageView targetView = mode == 10 ? swap.offscreen.view : swap.views[imageIndex];
+            barrier(cmd,
+                    target,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_NONE,
+                    0,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+            barrier(cmd,
+                    swap.depth.image,
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [07_cube](../../../../OpenGL/lessons/07_cube/README.md) |
+| Vulkan 原生 | [vk02_swapchain](README.md) |
+| Vulkan / nvpro_core2 | [nv03_triangle](../../../nvpro/lessons/nv03_triangle/README.md) |
+| DirectX 12 | [dx02_swapchain](../../../../DirectX12/lessons/dx02_swapchain/README.md) |
+
+### 先预测，再验证
+
+两帧资源和三张图像可否用同一索引数组？
+
+参考推导：不能默认等同。frame slot 追踪 CPU 在途资源，imageIndex 追踪交换链图像，各自有不同复用条件。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

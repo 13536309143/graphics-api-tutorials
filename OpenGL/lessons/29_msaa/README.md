@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 29_msaa
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 29_msaa --parallel 4
+.\OpenGL\build\bin\Debug\29_msaa.exe
 ```
 
 预期画面：旋转方块的斜边经过 4× MSAA；空格关闭多重采样作对照。
@@ -33,7 +34,7 @@ Resolve 后的纹理可以像其他后处理图像一样采样。若需要自行
 
 查询并显示可用样本数；请求 2× 与 4× 比较；将窗口缩小观察几何边缘。
 
-修改后重新执行 `cmake --build build --config Debug --target 29_msaa --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 29_msaa --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -53,3 +54,62 @@ MSAA 能解决低分辨率纹理被斜着看时的闪烁吗？
 ![29_msaa](../../docs/previews/29_msaa.png)
 
 [查看按住空格时的对照图](../../docs/previews/29_msaa_off.png)
+
+
+## 深入学习：数据、接口与执行
+
+多样本 FBO 的颜色/深度使用相同样本数，resolve 写入单样本纹理再显示。看斜边而不是只看模型中心，才能观察几何覆盖的变化。
+
+配套精讲：[三 API 对照 · 目标、深度与 MSAA](../../../docs/compare/07_targets_depth_msaa.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/29_msaa/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "29_msaa - OpenGL Course");
+    Multisample msaa;
+    RenderTarget resolved(1, false);
+    Mesh box(cube()), plane(quad(), quadIndices());
+    Shader shader(app, "advanced.vert", "solid.frag"), screen(app, "screen.vert", "screen.frag");
+    Camera camera;
+    while (app.begin()) {
+        if (app.width < 1 || app.height < 1) {
+            app.end();
+            continue;
+        }
+        camera.update(app);
+        resolved.resize(app.width, app.height);
+        msaa.resize(app.width, app.height);
+        glBindFramebuffer(GL_FRAMEBUFFER, msaa.fbo);
+        glEnable(GL_DEPTH_TEST);
+        if (app.key(GLFW_KEY_SPACE) == GLFW_PRESS)
+            glDisable(GL_MULTISAMPLE);
+        else
+            glEnable(GL_MULTISAMPLE);
+        app.clear();
+        shader.use();
+        cameraUniforms(shader, app, camera);
+        shader.set("model", glm::rotate(glm::mat4(1), .6f, glm::vec3(.2f, 1, .4f)));
+        shader.set("baseColor", glm::vec3(.9f, .8f, .2f));
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [29_msaa](README.md) |
+| Vulkan 原生 | [vk10_offscreen](../../../Vulkan/native/lessons/vk10_offscreen/README.md) |
+| Vulkan / nvpro_core2 | [nv02_application](../../../Vulkan/nvpro/lessons/nv02_application/README.md) |
+| DirectX 12 | [dx10_offscreen](../../../DirectX12/lessons/dx10_offscreen/README.md) |
+
+### 先预测，再验证
+
+MSAA 打开后远处纹理仍闪烁，是 resolve 一定坏了吗？
+
+参考推导：不一定。MSAA 主要改善覆盖边缘，纹理缩小过滤和 shader 高频仍需 mip 等方法处理。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

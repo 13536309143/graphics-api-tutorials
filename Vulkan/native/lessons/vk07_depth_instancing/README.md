@@ -38,7 +38,6 @@ scene.vert gl_InstanceIndex → SceneVk::render(instanceCount=25) → depth atta
 
 参考：不会，每个实例仍执行顶点着色与光栅化，只是复用几何与提交。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -50,3 +49,66 @@ scene.vert gl_InstanceIndex → SceneVk::render(instanceCount=25) → depth atta
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![vk07_depth_instancing](../../../../docs/previews/vk07_depth_instancing.png)
+
+
+## 深入学习：数据、接口与执行
+
+一次 indexed draw 发出 25 个实例，gl_InstanceIndex 产生网格偏移。共享深度图每帧清除，LESS 配合 0..1 投影保留近片段；几何和实例数量应分别记录。
+
+配套精讲：[三 API 对照 · 目标、深度与 MSAA](../../../../docs/compare/07_targets_depth_msaa.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L363)，第 363—392 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+            VkRenderingAttachmentInfo color{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+            color.imageView = targetView;
+            color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            color.clearValue.color = {{.035f, .055f, .09f, 1}};
+            VkRenderingAttachmentInfo depth{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+            depth.imageView = swap.depth.view;
+            depth.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            depth.clearValue.depthStencil = {1, 0};
+            VkRenderingInfo render{VK_STRUCTURE_TYPE_RENDERING_INFO};
+            render.renderArea = {{0, 0}, swap.extent};
+            render.layerCount = 1;
+            render.colorAttachmentCount = 1;
+            render.pColorAttachments = &color;
+            render.pDepthAttachment = &depth;
+            vkCmdBeginRendering(cmd, &render);
+            if (swap.scene)
+                swap.scene->render(cmd, swap.extent, smoke ? 1.f : float(glfwGetTime()));
+            vkCmdEndRendering(cmd);
+            if (mode == 10) {
+                barrier(cmd,
+                        target,
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                        VK_PIPELINE_STAGE_2_BLIT_BIT,
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [29_msaa](../../../../OpenGL/lessons/29_msaa/README.md) |
+| Vulkan 原生 | [vk07_depth_instancing](README.md) |
+| Vulkan / nvpro_core2 | [nv02_application](../../../nvpro/lessons/nv02_application/README.md) |
+| DirectX 12 | [dx10_offscreen](../../../../DirectX12/lessons/dx10_offscreen/README.md) |
+
+### 先预测，再验证
+
+只增加 instance count 会让顶点缓冲扩大吗？
+
+参考推导：不会复制 CPU 顶点数据。更多调用由相同几何与实例索引生成，但 GPU 顶点/像素工作量仍增加。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

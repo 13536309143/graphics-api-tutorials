@@ -42,7 +42,6 @@ PSO 与 Root Signature 分别声明什么？
 
 参考：PSO 声明图形管线状态；Root Signature 声明 shader 的资源绑定接口。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -54,3 +53,53 @@ PSO 与 Root Signature 分别声明什么？
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![dx03_triangle](../../../docs/previews/dx03_triangle.png)
+
+
+## 深入学习：数据、接口与执行
+
+TriangleMain 用 SV_VertexID 生成位置，PSO 组合 VS/PS 与固定状态，root signature 约定资源接口。当前无 VBO 的三角形可排除 input layout 读错问题。
+
+配套精讲：[三 API 对照 · 三角形、管线与着色器](../../../docs/compare/02_triangle_pipeline.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [DirectX12/shaders/scene.hlsl](../../shaders/scene.hlsl#L39)，第 39—55 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```hlsl
+Pixel TriangleMain(uint id : SV_VertexID) {
+    float2 points[3] = {float2(-.7, -.6), float2(.7, -.6), float2(0, .6)};
+    float3 colors[3] = {float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1)};
+    Pixel p;
+    p.pos = float4(points[id], 0, 1);
+    p.normal = colors[id];
+    p.uv = 0;
+    p.world = p.pos.xyz;
+    return p;
+}
+
+// 直接光 Cook-Torrance：GGX 分布、Schlick-GGX 遮蔽及 Schlick 菲涅耳。
+// 与 Vulkan GLSL 使用相同场景和参数，方便逐项对照；此处未实现 IBL。
+float3 PBR(float3 N, float3 V, float3 P, float metal, float r) {
+    const float PI = 3.14159265359;
+    float3 albedo = float3(.8, .25, .07), sum = .02 * albedo * (1 - metal),
+           f0 = lerp(.04.xxx, albedo, metal);
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [02_triangle](../../../OpenGL/lessons/02_triangle/README.md) |
+| Vulkan 原生 | [vk03_triangle](../../../Vulkan/native/lessons/vk03_triangle/README.md) |
+| Vulkan / nvpro_core2 | [nv03_triangle](../../../Vulkan/nvpro/lessons/nv03_triangle/README.md) |
+| DirectX 12 | [dx03_triangle](README.md) |
+
+### 先预测，再验证
+
+像素 shader 返回颜色却没有显示，哪些状态还能拒绝它？
+
+参考推导：viewport/scissor、剔除、深度/模板、写掩码与错误目标都可能影响结果，必须按管线顺序检查。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

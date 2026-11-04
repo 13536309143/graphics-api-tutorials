@@ -5,8 +5,9 @@
 ## 目标与运行
 
 ```powershell
-cd OpenGL
-.\scripts\run.ps1 -Lesson 25_ibl
+cmake --preset opengl
+cmake --build --preset opengl-debug --target 25_ibl --parallel 4
+.\OpenGL\build\bin\Debug\25_ibl.exe
 ```
 
 预期画面：环境照明下的 35 球矩阵与天空，空格关闭 IBL 作对照。
@@ -35,7 +36,7 @@ BRDF LUT：在 128×128 的 RG16F 纹理中积分 NdotV 和 roughness 对应的�
 
 将采样数同时在 hammersley 和循环改为 512；增加预过滤分辨率；只显示 irradiance 或 prefilter 的某级作为调试。
 
-修改后重新执行 `cmake --build build --config Debug --target 25_ibl --parallel`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
+修改后重新执行 `cmake --build --preset opengl-debug --target 25_ibl --parallel 4`。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。
 
 ## 自测与参考答案
 
@@ -55,3 +56,62 @@ BRDF LUT：在 128×128 的 RG16F 纹理中积分 NdotV 和 roughness 对应的�
 ![25_ibl](../../docs/previews/25_ibl.png)
 
 [查看按住空格时的对照图](../../docs/previews/25_ibl_off.png)
+
+
+## 深入学习：数据、接口与执行
+
+Environment 的三种产物各服务不同积分：irradiance、roughness-prefilter、BRDF LUT。逐项查看面方向和 mip，最终球图才能说明组合是否正确。
+
+配套精讲：[三 API 对照 · 直接光 PBR 与 IBL](../../../docs/compare/12_lighting_pbr_ibl.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [OpenGL/lessons/25_ibl/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+int main(int argc, char** argv) try {
+    App app(argc, argv, "25_ibl - OpenGL Course");
+    Environment env(app);
+    Shader shader(app, "advanced.vert", "pbr.frag"), sky(app, "sky.vert", "sky.frag");
+    Mesh ball(sphere()), box(cube());
+    Camera camera;
+    camera.pos = {0, 0, 14};
+    camera.pitch = 0;
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        shader.use();
+        pbrDefaults(shader);
+        cameraUniforms(shader, app, camera);
+        env.bindIBL();
+        shader.set("useIBL", app.key(GLFW_KEY_SPACE) != GLFW_PRESS);
+        for (int y = 0; y < 5; ++y)
+            for (int x = 0; x < 7; ++x) {
+                shader.set("metallic", float(y) / 4);
+                shader.set("roughness", std::max(.05f, float(x) / 6));
+                auto model =
+                    glm::translate(glm::mat4(1), glm::vec3((x - 3) * 1.65f, (y - 2) * 1.65f, 0));
+                shader.set("model", glm::scale(model, glm::vec3(.65f)));
+                ball.draw();
+            }
+        env.sky(sky, box, app, camera);
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [25_ibl](README.md) |
+| Vulkan 原生 | [vk09_pbr](../../../Vulkan/native/lessons/vk09_pbr/README.md) |
+| Vulkan / nvpro_core2 | [nv06_pbr_viewport](../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.md) |
+| DirectX 12 | [dx09_pbr](../../../DirectX12/lessons/dx09_pbr/README.md) |
+
+### 先预测，再验证
+
+为什么预过滤 mip 不能随意当成普通自动缩小链？
+
+参考推导：此处各级代表不同粗糙度积分；普通 glGenerateMipmap 的盒式缩小并不等于 GGX 预过滤。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

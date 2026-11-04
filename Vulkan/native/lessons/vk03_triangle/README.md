@@ -38,7 +38,6 @@ Vulkan 不会根据当前着色器自动推断完整绘制状态。图形 pipeli
 
 参考：不可以，它简化 RenderPass/Framebuffer 对象，不替应用管理资源状态或内存依赖。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -50,3 +49,66 @@ Vulkan 不会根据当前着色器自动推断完整绘制状态。图形 pipeli
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![vk03_triangle](../../../../docs/previews/vk03_triangle.png)
+
+
+## 深入学习：数据、接口与执行
+
+triangle.vert 用 gl_VertexIndex 生成位置与颜色，管线不要求 VBO。pipeline 声明颜色/深度格式，实际附件由 dynamic rendering 指定；省掉 render pass 不等于省掉兼容性。
+
+配套精讲：[三 API 对照 · 三角形、管线与着色器](../../../../docs/compare/02_triangle_pipeline.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L373)，第 373—402 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+        gp.pNext = &rendering;
+        gp.stageCount = 2;
+        gp.pStages = stages;
+        gp.pVertexInputState = &vi;
+        gp.pInputAssemblyState = &ia;
+        gp.pViewportState = &viewport;
+        gp.pRasterizationState = &raster;
+        gp.pMultisampleState = &ms;
+        gp.pDepthStencilState = &depth;
+        gp.pColorBlendState = &blend;
+        gp.pDynamicState = &dynamic;
+        gp.layout = pipelineLayout;
+        VkResult result =
+            vkCreateGraphicsPipelines(c.device, VK_NULL_HANDLE, 1, &gp, nullptr, &pipeline);
+        vkDestroyShaderModule(c.device, vs, nullptr);
+        vkDestroyShaderModule(c.device, ps, nullptr);
+        vkCheck(result, "Graphics pipeline");
+    }
+
+    // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
+    void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
+        auto f = frame(mode, float(size.width) / size.height, true);
+        uniform.upload(&f, sizeof(f));
+        VkViewport viewport{0, 0, float(size.width), float(size.height), 0, 1};
+        VkRect2D scissor{{0, 0}, size};
+        vkCmdSetViewport(cmd, 0, 1, &viewport);
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindDescriptorSets(
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [02_triangle](../../../../OpenGL/lessons/02_triangle/README.md) |
+| Vulkan 原生 | [vk03_triangle](README.md) |
+| Vulkan / nvpro_core2 | [nv03_triangle](../../../nvpro/lessons/nv03_triangle/README.md) |
+| DirectX 12 | [dx03_triangle](../../../../DirectX12/lessons/dx03_triangle/README.md) |
+
+### 先预测，再验证
+
+固定片元输出正常，但原色异常，先检查哪段？
+
+参考推导：检查顶点输出与片元输入位置、插值和实际 shader 副本；目标链路已经有证据可用。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

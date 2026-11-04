@@ -38,7 +38,6 @@ Descriptor 更新后是否意味着 GPU 已经完成纹理上传？
 
 参考：不是。描述符只描述如何访问，资源内容和执行/可见性仍需要提交与同步。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
@@ -50,3 +49,66 @@ Descriptor 更新后是否意味着 GPU 已经完成纹理上传？
 固定时间的 GPU 读回图像（nvpro 为 headless Viewport 输出）。
 
 ![vk06_texture_descriptor](../../../../docs/previews/vk06_texture_descriptor.png)
+
+
+## 深入学习：数据、接口与执行
+
+图像先 transfer-dst 接收 staging 数据，再转 shader-read 并对片元采样可见。descriptor 的 imageLayout 是承诺使用布局，不会自动执行布局切换。
+
+配套精讲：[三 API 对照 · 纹理、Mip 与颜色空间](../../../../docs/compare/06_textures_color.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L224)，第 224—253 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+        auto data = checker();
+        VkBufferResource upload;
+        upload.init(c, data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+        upload.upload(data.data(), data.size());
+        texture.init(c,
+                     {64, 64},
+                     VK_FORMAT_R8G8B8A8_SRGB,
+                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                     VK_IMAGE_ASPECT_COLOR_BIT);
+
+        // 纹理先切到传输目标布局，拷贝完成后再切到 shader 只读布局供片元阶段采样。
+        immediate(c, [&](VkCommandBuffer cmd) {
+            barrier(cmd,
+                    texture.image,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_NONE,
+                    0,
+                    VK_PIPELINE_STAGE_2_COPY_BIT,
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT);
+            VkBufferImageCopy copy{};
+            copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+            copy.imageExtent = {64, 64, 1};
+            vkCmdCopyBufferToImage(
+                cmd, upload.buffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+            barrier(cmd,
+                    texture.image,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_COPY_BIT,
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | [05_texture](../../../../OpenGL/lessons/05_texture/README.md) |
+| Vulkan 原生 | [vk06_texture_descriptor](README.md) |
+| Vulkan / nvpro_core2 | [nv04_vma_staging_texture](../../../nvpro/lessons/nv04_vma_staging_texture/README.md) |
+| DirectX 12 | [dx06_texture_srv](../../../../DirectX12/lessons/dx06_texture_srv/README.md) |
+
+### 先预测，再验证
+
+只改 descriptor 里的 imageLayout 能修复缺失屏障吗？
+
+参考推导：不能。它没有录制转换或依赖；要检查实际命令中的 old/new layout 与 stage/access。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。

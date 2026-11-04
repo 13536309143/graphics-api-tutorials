@@ -1,8 +1,9 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 26 课：延迟渲染与 G-buffer</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 26 课：延迟渲染与 G-buffer</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 26 课：延迟渲染与 G-buffer</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 26 课：延迟渲染与 G-buffer</h1>
 <p><a href="../../README.html">课程首页</a> · <a href="../25_ibl/README.html">上一课</a> · <a href="../27_ssao/README.html">下一课</a></p>
 <h2>目标与运行</h2>
-<pre><code>cd OpenGL
-.\scripts\run.ps1 -Lesson 26_deferred</code></pre>
+<pre><code>cmake --preset opengl
+cmake --build --preset opengl-debug --target 26_deferred --parallel 4
+.\OpenGL\build\bin\Debug\26_deferred.exe</code></pre>
 <p>预期画面：一组球和地面被 32 盏彩灯照亮；按 2 查看法线。</p>
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
@@ -15,7 +16,7 @@
 <p>32 盏灯在全屏逐一计算只是在教学上展示结构，并非高效的 clustered/tiled 实现。延迟渲染也不能天然处理所有半透明层，需要混合前向透明 pass；与 MSAA 配合通常更复杂。</p>
 <h2>修改练习</h2>
 <p>增加/减少光源数量；显示位置和 albedo 附件；用深度重建位置替代 position 附件。</p>
-<p>修改后重新执行 <code>cmake --build build --config Debug --target 26_deferred --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<p>修改后重新执行 <code>cmake --build --preset opengl-debug --target 26_deferred --parallel 4</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
 <h2>自测与参考答案</h2>
 <p>延迟渲染为什么不意味着光源越多成本越低？</p>
 <p>本例每个可见像素仍循环全部光源，成本随像素数和灯数增长，只是减少不可见表面的重复着色。</p>
@@ -23,4 +24,48 @@
 <p>运行 <code>26_deferred.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
 <h2>参考截图</h2>
 <p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
-<p><img alt="26_deferred" src="../../docs/previews/26_deferred.png"></p></main></html>
+<p><img alt="26_deferred" src="../../docs/previews/26_deferred.png"></p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>几何遍写 view-space 位置/法线和材质，全屏遍据此计算光照。应先用调试视图确认三个附件，再检查光源转换；透明材质通常需要另一条处理路径。</p>
+<p>配套精讲：<a href="../../../docs/compare/13_multipass_effects.html">三 API 对照 · 阴影、SSAO 与后处理</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="main.cpp#L5">OpenGL/lessons/26_deferred/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;26_deferred - OpenGL Course&quot;);
+    RenderTarget gbuffer(3), occlusion, filtered;
+    Shader geometry(app, &quot;advanced.vert&quot;, &quot;gbuffer.frag&quot;),
+        lighting(app, &quot;screen.vert&quot;, &quot;deferred.frag&quot;), ao(app, &quot;screen.vert&quot;, &quot;ssao.frag&quot;),
+        blur(app, &quot;screen.vert&quot;, &quot;ao_blur.frag&quot;);
+    Mesh box(cube()), ball(sphere(24, 12)), plane(quad(), quadIndices());
+    Camera camera;
+    camera.pos = {0, 3, 8};
+    camera.pitch = -18;
+    std::mt19937 random(42);
+    std::uniform_real_distribution&lt;float&gt; unit(0, 1);
+    std::vector&lt;glm::vec3&gt; kernel, noise;
+    for (int k = 0; k &lt; 32; ++k) {
+        auto p =
+            glm::normalize(glm::vec3(unit(random) * 2 - 1, unit(random) * 2 - 1, unit(random)));
+        p *= unit(random);
+        float f = float(k) / 31;
+        p *= .1f + .9f * f * f;
+        kernel.push_back(p);
+    }
+    for (int k = 0; k &lt; 16; ++k)
+        noise.emplace_back(unit(random) * 2 - 1, unit(random) * 2 - 1, 0);
+    GLuint noiseTexture;
+    glGenTextures(1, &amp;noiseTexture);
+    bind2D(noiseTexture, 2);</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="README.html">26_deferred</a></td></tr>
+<tr><td>Vulkan 原生</td><td>迁移设计：vk10 已有离屏/blit；完整 Bloom/SSAO 仍需资源、采样管线及逐遍依赖。</td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td>迁移设计：RenderTarget 与 ImGui 仅是接入点；新增多遍效果仍要自己描述写后读。</td></tr>
+<tr><td>DirectX 12</td><td>迁移设计：dx10 是 CopyResource，迁移后处理需新增可采样目标和全屏像素管线。</td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>把 world-space 光源直接和 view-space 位置相减会怎样？</p>
+<p>参考推导：空间混用使光照随相机错误变化。先把两者统一到同一空间，而不是调衰减参数补偿。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

@@ -1,8 +1,9 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 18 课：天空盒与环境反射</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 18 课：天空盒与环境反射</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 18 课：天空盒与环境反射</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{font-family:Consolas,monospace;color:#ffd17d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 18 课：天空盒与环境反射</h1>
 <p><a href="../../README.html">课程首页</a> · <a href="../17_stencil/README.html">上一课</a> · <a href="../19_normal_mapping/README.html">下一课</a></p>
 <h2>目标与运行</h2>
-<pre><code>cd OpenGL
-.\scripts\run.ps1 -Lesson 18_cubemap</code></pre>
+<pre><code>cmake --preset opengl
+cmake --build --preset opengl-debug --target 18_cubemap --parallel 4
+.\OpenGL\build\bin\Debug\18_cubemap.exe</code></pre>
 <p>预期画面：反射球与 HDR 环境天空盒；转动相机能观察反射移动。</p>
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
@@ -15,7 +16,7 @@
 <p>开启 GL_TEXTURE_CUBE_MAP_SEAMLESS 可改善跨面过滤。数据源是课程自制 HDR，亮灯区域超过 1；不是把普通 PNG 当作 HDR。第 25 课在同一输入上计算真实的漫反射和镜面 IBL 预计算纹理。</p>
 <h2>修改练习</h2>
 <p>改变 HDR 贴图中的光源方向；把反射改为 refract 并处理全反射；比较 sky view 保留平移时的错误。</p>
-<p>修改后重新执行 <code>cmake --build build --config Debug --target 18_cubemap --parallel</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
+<p>修改后重新执行 <code>cmake --build --preset opengl-debug --target 18_cubemap --parallel 4</code>。GLSL、模型、图片会复制到程序旁的 shaders/assets 目录。源文件应修改教程根目录下的版本，运行目录的副本会被下一次构建覆盖。</p>
 <h2>自测与参考答案</h2>
 <p>环境反射为何看不到场景里的其他物体？</p>
 <p>Cubemap 是预先给定的环境内容，没有包含每帧的局部场景。</p>
@@ -23,4 +24,44 @@
 <p>运行 <code>18_cubemap.exe --smoke</code> 可执行确定时间的四帧渲染检查。重要技术开关还可用 <code>--smoke --variant --capture</code> 与默认抓图对比。共享工具会检查 GL 错误、非背景像素和图像动态范围，但这不能代替人工核对技术含义。参见 <a href="../../docs/11_进阶排错与性能.html">进阶排错</a>。</p>
 <h2>参考截图</h2>
 <p>以下为课程自带素材、固定时间 1 秒时的实际渲染；你的相机与操作改变后画面会不同。</p>
-<p><img alt="18_cubemap" src="../../docs/previews/18_cubemap.png"></p></main></html>
+<p><img alt="18_cubemap" src="../../docs/previews/18_cubemap.png"></p>
+<h2>深入学习：数据、接口与执行</h2>
+<p>cubemap 以三维方向而不是二维 UV 采样。反射方向来自视线和表面法线；天空盒去掉相机平移，只保留旋转，避免像普通房间那样随相机穿过。</p>
+<p>配套精讲：<a href="../../../docs/compare/06_textures_color.html">三 API 对照 · 纹理、Mip 与颜色空间</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
+<h3>本课的真实源码切片</h3>
+<p>来自 <a href="main.cpp#L5">OpenGL/lessons/18_cubemap/main.cpp</a>，第 5—26 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int main(int argc, char** argv) try {
+    App app(argc, argv, &quot;18_cubemap - OpenGL Course&quot;);
+    Environment env(app, false);
+    Shader shader(app, &quot;advanced.vert&quot;, &quot;reflect.frag&quot;), sky(app, &quot;sky.vert&quot;, &quot;sky.frag&quot;);
+    Mesh ball(sphere()), box(cube());
+    Camera camera;
+    while (app.begin()) {
+        camera.update(app);
+        app.clear();
+        shader.use();
+        cameraUniforms(shader, app, camera);
+        shader.set(&quot;environmentMap&quot;, 0);
+        bindCube(env.environment, 0);
+        shader.set(&quot;model&quot;, glm::mat4(1));
+        ball.draw();
+        env.sky(sky, box, app, camera);
+        app.end();
+    }
+    return 0;
+} catch (const std::exception&amp; e) {
+    return failure(e);
+}</code></pre>
+<h3>同主题跨 API 导航</h3>
+<p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
+<table>
+<tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
+<tr><td>OpenGL</td><td><a href="README.html">18_cubemap</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk06_texture_descriptor/README.html">vk06_texture_descriptor</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr>
+<tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx06_texture_srv/README.html">dx06_texture_srv</a></td></tr>
+</table>
+<h3>先预测，再验证</h3>
+<p>环境左右颠倒能否通过调 roughness 修复？</p>
+<p>参考推导：不能。核对六面方向、up 向量和反射向量约定；材质参数不能纠正 cubemap 坐标。</p>
+<p>在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。</p></main></html>

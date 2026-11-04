@@ -42,8 +42,70 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 
 参考：复制和计算都异步执行，map 不代表 GPU 已写完。
 
-跨 API 的问题要结合本课 API 的实际对象名称回答；上面题目围绕通用概念，具体 Vulkan 名称可对照 DX12 的 CBV/SRV/UAV、root signature 和 resource barriers。
 
 ## 验证和调试
 
 运行 `dx08_compute_uav.exe --smoke` 执行四帧（或设备/计算检查）并退出；颜色课会从 GPU 读回 PPM，计算课验证 256 个数。参见仓库 [调试指南](../../../docs/DEBUGGING.md)。这些基础例子按帧串行等待，重点是可追踪的生命周期；多帧重叠不能仅删除 wait，需要同时改成帧资源环。
+
+
+## 深入学习：数据、接口与执行
+
+计算写 DEFAULT UAV 后转 COPY_SOURCE，再拷 READBACK 并等待 fence。Map 的 read range 表示 CPU 将读哪些字节，不会自己触发 GPU 等待。
+
+配套精讲：[三 API 对照 · 计算与读回](../../../docs/compare/10_compute_readback.md)。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。
+
+### 本课的真实源码切片
+
+来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L195)，第 195—224 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+
+```cpp
+inline void dxCompute(DxDevice& c) {
+    auto storage = c.buffer(1024,
+                            D3D12_HEAP_TYPE_DEFAULT,
+                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+         readback = c.buffer(1024, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+    D3D12_ROOT_PARAMETER root{};
+    root.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    root.Descriptor.ShaderRegister = 0;
+    D3D12_ROOT_SIGNATURE_DESC desc{};
+    desc.NumParameters = 1;
+    desc.pParameters = &root;
+    auto signature = rootSignature(c, desc);
+    auto cs = compileHlsl("ComputeMain", "cs_5_1");
+    D3D12_COMPUTE_PIPELINE_STATE_DESC pso{};
+    pso.pRootSignature = signature.Get();
+    pso.CS = {cs->GetBufferPointer(), cs->GetBufferSize()};
+    ComPtr<ID3D12PipelineState> pipeline;
+    dxCheck(c.device->CreateComputePipelineState(&pso, IID_PPV_ARGS(&pipeline)));
+    c.begin();
+    c.cmd->SetComputeRootSignature(signature.Get());
+    c.cmd->SetPipelineState(pipeline.Get());
+    c.cmd->SetComputeRootUnorderedAccessView(0, storage->GetGPUVirtualAddress());
+    c.cmd->Dispatch(4, 1, 1);
+    auto b = transition(
+        storage.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    c.cmd->ResourceBarrier(1, &b);
+    c.cmd->CopyBufferRegion(readback.Get(), 0, storage.Get(), 0, 1024);
+    c.submit();
+    void* mapped;
+```
+
+### 同主题跨 API 导航
+
+以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。
+
+| 路线 | 可运行参照 / 当前范围 |
+| --- | --- |
+| OpenGL | 基线外：当前 OpenGL 3.3 路线没有 compute 实现；粒子实例化不能作为 compute 对照。 |
+| Vulkan 原生 | [vk08_compute_readback](../../../Vulkan/native/lessons/vk08_compute_readback/README.md) |
+| Vulkan / nvpro_core2 | [nv05_compute_readback](../../../Vulkan/nvpro/lessons/nv05_compute_readback/README.md) |
+| DirectX 12 | [dx08_compute_uav](README.md) |
+
+### 先预测，再验证
+
+能把 DEFAULT resource 直接当作当前 READBACK 来 map 吗？
+
+参考推导：不能以函数同名推断内存能力。按 heap 类型和资源规则选择路径，再管理 GPU 完成与读取范围。
+
+在一次实验中只改一个因素，记录预测、实际画面/日志和原因。检查已有 smoke 是否仍通过；图形调试器里再核对本次 draw 的实际输入/输出，不能仅凭进程正常退出下结论。
