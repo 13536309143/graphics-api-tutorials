@@ -4,58 +4,85 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(FetchContent)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/Vulkan-Headers/include/vulkan/vulkan.h")
-  set(course_headers_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Vulkan-Headers")
+    set(course_headers_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Vulkan-Headers")
 else()
-  FetchContent_Declare(course_headers URL https://codeload.github.com/KhronosGroup/Vulkan-Headers/zip/refs/tags/vulkan-sdk-1.4.341.0 URL_HASH SHA256=1a0ea8ce1f1f08bcf9a7e4962646ba6b2a09b40108ca516fc6a006e45c77cb65)
-  FetchContent_MakeAvailable(course_headers)
+    FetchContent_Declare(
+        course_headers
+        URL https://codeload.github.com/KhronosGroup/Vulkan-Headers/zip/refs/tags/vulkan-sdk-1.4.341.0
+        URL_HASH SHA256=1a0ea8ce1f1f08bcf9a7e4962646ba6b2a09b40108ca516fc6a006e45c77cb65)
+    FetchContent_MakeAvailable(course_headers)
 endif()
-set(Vulkan_INCLUDE_DIR "${course_headers_SOURCE_DIR}/include" CACHE PATH "Project-pinned Vulkan headers" FORCE)
+set(Vulkan_INCLUDE_DIR
+    "${course_headers_SOURCE_DIR}/include"
+    CACHE PATH "Project-pinned Vulkan headers" FORCE)
 find_package(Vulkan 1.4.341 REQUIRED COMPONENTS glslc)
-set(Vulkan_VOLK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/nvpro_core2/third_party/volk" CACHE PATH "Use matching bundled Volk" FORCE)
+set(Vulkan_VOLK_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/nvpro_core2/third_party/volk"
+    CACHE PATH "Use matching bundled Volk" FORCE)
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/nvpro_core2/nvapp/application.hpp")
-  message(FATAL_ERROR "Initialize dependencies: git submodule update --init --recursive")
+    message(FATAL_ERROR "Initialize dependencies: git submodule update --init --recursive")
 endif()
-set(NVPRO2_ENABLE_DEFAULT OFF CACHE BOOL "" FORCE)
+set(NVPRO2_ENABLE_DEFAULT
+    OFF
+    CACHE BOOL "" FORCE)
 foreach(lib nvutils nvapp nvgui nvvk)
-  set(NVPRO2_ENABLE_${lib} ON CACHE BOOL "" FORCE)
+    set(NVPRO2_ENABLE_${lib}
+        ON
+        CACHE BOOL "" FORCE)
 endforeach()
 add_subdirectory(external/nvpro_core2 EXCLUDE_FROM_ALL)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/Vulkan-Utility-Libraries/include/vulkan/vk_enum_string_helper.h")
-  set(course_utils_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Vulkan-Utility-Libraries")
+if(EXISTS
+   "${CMAKE_CURRENT_SOURCE_DIR}/external/Vulkan-Utility-Libraries/include/vulkan/vk_enum_string_helper.h"
+)
+    set(course_utils_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Vulkan-Utility-Libraries")
 else()
-  FetchContent_Declare(course_utils URL https://codeload.github.com/KhronosGroup/Vulkan-Utility-Libraries/zip/refs/tags/vulkan-sdk-1.4.341.0 URL_HASH SHA256=61de60ed4c2a6c10b1c7091a472f1fdc4fbab5031f8fe1f85d4a72e49552b779 SOURCE_SUBDIR header-only-no-config)
-  FetchContent_GetProperties(course_utils)
-  if(NOT course_utils_POPULATED)
-    FetchContent_MakeAvailable(course_utils)
-  endif()
+    FetchContent_Declare(
+        course_utils
+        URL https://codeload.github.com/KhronosGroup/Vulkan-Utility-Libraries/zip/refs/tags/vulkan-sdk-1.4.341.0
+        URL_HASH SHA256=61de60ed4c2a6c10b1c7091a472f1fdc4fbab5031f8fe1f85d4a72e49552b779
+        SOURCE_SUBDIR header-only-no-config)
+    FetchContent_GetProperties(course_utils)
+    if(NOT course_utils_POPULATED)
+        FetchContent_MakeAvailable(course_utils)
+    endif()
 endif()
 target_include_directories(nvvk PRIVATE "${course_utils_SOURCE_DIR}/include")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(shader_files triangle.vert scene.vert scene.frag square.comp)
 foreach(shader IN LISTS shader_files)
-  add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/spv/${shader}.spv" COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/spv" COMMAND Vulkan::glslc --target-env=vulkan1.3 "${CMAKE_CURRENT_SOURCE_DIR}/../common/shaders/${shader}" -o "${CMAKE_BINARY_DIR}/spv/${shader}.spv" DEPENDS "../common/shaders/${shader}")
-  list(APPEND outputs "${CMAKE_BINARY_DIR}/spv/${shader}.spv")
+    add_custom_command(
+        OUTPUT "${CMAKE_BINARY_DIR}/spv/${shader}.spv"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/spv"
+        COMMAND
+            Vulkan::glslc --target-env=vulkan1.3
+            "${CMAKE_CURRENT_SOURCE_DIR}/../common/shaders/${shader}" -o
+            "${CMAKE_BINARY_DIR}/spv/${shader}.spv"
+        DEPENDS "../common/shaders/${shader}")
+    list(APPEND outputs "${CMAKE_BINARY_DIR}/spv/${shader}.spv")
 endforeach()
 add_custom_target(nv_shaders DEPENDS ${outputs})
 get_property(multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 set(runtime_shader_dir "${CMAKE_BINARY_DIR}/bin")
 if(multi)
-  string(APPEND runtime_shader_dir "/$<CONFIG>")
+    string(APPEND runtime_shader_dir "/$<CONFIG>")
 endif()
-add_custom_target(nv_runtime_assets COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/spv" "${runtime_shader_dir}/shaders")
+add_custom_target(
+    nv_runtime_assets COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/spv"
+                              "${runtime_shader_dir}/shaders")
 add_dependencies(nv_runtime_assets nv_shaders)
 include(CTest)
 file(GLOB lessons CONFIGURE_DEPENDS "lessons/*")
 foreach(dir IN LISTS lessons)
-  get_filename_component(name "${dir}" NAME)
-  add_executable(${name} "${dir}/main.cpp")
-  target_link_libraries(${name} PRIVATE nvpro2::nvapp)
-  target_include_directories(${name} PRIVATE common ../common ../../shared)
-  target_compile_definitions(${name} PRIVATE COURSE_SHADER_DIR="${CMAKE_BINARY_DIR}/spv" GLM_FORCE_DEPTH_ZERO_TO_ONE)
-  if(MSVC)
-    target_compile_options(${name} PRIVATE /utf-8 /W3 /wd4324)
-  endif()
-  add_dependencies(${name} nv_runtime_assets)
-  add_test(NAME ${name} COMMAND ${name} --smoke)
-  set_tests_properties(${name} PROPERTIES TIMEOUT 60 RUN_SERIAL TRUE)
+    get_filename_component(name "${dir}" NAME)
+    add_executable(${name} "${dir}/main.cpp")
+    target_link_libraries(${name} PRIVATE nvpro2::nvapp)
+    target_include_directories(${name} PRIVATE common ../common ../../shared)
+    target_compile_definitions(${name} PRIVATE COURSE_SHADER_DIR="${CMAKE_BINARY_DIR}/spv"
+                                               GLM_FORCE_DEPTH_ZERO_TO_ONE)
+    if(MSVC)
+        target_compile_options(${name} PRIVATE /utf-8 /W3 /wd4324)
+    endif()
+    add_dependencies(${name} nv_runtime_assets)
+    add_test(NAME ${name} COMMAND ${name} --smoke)
+    set_tests_properties(${name} PROPERTIES TIMEOUT 60 RUN_SERIAL TRUE)
 endforeach()

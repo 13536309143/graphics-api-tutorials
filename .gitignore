@@ -28,3 +28,7 @@ Vulkan/nvpro/external/Vulkan-Utility-Libraries/
 dist/
 Vulkan/nvpro/external/Vulkan-Headers/
 Vulkan/nvpro/external/Vulkan-Utility-Libraries/
+
+# Local formatting environment
+.venv/
+__pycache__/

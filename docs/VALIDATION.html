@@ -18,5 +18,8 @@
 <p>从仓库根目录执行 <code>powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Track all -Test</code>。逐路线可用 <code>ctest --preset &lt;路线&gt;-debug</code>。原始本机日志在各 build/Testing/Temporary/LastTest.log，构建目录、日志、备份和本机缓存不上传 Git。</p>
 <h2>干净克隆检查</h2>
 <p>另外从本地 Git 仓库重新 <code>clone --recurse-submodules</code>，确认 nvpro_core2 子模块按固定提交检出；通过 <code>prepare-dependencies.ps1 -Track vulkan-native</code> 下载 GLFW/GLM 并校验 SHA256，然后配置、编译并运行 <code>vk03_triangle</code>，CTest 1/1 通过。此检查验证了源码缓存预下载路径；未将一次三角形检查描述为新克隆的全部 60 课复验。</p>
+<h2>源码排版与注释复验</h2>
+<p>2026-11-04 对教程自有 C++、GLSL/HLSL 和 CMake 进行统一排版，并补充中文关键注释。125 个源码/构建文件的格式检查通过；119 个 C++/着色器文件在忽略注释、空白及等价的相邻字符串拼接后，非注释 token 序列保持一致。</p>
+<p>重新构建四条路线，Debug CTest 再次通过 OpenGL 34/34、原生 Vulkan 10/10、nvpro_core2 6/6、DX12 10/10，共 60/60。启动器另在独立构建目录编译通过，避免覆盖正在运行的阅读器。第三方依赖与 nvpro_core2 子模块没有改写。规则与维护命令见 <a href="CODE_STYLE.html">源码排版说明</a>。</p>
 <h2>范围</h2>
 <p>本次完成 Windows Debug 的真实 GPU 验证。Release 配置和打包流程已提供，但没有将其描述为全部运行验证；Linux、WARP、所有窗口交互组合、长期运行与多 GPU 未在本次逐项测试。CI 目前验证 Windows 编译，不执行硬件 GPU 测试，也不代替本机验证。Vulkan/DX12 的高级效果迁移范围和串行同步取舍见路线 README。</p></main></html>

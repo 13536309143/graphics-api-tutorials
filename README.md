@@ -80,5 +80,6 @@ OpenGL 旧目录入口也会返回总入口。原来的 E:\OpenGL 独立教程�
 - [三种 API 的概念对照与同步](docs/API_COMPARISON.md)
 - [依赖、许可证与版本固定](docs/DEPENDENCIES.md)
 - [验证记录与已知边界](docs/VALIDATION.md)
+- [源码排版、关键注释和一键格式检查](docs/CODE_STYLE.md)
 
 新代码和文档采用 [Apache-2.0](LICENSE)，第三方依赖保留原许可证，自制 OpenGL 素材为 CC0，详情见 [NOTICE](NOTICE)。本工程独立于 NVIDIA、Microsoft 和 Khronos。
