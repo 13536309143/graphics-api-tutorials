@@ -48,6 +48,8 @@ cd graphics-api-tutorials
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Track all -Test
 ```
 
+如果 CMake 下载依赖缓慢，可先运行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare-dependencies.ps1 -Track all`，它会校验固定的 SHA256 后准备本地缓存，再执行上面的编译命令。详见[部署说明](docs/DEPLOYMENT.md)。
+
 也可仅编译一条路线：
 
 ```powershell

@@ -27,6 +27,10 @@ Vulkan 的 API 验证错误计数为零。当前系统有外部 overlay manifest
 
 从仓库根目录执行 `powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Track all -Test`。逐路线可用 `ctest --preset <路线>-debug`。原始本机日志在各 build/Testing/Temporary/LastTest.log，构建目录、日志、备份和本机缓存不上传 Git。
 
+## 干净克隆检查
+
+另外从本地 Git 仓库重新 `clone --recurse-submodules`，确认 nvpro_core2 子模块按固定提交检出；通过 `prepare-dependencies.ps1 -Track vulkan-native` 下载 GLFW/GLM 并校验 SHA256，然后配置、编译并运行 `vk03_triangle`，CTest 1/1 通过。此检查验证了源码缓存预下载路径；未将一次三角形检查描述为新克隆的全部 60 课复验。
+
 ## 范围
 
 本次完成 Windows Debug 的真实 GPU 验证。Release 配置和打包流程已提供，但没有将其描述为全部运行验证；Linux、WARP、所有窗口交互组合、长期运行与多 GPU 未在本次逐项测试。CI 目前验证 Windows 编译，不执行硬件 GPU 测试，也不代替本机验证。Vulkan/DX12 的高级效果迁移范围和串行同步取舍见路线 README。

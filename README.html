@@ -36,6 +36,7 @@
 <pre><code>git clone --recurse-submodules https://github.com/13536309143/graphics-api-tutorials.git
 cd graphics-api-tutorials
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Track all -Test</code></pre>
+<p>如果 CMake 下载依赖缓慢，可先运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare-dependencies.ps1 -Track all</code>，它会校验固定的 SHA256 后准备本地缓存，再执行上面的编译命令。详见<a href="docs/DEPLOYMENT.html">部署说明</a>。</p>
 <p>也可仅编译一条路线：</p>
 <pre><code>cmake --preset vulkan-native
 cmake --build --preset vulkan-native-debug --parallel 4
