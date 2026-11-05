@@ -1,0 +1,7 @@
+{
+  "target": "dx20_ch_present_sync",
+  "api": "dx",
+  "experiment": 48,
+  "chapter": "20_present_sync",
+  "independent": true
+}

@@ -2,6 +2,12 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 源/目标分别声明 TRANSFER_SRC/DST，设备缓冲选择 device-local。第一次 copy 的写入通过 buffer barrier 对第二次 transfer read 可见，最后 copy 写入经 host-read 依赖供 CPU 检查。
@@ -10,7 +16,7 @@ Image 创建声明 usage/format/extent/mip，MemoryRequirements 决定绑定存�
 
 copy-write 到 fragment-sampled-read 需要对应 stage/access 和布局转换。mip 生成逐级把前一级从 transfer-dst 切成 transfer-src，最终各级转 shader-read；不能仅在整个流程结束后随意改一个枚举。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -28,53 +34,31 @@ cmake --build --preset vulkan-native-debug --target vk13_staging_copy --parallel
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L166)，第 166—209 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk13_staging_copy/main.cpp](main.cpp#L79)，第 79—100 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void stagingCopy(const VkContextRef& c) {
-    constexpr size_t count = 257;
-    std::vector<uint32_t> original(count);
-    for (uint32_t i = 0; i < count; ++i)
-        original[i] = i * 17 + 9;
-    VkBufferResource upload, gpu, readback;
-    upload.init(c, count * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    upload.upload(original.data(), count * 4);
-    gpu.init(c,
-             count * 4,
-             VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    readback.init(c, count * 4, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    immediate(c, [&](VkCommandBuffer cmd) {
-        VkBufferCopy copy{0, 0, count * 4};
-        vkCmdCopyBuffer(cmd, upload.buffer, gpu.buffer, 1, &copy);
-        bufferDependency(cmd,
-                         gpu.buffer,
-                         VK_PIPELINE_STAGE_2_COPY_BIT,
-                         VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                         VK_PIPELINE_STAGE_2_COPY_BIT,
-                         VK_ACCESS_2_TRANSFER_READ_BIT);
-        vkCmdCopyBuffer(cmd, gpu.buffer, readback.buffer, 1, &copy);
-        bufferDependency(cmd,
-                         readback.buffer,
-                         VK_PIPELINE_STAGE_2_COPY_BIT,
-                         VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                         VK_PIPELINE_STAGE_2_HOST_BIT,
-                         VK_ACCESS_2_HOST_READ_BIT);
-    });
-    require(readWords(readback, count) == original, "Device-local staging copy mismatch");
-    std::cout << "Verified 257 device-local round-trip words\n";
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 13);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            stagingCopy(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
 }
-// 两份独立资源交替在途，重用前等待对应 fence；这不是窗口交换链的完整多帧实现。
-void frameRing(const VkContextRef& c) {
-    // Two independent storage buffers and command buffers remain in flight.
-    // This isolates frame-slot lifetime; windowed renderers still use the simple serialized path.
-    ComputeKernel kernels[2] = {ComputeKernel(c), ComputeKernel(c)};
-    VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-    pi.queueFamilyIndex = c.family;
-    pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    VkCommandPool pool{};
-    vkCheck(vkCreateCommandPool(c.device, &pi, nullptr, &pool));
-    VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

@@ -29,14 +29,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="01_window" href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk01_instance_device" href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv01_context" href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx01_device" href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>先 current context，再加载 GL 入口；GPU 对象先于 context 销毁。</p>
-<p><a href="../../OpenGL/common/app.hpp#L25">OpenGL/common/app.hpp</a>，第 25—77 行：</p>
+<p><a href="../../OpenGL/lessons/01_window/support/app.hpp#L25">OpenGL/lessons/01_window/support/app.hpp</a>，第 25—77 行：</p>
 <pre><code>    App(int argc, char** argv, const char* title) {
         for (int i = 1; i &lt; argc; ++i) {
             smoke |= std::string(argv[i]) == &quot;--smoke&quot;;
@@ -44,7 +44,7 @@
             variant |= std::string(argv[i]) == &quot;--variant&quot;;
         }
         expectGeometry = std::string(title).find(&quot;01_window&quot;) != 0;
-        assets = std::filesystem::absolute(argv[0]).parent_path() / &quot;shaders&quot;;
+        assets = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / &quot;shaders&quot;;
         glfwSetErrorCallback([](int c, const char* s) {
             std::cerr &lt;&lt; &quot;GLFW &quot; &lt;&lt; c &lt;&lt; &quot;: &quot; &lt;&lt; s &lt;&lt; &#x27;\n&#x27;;
         });
@@ -92,7 +92,7 @@
     // 每帧先处理事件并读取 framebuffer 尺寸；高 DPI 下它可能不同于窗口逻辑尺寸。</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>扩展属于实例或设备，队列族还要检查实际呈现支持。</p>
-<p><a href="../../Vulkan/native/common/native_app.hpp#L29">Vulkan/native/common/native_app.hpp</a>，第 29—70 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp#L29">Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp</a>，第 29—70 行：</p>
 <pre><code>    NativeDevice(GLFWwindow* window, bool timeline = false) {
         uint32_t count = 0;
         std::vector&lt;const char*&gt; extensions;
@@ -137,17 +137,13 @@
         if (debug &amp;&amp; create)</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>Context 减少创建代码，需求选择与失败处理仍由应用负责。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L245">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 245—276 行：</p>
+<p><a data-course-target="nv01_context" href="../../Vulkan/nvpro/lessons/nv01_context/main.cpp#L15">Vulkan/nvpro/lessons/nv01_context/main.cpp</a>，第 15—46 行：</p>
 <pre><code>    nvvk::ContextInitInfo setup{};
     setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
     setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
     setup.enableValidationLayers = true;
     setup.verbose = false;
     setup.applicationName = &quot;nvpro_core2 Course&quot;;
-    if (!smoke &amp;&amp; chapter != 1 &amp;&amp; chapter != 5) {
-        nvvk::addSurfaceExtensions(setup.instanceExtensions);
-        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
-    }
     vkCheck(context.init(setup));
     VkDebugUtilsMessengerCreateInfoEXT debug{
         VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
@@ -163,16 +159,20 @@
                        context.getDevice(),
                        q.queue,
                        q.familyIndex};
-        if (chapter == 1) {
+        {
             VkPhysicalDeviceProperties p;
             vkGetPhysicalDeviceProperties(c.physical, &amp;p);
             std::cout &lt;&lt; &quot;nvpro_core2 context: &quot; &lt;&lt; p.deviceName &lt;&lt; &#x27;\n&#x27;;
-        } else if (chapter == 5)
-            computeSquares(c, nvShaders);
-        else {</code></pre>
+        }
+    }
+    std::cout &lt;&lt; &quot;Validation errors: &quot; &lt;&lt; nvValidationErrors &lt;&lt; &quot;\n&quot;;
+    return nvValidationErrors ? 1 : 0;
+}
+} // namespace course
+</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>在设备创建前启用调试层；WARP 是软件参考路径。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L71">DirectX12/common/dx12_course.hpp</a>，第 71—112 行：</p>
+<p><a href="../../DirectX12/lessons/dx01_device/support/dx12_course.hpp#L74">DirectX12/lessons/dx01_device/support/dx12_course.hpp</a>，第 74—115 行：</p>
 <pre><code>    explicit DxDevice(bool warp = false) {
         UINT flags = 0;
         ComPtr&lt;ID3D12Debug&gt; debug;

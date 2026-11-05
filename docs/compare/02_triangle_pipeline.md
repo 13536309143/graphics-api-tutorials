@@ -59,14 +59,18 @@ vk03/dx03 采用程序生成顶点，是为了先验证管线和呈现；vk04/dx
 
 OpenGL 02 使用实际 VBO，和另两条程序生成顶点的路径有范围差别。
 
-[OpenGL/lessons/02_triangle/main.cpp](../../OpenGL/lessons/02_triangle/main.cpp#L5)，第 5—22 行：
+[OpenGL/lessons/02_triangle/main.cpp](../../OpenGL/lessons/02_triangle/main.cpp#L7)，第 7—28 行：
 
 ```cpp
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "02_triangle - OpenGL Course");
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, "basic.vert", "color.frag");
+    // CPU 顶点数据上传后，由 VAO 保存属性布局；布局必须匹配顶点 shader。
     Mesh mesh(
         {-.7f, -.5f, 0, 1, 0, 0, 0, 0, .7f, -.5f, 0, 0, 1, 0, 1, 0, 0, .6f, 0, 0, 0, 1, .5f, 1});
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         app.clear();
         shader.use();
@@ -86,7 +90,7 @@ int main(int argc, char** argv) try {
 
 动态渲染仍要求 pipeline 声明附件格式；还要设置 viewport/scissor。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L391)，第 391—422 行：
+[Vulkan/native/lessons/vk03_triangle/support/scene_vk.hpp](../../Vulkan/native/lessons/vk03_triangle/support/scene_vk.hpp#L394)，第 394—425 行：
 
 ```cpp
         VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
@@ -127,7 +131,7 @@ int main(int argc, char** argv) try {
 
 场景写入离屏 RenderTarget，最后才被 ImGui 采样。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L130)，第 130—171 行：
+[Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp](../../Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp#L130)，第 130—171 行：
 
 ```cpp
     void onRender(VkCommandBuffer cmd) override {

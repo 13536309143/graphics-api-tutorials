@@ -34,6 +34,18 @@
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,35 @@
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx36_integration --parallel 4
-.\DirectX12\build\bin\Debug\dx36_integration.exe
-ctest --preset dx12-debug -R "^dx36_integration$" --output-on-failure
+cmake --build --preset dx12-debug --target dx54_ch_capstone --parallel 4
+.\DirectX12\build\bin\Debug\dx54_ch_capstone.exe
+ctest --preset dx12-debug -R "^dx54_ch_capstone$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L502)，第 502—545 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/54_capstone/main.cpp](main.cpp#L319)，第 319—332 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-int graphicsLab(int argc, char** argv, const LabOptions& options) {
-    int id = options.id, mode = id == 27 ? 3 : id == 29 || id == 53 ? 4 : 6;
-    Geometry mesh;
-    if (id == 21)
-        mesh = staticAsset(options.directory / "assets/models/vase.obj");
-    if (id == 22 || id == 36)
-        mesh = staticAsset(options.directory / "assets/models/robot.gltf");
-    if (id == 29)
-        mesh = particleGeometry();
-    if (id == 52 || id == 53) {
-        mesh = geometry(4);
-        for (auto& vertex : mesh.vertices) {
-            vertex.normal =
-                id == 53 ? glm::vec3(1 - vertex.uv.x, vertex.uv.y, 1) : glm::vec3(0, 0, 1);
-            vertex.uv *= 4.f;
-        }
-        if (id == 52)
-            for (uint32_t i = 0; i < mesh.vertices.size(); ++i)
-                mesh.indices.push_back(i);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 36);
+    {
+        return graphicsLab(argc, argv, options);
     }
-    DxRenderOptions render;
-    render.captureStem = "dx_lab_" + std::to_string(id);
-    render.redOnly = id == 43;
-    render.cull = id == 50 ? D3D12_CULL_MODE_BACK : D3D12_CULL_MODE_NONE;
-    render.clampSampler = id == 52;
-    if (!mesh.vertices.empty())
-        render.mesh = &mesh;
-    if (id == 20 || id == 36)
-        render.samples = 4;
-    render.setup = [=](DxScene& scene) {
-        auto state = std::make_shared<RenderState>();
-        scene.extension = state;
-        if (id == 17 || id == 19 || id == 35 || id == 36 || id == 41 || id == 52) {
-            auto pixels = imageFile(options.directory / "assets/textures/albedo.png");
-            state->texture = std::make_unique<GpuTexture>(scene.c,
-                                                          options,
-                                                          std::move(pixels),
-                                                          id == 19 || id == 36 || id == 41,
-                                                          id == 35 || id == 36);
-            state->texture->attach(scene, id == 41);
-        }
-        if (id == 20 || id == 36) {
-            for (auto format : {DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT}) {
-                D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS q{};
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -137,4 +119,4 @@ int graphicsLab(int argc, char** argv, const LabOptions& options) {
 
 ## 固定输入的实际 GPU 读回
 
-![dx36_integration](../../../docs/previews/dx36_integration.png)
+![dx54_ch_capstone](../../../docs/previews/dx36_integration.png)

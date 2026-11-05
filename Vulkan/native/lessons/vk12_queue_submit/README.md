@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 begin/end command buffer 建立合法录制范围，QueueSubmit 接收它并关联 fence。实验填充 64 个 word，经 transfer-write→host-read 依赖后逐项核对。命令池的 family 必须匹配提交队列。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,29 +28,17 @@ cmake --build --preset vulkan-native-debug --target vk12_queue_submit --parallel
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L928)，第 928—971 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk12_queue_submit/main.cpp](main.cpp#L44)，第 44—78 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-int nativeLabMain(int argc, char** argv, int id) {
-    auto options = labOptions(argc, argv, id);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 12);
     nativeShaders = options.directory / "shaders";
-    if (id == 17 || id == 19 || id == 20 || id == 21 || id == 22 || id == 23 || id == 27 ||
-        id == 29 || id == 34 || id == 35 || id == 36 || id == 41 || id == 43 || id == 49 ||
-        id == 50 || id == 52 || id == 53)
-        return graphicsLab(argc, argv, options);
     validationErrors = 0;
-    if (id == 40) {
-        surfaceInspection();
-        return validationErrors ? 1 : 0;
-    }
     {
-        NativeDevice owner(nullptr, id == 26);
+        NativeDevice owner(nullptr, false);
         const auto& c = owner.c;
-        if (id >= 37)
-            inspection(c, id);
-        else if (id == 11)
-            capabilities(c);
-        else if (id == 12) {
+        {
             VkBufferResource b;
             b.init(c, 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
             immediate(c, [&](VkCommandBuffer cmd) {
@@ -59,16 +53,19 @@ int nativeLabMain(int argc, char** argv, int id) {
             for (auto x : readWords(b, 64))
                 require(x == 0x12345678, "Queue fill mismatch");
             std::cout << "Verified queue submission, fence and 64 filled words\n";
-        } else if (id == 13)
-            stagingCopy(c);
-        else if (id == 18) {
-            GpuTexture texture(c, Pixels{64, 64, checker()}, true);
-            texture.verify();
-        } else if (id == 24)
-            frameRing(c);
-        else if (id == 25)
-            timestamps(c);
-        else if (id == 26)
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

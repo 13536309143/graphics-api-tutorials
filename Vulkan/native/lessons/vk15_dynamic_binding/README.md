@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 使用 UNIFORM_BUFFER_DYNAMIC，bind 时传一个动态偏移。三个槽使用设备要求的 stride，descriptor range 保持 16 字节；shader 读取每槽不同 factor/bias，逐项验证结果。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,52 @@ cmake --build --preset vulkan-native-debug --target vk15_dynamic_binding --paral
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L114)，第 114—157 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk15_dynamic_binding/main.cpp](main.cpp#L157)，第 157—199 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-    void record(VkCommandBuffer cmd,
-                uint32_t mode,
-                uint32_t count,
-                uint32_t factor,
-                uint32_t bias,
-                uint32_t slot = 0) {
-        uint32_t constants[4] = {mode, count, factor, bias};
-        uint32_t offset = slot * stride;
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-        vkCmdBindDescriptorSets(
-            cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &set, 1, &offset);
-        vkCmdPushConstants(cmd, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, constants);
-        vkCmdDispatch(cmd, (count + 63) / 64, 1, 1);
-        bufferDependency(cmd,
-                         output.buffer,
-                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                         VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                         VK_PIPELINE_STAGE_2_HOST_BIT,
-                         VK_ACCESS_2_HOST_READ_BIT);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 15);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            ComputeKernel kernel(c);
+            uint32_t mode = ((1));
+            uint32_t count = (128);
+            for (uint32_t slot = 0; slot < ((3u)); ++slot) {
+                uint32_t factor = (3), bias = (7);
+                kernel.execute(mode, count, factor, bias, slot);
+                auto result = readWords(kernel.output, mode == 2 ? (count + 63) / 64 : count);
+                if (mode == 2) {
+                    uint32_t total = std::accumulate(result.begin(), result.end(), 0u);
+                    require(total == count * (count + 1) / 2, "Shared-memory reduction mismatch");
+                } else {
+                    if (mode == 1) {
+                        factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                        bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                    }
+                    for (uint32_t i = 0; i < count; ++i)
+                        require(result[i] == i * factor + bias,
+                                "Compute/dynamic-binding result mismatch");
+                }
+            }
+            std::cout << "Verified experiment " << 15 << ", items=" << count
+                      << ", uniform stride=" << kernel.stride << '\n';
+        }
     }
-    void execute(uint32_t mode, uint32_t count, uint32_t factor, uint32_t bias, uint32_t slot = 0) {
-        immediate(c, [&](VkCommandBuffer cmd) {
-            record(cmd, mode, count, factor, bias, slot);
-        });
-    }
-    ~ComputeKernel() {
-        vkDestroyPipeline(c.device, pipeline, nullptr);
-        vkDestroyPipelineLayout(c.device, pipelineLayout, nullptr);
-        vkDestroyDescriptorPool(c.device, pool, nullptr);
-        vkDestroyDescriptorSetLayout(c.device, layout, nullptr);
-    }
-};
-void capabilities(const VkContextRef& c) {
-    VkPhysicalDeviceProperties p{};
-    vkGetPhysicalDeviceProperties(c.physical, &p);
-    VkPhysicalDeviceMemoryProperties m{};
-    vkGetPhysicalDeviceMemoryProperties(c.physical, &m);
-    std::cout << "maxPushConstantsSize=" << p.limits.maxPushConstantsSize
-              << ", minUniformBufferOffsetAlignment=" << p.limits.minUniformBufferOffsetAlignment
-              << ", maxComputeWorkGroupInvocations=" << p.limits.maxComputeWorkGroupInvocations
-              << '\n';
-    for (uint32_t i = 0; i < m.memoryTypeCount; ++i)
-        std::cout << "memoryType[" << i << "] heap=" << m.memoryTypes[i].heapIndex
-                  << " properties=" << m.memoryTypes[i].propertyFlags << '\n';
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

@@ -34,6 +34,18 @@ VMA 从重复分配逻辑中抽象出 allocator，但 flags、访问目标与释
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,38 @@ VMA 从重复分配逻辑中抽象出 allocator，但 flags、访问目标与释
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx47_allocation_requirements --parallel 4
-.\DirectX12\build\bin\Debug\dx47_allocation_requirements.exe
-ctest --preset dx12-debug -R "^dx47_allocation_requirements$" --output-on-failure
+cmake --build --preset dx12-debug --target dx25_ch_memory --parallel 4
+.\DirectX12\build\bin\Debug\dx25_ch_memory.exe
+ctest --preset dx12-debug -R "^dx25_ch_memory$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L713)，第 713—756 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/25_memory/main.cpp](main.cpp#L32)，第 32—48 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        auto allocation = c.device->GetResourceAllocationInfo(0, 1, &desc);
-        require(allocation.SizeInBytes >= 257, "Allocation too small");
-        auto upload = c.device->GetCustomHeapProperties(0, D3D12_HEAP_TYPE_UPLOAD);
-        std::cout << "requested=257, allocation=" << allocation.SizeInBytes
-                  << ", alignment=" << allocation.Alignment
-                  << ", CPUPageProperty=" << upload.CPUPageProperty << '\n';
-    } else if (id == 48) {
-        auto initial = c.fence->GetCompletedValue();
-        dxCheck(c.queue->Signal(c.fence.Get(), ++c.value));
-        waitValue(c, c.value);
-        require(c.fence->GetCompletedValue() > initial, "Fence counter failed to advance");
-        dxCheck(c.queue->Signal(c.fence.Get(), ++c.value));
-        waitValue(c, c.value);
-        std::cout << "Verified monotonic fence reuse; DX12 fence is not reset like a binary Vulkan "
-                     "fence\n";
-    } else if (id == 51) {
-        static_assert(sizeof(Frame) == 64 && sizeof(Draw) == 80 && offsetof(Draw, settings) == 64);
-        ComputeKernel k(c, options);
-        k.execute(1, 128, 0, 0, 2);
-        auto r = readBuffer(k.readback.Get(), 128);
-        for (uint32_t i = 0; i < 128; ++i)
-            require(r[i] == i * 7 + 13, "CBV vector layout mismatch");
-        std::cout << "Verified Frame=64, Draw=80, offset=64 and 256-byte-aligned CBV selection\n";
-    } else if (id == 54) {
-        capabilities(c);
-        stagingCopy(c);
-        GpuTexture mips(c, options, Pixels{64, 64, checker()}, true);
-        mips.verify();
-        frameRing(c, options);
-        std::cout << "Completed buffer/texture/frame-slot acceptance suite\n";
-    } else
-        throw std::runtime_error("Unknown inspection id");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 47);
+    DxDevice c(options.warp);
+    {
+        inspection(c, options);
+    }
+    c.checkMessages();
+    return 0;
 }
+} // namespace course
 
-} // namespace
-int dxLabMain(int argc, char** argv, int id) {
-    auto options = labOptions(argc, argv, id);
-    if (id == 17 || id == 19 || id == 20 || id == 21 || id == 22 || id == 23 || id == 27 ||
-        id == 29 || id == 34 || id == 35 || id == 36 || id == 41 || id == 43 || id == 49 ||
-        id == 50 || id == 52 || id == 53)
-        return graphicsLab(argc, argv, options);
-    if (id == 40) {
-        surfaceInspection(options);
-        return 0;
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

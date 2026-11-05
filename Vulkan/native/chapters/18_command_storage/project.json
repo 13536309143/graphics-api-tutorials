@@ -1,0 +1,7 @@
+{
+  "target": "vk18_ch_command_storage",
+  "api": "vk",
+  "experiment": 44,
+  "chapter": "18_command_storage",
+  "independent": true
+}

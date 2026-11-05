@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 CreateCommandList 初次返回可录制对象；提交前 Close。执行列表本身没有返回“工作已完成”的 HRESULT，因此要用队列 signal/fence 等待。实验检查空提交的完成条件，后续拷贝实验再检查数据。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,33 @@ cmake --build --preset dx12-debug --target dx12_queue_submit --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L748)，第 748—791 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx12_queue_submit/main.cpp](main.cpp#L14)，第 14—37 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-int dxLabMain(int argc, char** argv, int id) {
-    auto options = labOptions(argc, argv, id);
-    if (id == 17 || id == 19 || id == 20 || id == 21 || id == 22 || id == 23 || id == 27 ||
-        id == 29 || id == 34 || id == 35 || id == 36 || id == 41 || id == 43 || id == 49 ||
-        id == 50 || id == 52 || id == 53)
-        return graphicsLab(argc, argv, options);
-    if (id == 40) {
-        surfaceInspection(options);
-        return 0;
-    }
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 12);
     DxDevice c(options.warp);
-    if (id >= 37)
-        inspection(c, options, id);
-    else if (id == 11)
-        capabilities(c);
-    else if (id == 12) {
+    {
         c.begin();
         dxCheck(c.cmd->Close());
         ID3D12CommandList* lists[] = {c.cmd.Get()};
+        // 提交是异步的；Fence 完成值决定 allocator 与上传资源何时可复用。
         c.queue->ExecuteCommandLists(1, lists);
         c.wait();
         require(c.fence->GetCompletedValue() >= c.value, "Queue fence did not complete");
         std::cout << "Verified command list close/submit and fence completion\n";
-    } else if (id == 13)
-        stagingCopy(c);
-    else if (id == 18) {
-        GpuTexture texture(c, options, Pixels{64, 64, checker()}, true);
-        texture.verify();
-    } else if (id == 24)
-        frameRing(c, options);
-    else if (id == 25)
-        timestamps(c);
-    else if (id == 26) {
-        dxCheck(c.queue->Signal(c.fence.Get(), ++c.value));
-        dxCheck(c.queue->Wait(c.fence.Get(), c.value));
-        dxCheck(c.queue->Signal(c.fence.Get(), ++c.value));
-        waitValue(c, c.value);
-        require(c.fence->GetCompletedValue() >= 2, "Fence counter did not advance");
-        std::cout << "Verified queue producer 1 -> consumer 2 fence chain\n";
-    } else if (id == 31) {
-        for (int i = 0; i < 4; ++i)
-            stagingCopy(c);
-        std::cout << "Retired 4 UPLOAD/DEFAULT/READBACK generations after fence completion\n";
-    } else if (id == 32) {
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

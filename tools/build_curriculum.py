@@ -47,7 +47,7 @@ def build():
         index += (f'[路线首页](README.md) · [三 API 对照](../../docs/COMPARE.md)\n\n' if key == 'vk'
                   else '[路线首页](README.md) · [三 API 对照](../docs/COMPARE.md)\n\n')
         index += ('按照指定 Vulkan 教程的基础顺序组织，再加入工程扩展。每课包括目的、接口推导、'
-                  '真实源码、可运行实验、失败定位和参考答案。54 章与 54 个实验是两套索引：'
+                  '本章完整源码/着色器/CMake、可运行实验、失败定位和参考答案。每章可独立构建；54 章与 54 个专题实验是两套索引：'
                   '章号用于学习次序，实验号用于保持已有链接；同一实验可能服务多个相关小节。\n\n'
                   '| 章 | 主题 | 验收关注 |\n| --- | --- | --- |\n')
         for i, chapter in enumerate(chapters):
@@ -77,8 +77,14 @@ def build():
             text += f'## nvpro_core2 框架对照\n\n{chapter["nv"]}\n\n'
             text += ('这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。'
                      '如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。\n\n')
+            text += '## 本章独立工程与关键注释\n\n'
+            text += '[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)\n\n'
+            text += '完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。\n\n'
+            text += '```powershell\ncmake -S . -B build -A x64\ncmake --build build --config Debug --parallel 4\nctest --test-dir build -C Debug --output-on-failure\n```\n\n'
             text += '## 运行与实际检查\n\n' + experiment_rows(chapter, key, directory, experiments) + '\n'
-            lab = experiments[str(chapter['labs'][0])][key]
+            lab = experiments[str(chapter['labs'][0])][key].copy()
+            project = json.loads((directory / 'project.json').read_text(encoding='utf-8'))
+            lab['name'] = project['target']
             text += ('从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。'
                      '从“开始学习.cmd”进入本页时，表格可直接点击运行。\n\n')
             text += (f'```powershell\ncmake --preset {preset}\n'
@@ -88,9 +94,9 @@ def build():
             text += ('检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。'
                      '诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。'
                      '图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。\n\n')
-            text += '## 关键实现：从当前源码定位\n\n' + source_block(chapter['sources'][key], directory) + '\n'
+            text += '## 关键实现：从当前源码定位\n\n' + source_block({'file':str((directory/'main.cpp').relative_to(ROOT)).replace('\\','/'),'anchor':'int runChapter','count':56}, directory) + '\n'
             text += ('阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。'
-                     '共享 helper 减少重复代码，但不会取消每课的 API 契约。\n\n')
+                     '辅助实现与着色器是本章自己的文件；修改不会影响其他章。\n\n')
             text += f'## 受控修改实验\n\n{chapter["task"]}\n\n'
             text += ('先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、'
                      '资源范围和同步，这样即使结果变好也无法归因。\n\n')
@@ -108,7 +114,7 @@ def build():
             text += (f'[版本与资料说明]({relative("docs/REFERENCES.md", directory)}) · '
                      f'[调试]({relative("docs/DEBUGGING.md", directory)}) · '
                      f'[功能完成度]({relative("docs/FEATURE_MATRIX.md", directory)})\n')
-            preview = ROOT / 'docs/previews' / (lab['name'] + '.png')
+            preview = ROOT / 'docs/previews' / (experiments[str(chapter['labs'][0])][key]['name'] + '.png')
             if preview.is_file():
                 text += f'\n## 固定输入的实际 GPU 读回\n\n![{lab["name"]}]({relative(str(preview.relative_to(ROOT)), directory)})\n'
             path.write_bytes(text.encode('utf-8'))
@@ -121,9 +127,10 @@ def build():
             directory = guide.parent
             title = json.loads((directory / 'advanced.json').read_text(encoding='utf-8'))['title']
             text = f'# {lab["name"]} · {title}\n\n[54 课目录]({relative(folder+"/COURSE.md", directory)})\n\n'
+            text += '## 本课独立工程与关键注释\n\n[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)\n\n本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。\n\n'
             text += '## 目的与实际执行\n\n'
             text += '\n\n'.join(c[key] for c in linked) + '\n\n'
-            text += ('本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。'
+            text += ('本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。'
                      '设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。\n\n')
             text += '## 构建和运行\n\n'
             text += (f'```powershell\ncmake --preset {preset}\ncmake --build --preset {preset}-debug '
@@ -131,7 +138,7 @@ def build():
             text += '## 深入学习：数据、接口与执行\n\n'
             for chapter in linked:
                 text += f'- [第 {chapter["slug"][:2]} 课：{chapter["title"]}]({relative(folder+"/chapters/"+chapter["slug"]+"/README.md",directory)})\n'
-            source = content['sources'][str(number)][key]
+            source = {'file': lab['path']+'/main.cpp', 'anchor':'int runChapter', 'count':56}
             text += '\n### 本课的真实源码切片\n\n' + source_block(source,directory) + '\n'
             peer = experiments[str(number)]['dx' if key=='vk' else 'vk']
             text += ('### 同主题跨 API 导航\n\n| 路线 | 程序 |\n| --- | --- |\n'

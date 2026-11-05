@@ -1,0 +1,7 @@
+{
+  "target": "dx20_msaa_resolve",
+  "api": "dx",
+  "experiment": 20,
+  "chapter": null,
+  "independent": true
+}

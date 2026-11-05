@@ -1,6 +1,8 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Graphics API Tutorials · C++ / CMake</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="web/runner.css"><script defer src="web/runner.js"></script><main><nav><a href="index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>Graphics API Tutorials · C++ / CMake</h1>
 <p>中文图形 API 学习工程：<strong>OpenGL、原生 Vulkan、nvpro_core2 Vulkan、DirectX 12</strong>。三种 API 分目录，Vulkan 下保留两套路线。共 <strong>148 个独立可执行实验</strong>：OpenGL 34、原生 Vulkan 54、nvpro_core2 6、DX12 54。原生 Vulkan 与 DX12 各有按官方顺序组织的 <strong>54 章完整主线</strong>。</p>
 <p><img alt="跨 API PBR 场景" src="docs/previews/api-comparison.jpg"></p>
+<h2>每章完整代码</h2>
+<p>所有专题实验与 Vulkan/DX12 教材章均提供自己的 C++、辅助实现、着色器、资源和 CMake，关键步骤有中文注释。共 148 个专题实验 + 108 个主线章节工程；每章可单独复制、构建和调试，修改 shader 不影响其他章。<a href="docs/INDEPENDENT_CHAPTERS.html">独立工程与注释阅读说明</a>。</p>
 <h2>目录与路线</h2>
 <div class="table-scroll"><table>
 <tr><td>API</td><td>目录</td><td>内容</td></tr>
@@ -20,14 +22,14 @@
 <p>先编译对应路线，再通过本地阅读器点击下表按钮。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>示例</td></tr>
-<tr><td>OpenGL</td><td><a href="OpenGL/lessons/02_triangle/README.html">彩色三角形</a></td></tr>
-<tr><td>OpenGL</td><td><a href="OpenGL/lessons/25_ibl/README.html">PBR / IBL</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="Vulkan/native/lessons/vk03_triangle/README.html">彩色三角形</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="Vulkan/native/lessons/vk09_pbr/README.html">直接光 PBR</a></td></tr>
-<tr><td>Vulkan nvpro_core2</td><td><a href="Vulkan/nvpro/lessons/nv03_triangle/README.html">三角形视口</a></td></tr>
-<tr><td>Vulkan nvpro_core2</td><td><a href="Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">PBR 视口</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="DirectX12/lessons/dx03_triangle/README.html">彩色三角形</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="DirectX12/lessons/dx09_pbr/README.html">直接光 PBR</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="02_triangle" href="OpenGL/lessons/02_triangle/README.html">彩色三角形</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="25_ibl" href="OpenGL/lessons/25_ibl/README.html">PBR / IBL</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk03_triangle" href="Vulkan/native/lessons/vk03_triangle/README.html">彩色三角形</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk09_pbr" href="Vulkan/native/lessons/vk09_pbr/README.html">直接光 PBR</a></td></tr>
+<tr><td>Vulkan nvpro_core2</td><td><a data-course-target="nv03_triangle" href="Vulkan/nvpro/lessons/nv03_triangle/README.html">三角形视口</a></td></tr>
+<tr><td>Vulkan nvpro_core2</td><td><a data-course-target="nv06_pbr_viewport" href="Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">PBR 视口</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx03_triangle" href="DirectX12/lessons/dx03_triangle/README.html">彩色三角形</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx09_pbr" href="DirectX12/lessons/dx09_pbr/README.html">直接光 PBR</a></td></tr>
 </table></div>
 <h2>本机要求</h2>
 <ul>
@@ -53,7 +55,7 @@ ctest --preset vulkan-native-debug
 <p>双击根目录 <strong>开始学习.cmd</strong>，它会打开本地教程。首页/章节均有运行按钮，支持 Debug/Release、运行状态、错误日志。首次会按需构建启动器，课程本身请先编译。01/08 等控制台课运行后点击“查看运行输出”。直接双击 index.html 可阅读，但点击运行需要通过入口建立本机会话。</p>
 <p>OpenGL 旧目录入口也会返回总入口。原来的 E:\OpenGL 独立教程无需移动或删除，本合集是独立工程。</p>
 <h2>学习方式</h2>
-<p>先 OpenGL 建立管线直觉，再用原生 Vulkan 观察显式资源与提交；然后阅读 nvpro_core2 看框架替你管理了哪些对象，最后对照 DX12。相同场景复用 shared/scene.hpp 与 Vulkan 公共渲染器，避免数学差异掩盖 API 差异。各课 main.cpp 选择不同的真实执行路径，不是重复输出相同画面。</p>
+<p>先 OpenGL 建立管线直觉，再用原生 Vulkan 观察显式资源与提交；然后阅读 nvpro_core2 看框架替你管理了哪些对象，最后对照 DX12。相同场景的数学与顶点约定保持一致，各章持有自己的实现快照，避免数学差异掩盖 API 差异。各课 main.cpp 选择不同的真实执行路径，不是重复输出相同画面。</p>
 <p>每课提供中文概念、代码阅读路径、练习和验证目标。CPU 数据上传、descriptor、同步和资源状态应能逐项解释，再做多帧重叠等性能优化。窗口渲染路径保留逐帧等待；新增双槽实验实际验证计算提交的资源环，尚不代表完整多帧呈现引擎。</p>
 <h2>文档</h2>
 <ul>

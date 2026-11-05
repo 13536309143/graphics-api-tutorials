@@ -57,7 +57,7 @@ GPU timestamp 通常需要延迟读取，避免为了读取本帧结果又强制
 
 帧尾错误号辅助定位；完整问题还需要查看绑定和实际 draw。
 
-[OpenGL/common/app.hpp](../../OpenGL/common/app.hpp#L123)，第 123—130 行：
+[OpenGL/lessons/02_triangle/support/app.hpp](../../OpenGL/lessons/02_triangle/support/app.hpp#L123)，第 123—130 行：
 
 ```cpp
         GLenum e = glGetError();
@@ -74,7 +74,7 @@ GPU timestamp 通常需要延迟读取，避免为了读取本帧结果又强制
 
 验证错误与外部 loader 诊断分开，先处理首个根因。
 
-[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L9)，第 9—26 行：
+[Vulkan/native/lessons/vk03_triangle/support/native_app.hpp](../../Vulkan/native/lessons/vk03_triangle/support/native_app.hpp#L9)，第 9—26 行：
 
 ```cpp
 inline VKAPI_ATTR VkBool32 VKAPI_CALL validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -101,7 +101,7 @@ struct NativeDevice {
 
 无窗口模式读回真实视口目标，不能代替长期交互和性能验证。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L174)，第 174—203 行：
+[Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp](../../Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp#L174)，第 174—203 行：
 
 ```cpp
     void onLastHeadlessFrame() override {
@@ -140,7 +140,7 @@ struct NativeDevice {
 
 ERROR/CORRUPTION 使 smoke 失败；抓帧再看数据和管线。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L142)，第 142—167 行：
+[DirectX12/lessons/dx03_triangle/support/dx12_course.hpp](../../DirectX12/lessons/dx03_triangle/support/dx12_course.hpp#L146)，第 146—171 行：
 
 ```cpp
     void checkMessages() {

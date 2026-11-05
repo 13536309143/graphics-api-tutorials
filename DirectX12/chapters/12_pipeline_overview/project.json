@@ -1,0 +1,7 @@
+{
+  "target": "dx12_ch_pipeline_overview",
+  "api": "dx",
+  "experiment": 3,
+  "chapter": "12_pipeline_overview",
+  "independent": true
+}

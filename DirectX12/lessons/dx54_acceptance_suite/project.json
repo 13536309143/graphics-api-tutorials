@@ -1,0 +1,7 @@
+{
+  "target": "dx54_acceptance_suite",
+  "api": "dx",
+  "experiment": 54,
+  "chapter": null,
+  "independent": true
+}

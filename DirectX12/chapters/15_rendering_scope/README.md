@@ -34,6 +34,18 @@ RenderTargetState 可以填附件并开始 dynamic rendering，但调用者仍�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,75 @@ RenderTargetState 可以填附件并开始 dynamic rendering，但调用者仍�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx10_offscreen --parallel 4
-.\DirectX12\build\bin\Debug\dx10_offscreen.exe
-ctest --preset dx12-debug -R "^dx10_offscreen$" --output-on-failure
+cmake --build --preset dx12-debug --target dx15_ch_rendering_scope --parallel 4
+.\DirectX12\build\bin\Debug\dx15_ch_rendering_scope.exe
+ctest --preset dx12-debug -R "^dx15_ch_rendering_scope$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L576)，第 576—619 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/15_rendering_scope/main.cpp](main.cpp#L9)，第 9—62 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        if (mode == 10) {
-            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-            clear = {};
-            clear.Format = desc.Format;
-            dxCheck(c.device->CreateCommittedResource(&heap,
-                                                      D3D12_HEAP_FLAG_NONE,
-                                                      &desc,
-                                                      D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                                      &clear,
-                                                      IID_PPV_ARGS(&offscreen)));
-            c.device->CreateRenderTargetView(offscreen.Get(), nullptr, rtv(2));
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error("GLFW failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "DirectX 12 Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        DxWindow app(window, 10, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? "dx12_" + std::to_string(10) + ".ppm"
+                                                   : options.captureStem + ".ppm");
+        while (!glfwWindowShouldClose(window) && (!smoke || frame < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene && options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke && frame == 3 ? &output : nullptr);
+            ++frame;
         }
     }
-    void render(float time, const std::filesystem::path* capturePath) {
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
 
-        // 每帧重新取得当前 back buffer；普通路径将其从 PRESENT 切到 RENDER_TARGET。
-        auto back = colors[swap->GetCurrentBackBufferIndex()];
-        c.begin();
-        if (mode != 10) {
-            auto b = transition(
-                back.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            c.cmd->ResourceBarrier(1, &b);
-        }
-        auto color = rtv(options.samples > 1 ? 3
-                         : mode == 10        ? 2
-                                             : swap->GetCurrentBackBufferIndex()),
-             ds = dsvHeap->GetCPUDescriptorHandleForHeapStart();
-        float clear[] = {.035f, .055f, .09f, 1};
-        c.cmd->ClearRenderTargetView(color, clear, 0, nullptr);
-        c.cmd->ClearDepthStencilView(ds, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
-        c.cmd->OMSetRenderTargets(1, &color, FALSE, &ds);
-        D3D12_VIEWPORT viewport{
-            0, 0, float(width) / (scene && scene->halfViewport ? 2 : 1), float(height), 0, 1};
-        D3D12_RECT scissor{0, 0, scene && scene->halfScissor ? width / 2 : width, height};
-        c.cmd->RSSetViewports(1, &viewport);
-        c.cmd->RSSetScissorRects(1, &scissor);
-        if (scene) {
-            if (options.update)
-                options.update(*scene, time);
-            scene->render(width, height, time);
-        }
-
-        // 离屏课先画独立纹理，再把它作为 COPY_SOURCE 拷贝到交换链图像。
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +157,4 @@ ctest --preset dx12-debug -R "^dx10_offscreen$" --output-on-failure
 
 ## 固定输入的实际 GPU 读回
 
-![dx10_offscreen](../../../docs/previews/dx10_offscreen.png)
+![dx15_ch_rendering_scope](../../../docs/previews/dx10_offscreen.png)

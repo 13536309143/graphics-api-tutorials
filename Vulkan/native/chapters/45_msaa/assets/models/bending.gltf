@@ -1,0 +1,229 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "OpenGL Course CC0"
+  },
+  "buffers": [
+    {
+      "uri": "bending.bin",
+      "byteLength": 28636
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 5100
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 5100,
+      "byteLength": 5100
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 10200,
+      "byteLength": 3400
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 13600,
+      "byteLength": 3400
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 17000,
+      "byteLength": 6800
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 23800,
+      "byteLength": 4608
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 28408,
+      "byteLength": 128
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 28536,
+      "byteLength": 20
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 28556,
+      "byteLength": 80
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 425,
+      "type": "VEC3",
+      "min": [
+        -0.45,
+        0.0,
+        -0.45
+      ],
+      "max": [
+        0.45,
+        3.0,
+        0.45
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 425,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 425,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 425,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5126,
+      "count": 425,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5123,
+      "count": 2304,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5126,
+      "count": 2,
+      "type": "MAT4"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5126,
+      "count": 5,
+      "type": "SCALAR",
+      "min": [
+        0.0
+      ],
+      "max": [
+        4.0
+      ]
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5126,
+      "count": 5,
+      "type": "VEC4"
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2,
+            "JOINTS_0": 3,
+            "WEIGHTS_0": 4
+          },
+          "indices": 5,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "SceneRoot",
+      "children": [
+        1,
+        3
+      ]
+    },
+    {
+      "name": "RootBone",
+      "children": [
+        2
+      ]
+    },
+    {
+      "name": "BendBone",
+      "translation": [
+        0,
+        1.5,
+        0
+      ]
+    },
+    {
+      "name": "Skin",
+      "mesh": 0,
+      "skin": 0
+    }
+  ],
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0,
+  "materials": [
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.04,
+          0.55,
+          0.8,
+          1
+        ],
+        "metallicFactor": 0.4,
+        "roughnessFactor": 0.28
+      }
+    }
+  ],
+  "skins": [
+    {
+      "inverseBindMatrices": 6,
+      "joints": [
+        1,
+        2
+      ],
+      "skeleton": 1
+    }
+  ],
+  "animations": [
+    {
+      "name": "Bend",
+      "samplers": [
+        {
+          "input": 7,
+          "output": 8,
+          "interpolation": "LINEAR"
+        }
+      ],
+      "channels": [
+        {
+          "sampler": 0,
+          "target": {
+            "node": 2,
+            "path": "rotation"
+          }
+        }
+      ]
+    }
+  ]
+}

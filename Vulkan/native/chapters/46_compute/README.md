@@ -34,6 +34,18 @@ nv05 由 Context 提供设备/队列并复用 computeSquares。它不创建普�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,47 @@ nv05 由 Context 提供设备/队列并复用 computeSquares。它不创建普�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk08_compute_readback --parallel 4
-.\Vulkan\native\build\bin\Debug\vk08_compute_readback.exe
-ctest --preset vulkan-native-debug -R "^vk08_compute_readback$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk46_ch_compute --parallel 4
+.\Vulkan\native\build\bin\Debug\vk46_ch_compute.exe
+ctest --preset vulkan-native-debug -R "^vk46_ch_compute$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L466)，第 466—509 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/46_compute/main.cpp](main.cpp#L9)，第 9—34 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-inline void computeSquares(const VkContextRef& c, const std::filesystem::path& shaders) {
-    VkBufferResource storage;
-    storage.init(c, 256 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    VkDescriptorSetLayoutBinding binding{
-        0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
-    VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    li.bindingCount = 1;
-    li.pBindings = &binding;
-    VkDescriptorSetLayout layout;
-    vkCheck(vkCreateDescriptorSetLayout(c.device, &li, nullptr, &layout));
-    VkPipelineLayoutCreateInfo pl{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    pl.setLayoutCount = 1;
-    pl.pSetLayouts = &layout;
-    VkPipelineLayout pipelineLayout;
-    vkCheck(vkCreatePipelineLayout(c.device, &pl, nullptr, &pipelineLayout));
-    VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1};
-    VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    pool.maxSets = 1;
-    pool.poolSizeCount = 1;
-    pool.pPoolSizes = &size;
-    VkDescriptorPool descriptorPool;
-    vkCheck(vkCreateDescriptorPool(c.device, &pool, nullptr, &descriptorPool));
-    VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    ai.descriptorPool = descriptorPool;
-    ai.descriptorSetCount = 1;
-    ai.pSetLayouts = &layout;
-    VkDescriptorSet set;
-    vkCheck(vkAllocateDescriptorSets(c.device, &ai, &set));
-    VkDescriptorBufferInfo bi{storage.buffer, 0, 256 * 4};
-    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    write.dstSet = set;
-    write.descriptorCount = 1;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    write.pBufferInfo = &bi;
-    vkUpdateDescriptorSets(c.device, 1, &write, 0, nullptr);
-    VkShaderModule cs = shaderModule(c.device, shaders / "square.comp.spv");
-    VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
-    ci.stage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    ci.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    ci.stage.module = cs;
-    ci.stage.pName = "main";
-    ci.layout = pipelineLayout;
-    VkPipeline pipeline;
-    vkCheck(vkCreateComputePipelines(c.device, {}, 1, &ci, nullptr, &pipeline));
+int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
+
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    {
+        NativeDevice d(nullptr);
+        {
+            computeSquares(d.c, nativeShaders);
+        }
+        return validationErrors ? 1 : 0;
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

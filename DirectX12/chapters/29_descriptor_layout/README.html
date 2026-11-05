@@ -1,5 +1,5 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 29 课 · 描述符布局与资源接口声明 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 29 课 · 描述符布局与资源接口声明 · DirectX 12</h1>
-<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/05_binding_constants.html">对照精讲</a> · <a href="../28_uniform_layout/README.html">上一课</a> · <a href="../30_descriptor_instances/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 29 课 · 描述符布局与资源接口声明 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx29_ch_descriptor_layout"><h1>第 29 课 · 描述符布局与资源接口声明 · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/05_binding_constants.html">对照精讲</a> · <a data-course-target="dx28_ch_uniform_layout" href="../28_uniform_layout/README.html">上一课</a> · <a data-course-target="dx30_ch_descriptor_instances" href="../30_descriptor_instances/README.html">下一课</a></p>
 <h2>本课目标与先修</h2>
 <p>学习目标：解释“描述符布局与资源接口声明”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
 <h2>为什么需要这一层</h2>
@@ -19,67 +19,83 @@
 <h2>nvpro_core2 框架对照</h2>
 <p>SceneVk 使用原生 layout/set；Context 与 Application 不自动推导自定义 shader 的资源接口。</p>
 <p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>本章独立工程与关键注释</h2>
+<p><a data-course-target="dx29_ch_descriptor_layout" href="main.cpp">main.cpp</a> · <a data-course-target="dx29_ch_descriptor_layout" href="support/">本地辅助实现</a> · <a data-course-target="dx29_ch_descriptor_layout" href="shaders/">本章着色器</a> · <a data-course-target="dx29_ch_descriptor_layout" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
 <h2>运行与实际检查</h2>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>实际实验</td></tr>
-<tr><td>DirectX 12</td><td><a href="../../lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../lessons/dx16_push_constants/README.html">dx16_push_constants</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk16_push_constants/README.html">vk16_push_constants</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx05_indexed_cbv" href="../../lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx16_push_constants" href="../../lessons/dx16_push_constants/README.html">dx16_push_constants</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk05_indexed_uniform" href="../../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk16_push_constants" href="../../../Vulkan/native/lessons/vk16_push_constants/README.html">vk16_push_constants</a></td></tr>
 </table></div>
 <p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
 <pre><code>cmake --preset dx12
-cmake --build --preset dx12-debug --target dx05_indexed_cbv --parallel 4
-.\DirectX12\build\bin\Debug\dx05_indexed_cbv.exe
-ctest --preset dx12-debug -R &quot;^dx05_indexed_cbv$&quot; --output-on-failure</code></pre>
+cmake --build --preset dx12-debug --target dx29_ch_descriptor_layout --parallel 4
+.\DirectX12\build\bin\Debug\dx29_ch_descriptor_layout.exe
+ctest --preset dx12-debug -R &quot;^dx29_ch_descriptor_layout$&quot; --output-on-failure</code></pre>
 <p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
 <h2>关键实现：从当前源码定位</h2>
-<p>来自 <a href="../../common/dx12_course.hpp#L345">DirectX12/common/dx12_course.hpp</a>，第 345—388 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
-<pre><code>        D3D12_ROOT_PARAMETER params[3]{};
-        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        params[0].Descriptor.ShaderRegister = 0;
-        params[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        params[1].Constants = {1, 0, 20};
-        params[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        D3D12_DESCRIPTOR_RANGE range{};
-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        range.NumDescriptors = 1;
-        range.BaseShaderRegister = 0;
-        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        params[2].DescriptorTable = {1, &amp;range};
-        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_STATIC_SAMPLER_DESC sampler{};
-        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW =
-            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        sampler.MaxLOD = D3D12_FLOAT32_MAX;
-        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_ROOT_SIGNATURE_DESC root{};
-        root.NumParameters = 3;
-        root.pParameters = params;
-        root.NumStaticSamplers = 1;
-        root.pStaticSamplers = &amp;sampler;
-        root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-        signature = rootSignature(c, root);
-        auto vs = compileHlsl(mode == 3 ? &quot;TriangleMain&quot; : &quot;VertexMain&quot;, &quot;vs_5_1&quot;),
-             ps = compileHlsl(&quot;PixelMain&quot;, &quot;ps_5_1&quot;);
-        D3D12_INPUT_ELEMENT_DESC elements[] = {{&quot;POSITION&quot;,
-                                                0,
-                                                DXGI_FORMAT_R32G32B32_FLOAT,
-                                                0,
-                                                0,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                                                0},
-                                               {&quot;NORMAL&quot;,
-                                                0,
-                                                DXGI_FORMAT_R32G32B32_FLOAT,
-                                                0,
-                                                12,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,</code></pre>
-<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+<p>来自 <a data-course-target="dx29_ch_descriptor_layout" href="main.cpp#L9">DirectX12/chapters/29_descriptor_layout/main.cpp</a>，第 9—62 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   &quot;shaders&quot; / &quot;scene.hlsl&quot;;
+    bool smoke = false, warp = false;
+    for (int i = 1; i &lt; argc; ++i) {
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+        warp |= std::strcmp(argv[i], &quot;--warp&quot;) == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error(&quot;GLFW failed&quot;);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, &quot;DirectX 12 Course&quot;, nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error(&quot;Window creation failed&quot;);
+    {
+        DxWindow app(window, 5, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? &quot;dx12_&quot; + std::to_string(5) + &quot;.ppm&quot;
+                                                   : options.captureStem + &quot;.ppm&quot;);
+        while (!glfwWindowShouldClose(window) &amp;&amp; (!smoke || frame &lt; 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &amp;w, &amp;h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene &amp;&amp; options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke &amp;&amp; frame == 3 ? &amp;output : nullptr);
+            ++frame;
+        }
+    }
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。</p>
 <h2>受控修改实验</h2>
 <p>为一个每帧相机、每材质纹理、每对象 model 的场景设计更新频率划分。</p>
 <p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>
@@ -95,4 +111,4 @@ ctest --preset dx12-debug -R &quot;^dx05_indexed_cbv$&quot; --output-on-failure<
 <p><a href="https://docs.vulkan.net.cn/tutorial/latest/05_Uniform_buffers/00_Descriptor_set_layout_and_buffer.html">指定 Vulkan 教程对应位置</a>。DX12 路线按同一概念顺序建立映射，其对象与约束以 Microsoft 文档和本后端代码为准。49—54 课包含在基础/compute 之后加入的工程扩展。</p>
 <p><a href="../../../docs/REFERENCES.html">版本与资料说明</a> · <a href="../../../docs/DEBUGGING.html">调试</a> · <a href="../../../docs/FEATURE_MATRIX.html">功能完成度</a></p>
 <h2>固定输入的实际 GPU 读回</h2>
-<p><img alt="dx05_indexed_cbv" src="../../../docs/previews/dx05_indexed_cbv.png"></p></main></html>
+<p><img alt="dx29_ch_descriptor_layout" src="../../../docs/previews/dx05_indexed_cbv.png"></p></main></html>

@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 memoryTypeBits 是资源允许的类型集合，propertyFlags 是内存属性。实验为 257 字节缓冲查询实际 size/alignment/type bits，再在允许集合中选择所需属性。non-coherent 的 flush/invalidate 还需符合原子尺寸对齐。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,31 @@ cmake --build --preset vulkan-native-debug --target vk47_allocation_requirements
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L52)，第 52—95 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk47_allocation_requirements/main.cpp](main.cpp#L23)，第 23—44 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        vkGetBufferMemoryRequirements(device, buffer, &req);
-        VkMemoryAllocateInfo alloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-        alloc.allocationSize = req.size;
-        alloc.memoryTypeIndex = memoryType(c, req.memoryTypeBits, flags);
-        vkCheck(vkAllocateMemory(device, &alloc, nullptr, &memory));
-        vkCheck(vkBindBufferMemory(device, buffer, memory, 0));
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 47);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            inspection(c);
+        }
     }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
 
-    // 此处缓冲使用 HOST_VISIBLE | HOST_COHERENT；非 coherent 内存还需显式 flush。
-    void upload(const void* data, size_t bytes) {
-        void* p;
-        vkCheck(vkMapMemory(device, memory, 0, size, 0, &p));
-        std::memcpy(p, data, bytes);
-        vkUnmapMemory(device, memory);
-    }
-    ~VkBufferResource() {
-        if (buffer)
-            vkDestroyBuffer(device, buffer, nullptr);
-        if (memory)
-            vkFreeMemory(device, memory, nullptr);
-    }
-};
-struct VkImageResource {
-    VkDevice device{};
-    VkImage image{};
-    VkImageView view{};
-    VkDeviceMemory memory{};
-    VkImageResource() = default;
-    VkImageResource(const VkImageResource&) = delete;
-    VkImageResource& operator=(const VkImageResource&) = delete;
-    void init(const VkContextRef& c,
-              VkExtent2D size,
-              VkFormat format,
-              VkImageUsageFlags usage,
-              VkImageAspectFlags aspect,
-              uint32_t levels = 1,
-              VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT) {
-        device = c.device;
-        VkImageCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-        info.imageType = VK_IMAGE_TYPE_2D;
-        info.format = format;
-        info.extent = {size.width, size.height, 1};
-        info.mipLevels = levels;
-        info.arrayLayers = 1;
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

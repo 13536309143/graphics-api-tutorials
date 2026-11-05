@@ -1,0 +1,7 @@
+{
+  "target": "vk40_ch_depth_test",
+  "api": "vk",
+  "experiment": 7,
+  "chapter": "40_depth_test",
+  "independent": true
+}

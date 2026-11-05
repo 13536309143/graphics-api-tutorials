@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 debug layer 要在 Device 创建前启用，InfoQueue 检查 ERROR/CORRUPTION。实验通过 AddApplicationMessage 验证信息通道并为 queue/list/allocator SetName。原始 BeginEvent 是工具层诊断接口；课程不直接伪造 PIX 事件载荷，嵌套 PIX 标记需接入其正式 helper。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,26 @@ cmake --build --preset dx12-debug --target dx38_diagnostic_delivery --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L612)，第 612—655 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx38_diagnostic_delivery/main.cpp](main.cpp#L28)，第 28—44 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void inspection(DxDevice& c, const LabOptions& options, int id) {
-    if (id == 37) {
-        UINT count = 0;
-        for (UINT i = 0;; ++i) {
-            ComPtr<IDXGIAdapter1> adapter;
-            auto hr = c.factory->EnumAdapters1(i, &adapter);
-            if (hr == DXGI_ERROR_NOT_FOUND)
-                break;
-            dxCheck(hr);
-            DXGI_ADAPTER_DESC1 d{};
-            dxCheck(adapter->GetDesc1(&d));
-            std::wcout << L"adapter=" << d.Description << L", bytes=" << d.DedicatedVideoMemory
-                       << L'\n';
-            ++count;
-        }
-        require(count > 0, "No DXGI adapters enumerated");
-    } else if (id == 38) {
-        require(c.messages.Get() != nullptr, "D3D12 InfoQueue unavailable");
-        dxCheck(c.messages->PushEmptyStorageFilter());
-        UINT64 before = c.messages->GetNumStoredMessages();
-        dxCheck(c.messages->AddApplicationMessage(D3D12_MESSAGE_SEVERITY_INFO,
-                                                  "Course informational diagnostic"));
-        require(c.messages->GetNumStoredMessages() > before,
-                "InfoQueue did not receive application message");
-        c.messages->PopStorageFilter();
-        std::cout
-            << "Verified informational diagnostic delivery without introducing invalid API usage\n";
-    } else if (id == 39) {
-        auto desc = c.queue->GetDesc();
-        require(desc.Type == D3D12_COMMAND_LIST_TYPE_DIRECT, "Expected direct queue");
-        std::cout << "queue type=" << desc.Type << ", priority=" << desc.Priority
-                  << ", flags=" << desc.Flags << ", nodeMask=" << desc.NodeMask << '\n';
-    } else if (id == 42) {
-        auto shader = labShader(options, "ComputeMain");
-        ComPtr<ID3D11ShaderReflection> reflection;
-        dxCheck(D3DReflect(
-            shader->GetBufferPointer(), shader->GetBufferSize(), IID_PPV_ARGS(&reflection)));
-        UINT x{}, y{}, z{};
-        reflection->GetThreadGroupSize(&x, &y, &z);
-        require(x == 64 && y == 1 && z == 1, "Unexpected shader thread-group reflection");
-        D3D11_SHADER_DESC desc{};
-        dxCheck(reflection->GetDesc(&desc));
-        std::cout << "Verified shader reflection: threads=" << x
-                  << ", bindings=" << desc.BoundResources << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 38);
+    DxDevice c(options.warp);
+    {
+        inspection(c, options);
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

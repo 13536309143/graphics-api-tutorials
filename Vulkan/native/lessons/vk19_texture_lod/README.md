@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 ImageView 覆盖完整级数、sampler mipmapMode=LINEAR 且 maxLod 合法。另一个实验只暴露最后一级 view，明确展示 view 范围改变而资源存储不变。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,24 @@ cmake --build --preset vulkan-native-debug --target vk19_texture_lod --parallel 
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L438)，第 438—481 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk19_texture_lod/main.cpp](main.cpp#L272)，第 272—286 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        VkSamplerCreateInfo si{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-        si.magFilter = si.minFilter = VK_FILTER_LINEAR;
-        si.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        si.addressModeU = si.addressModeV = si.addressModeW =
-            clamp ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        si.maxLod = float(levels - 1);
-        vkCheck(vkCreateSampler(c.device, &si, nullptr, &sampler));
-        std::cout << "Uploaded image " << pixels.width << 'x' << pixels.height
-                  << ", mipLevels=" << levels << ", sRGB=" << srgb << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 19);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
     }
-    void attach(SceneVk& scene, bool lastMip = false) {
-        if (lastMip) {
-            VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-            ci.image = image.image;
-            ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            ci.format = format;
-            ci.subresourceRange = {
-                VK_IMAGE_ASPECT_COLOR_BIT, uint32_t(reference.size() - 1), 1, 0, 1};
-            vkCheck(vkCreateImageView(c.device, &ci, nullptr, &selectedView));
-        }
-        VkDescriptorImageInfo info{
-            sampler, lastMip ? selectedView : image.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-        VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.dstSet = scene.descriptor;
-        write.dstBinding = 1;
-        write.descriptorCount = 1;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.pImageInfo = &info;
-        vkUpdateDescriptorSets(c.device, 1, &write, 0, nullptr);
-    }
-    // 逐级复制到可见缓冲并核对每个 texel，避免只检查第一个级别或最终画面。
-    void verify() {
-        VkDeviceSize bytes = 0;
-        std::vector<VkDeviceSize> offsets;
-        for (const auto& p : reference) {
-            offsets.push_back(bytes);
-            bytes += p.rgba.size();
-        }
-        VkBufferResource readback;
-        readback.init(c, bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-        immediate(c, [&](VkCommandBuffer cmd) {
-            for (uint32_t i = 0; i < reference.size(); ++i) {
-                imageDependency(cmd,
-                                image.image,
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

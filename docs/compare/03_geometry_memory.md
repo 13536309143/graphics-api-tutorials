@@ -54,7 +54,7 @@ nv04 给出更接近静态几何的路径：VMA 创建 device-local 顶点缓冲
 
 EBO 绑定属于 VAO 状态，attribute stride 与 CPU 数据一致。
 
-[OpenGL/common/app.hpp](../../OpenGL/common/app.hpp#L217)，第 217—264 行：
+[OpenGL/lessons/03_indexed/support/app.hpp](../../OpenGL/lessons/03_indexed/support/app.hpp#L217)，第 217—264 行：
 
 ```cpp
 struct Mesh {
@@ -104,14 +104,14 @@ struct Mesh {
     void draw() const {
         glBindVertexArray(vao);
         if (indexed)
-            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+            // 绘制使用当前程序、VAO 和附件；属性布局必须匹配顶点着色器。
 ```
 
 ### Vulkan 原生 · 已实现
 
 先满足 memoryTypeBits 与属性，再绑定资源；coherent 不等于执行同步。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L31)，第 31—75 行：
+[Vulkan/native/lessons/vk04_vertex_buffer/support/scene_vk.hpp](../../Vulkan/native/lessons/vk04_vertex_buffer/support/scene_vk.hpp#L31)，第 31—75 行：
 
 ```cpp
 struct VkBufferResource {
@@ -165,7 +165,7 @@ struct VkImageResource {
 
 本段上传 device-local 顶点；纹理路径在 SceneVk，不能混作同一 helper。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L88)，第 88—107 行：
+[Vulkan/nvpro/lessons/nv04_vma_staging_texture/support/nvapp_course.hpp](../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/support/nvapp_course.hpp#L88)，第 88—107 行：
 
 ```cpp
         if (mode == 6) {
@@ -194,7 +194,7 @@ struct VkImageResource {
 
 UPLOAD 顶点和 index buffer view 保持清楚，性能优化可再改 DEFAULT。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L256)，第 256—293 行：
+[DirectX12/lessons/dx04_vertex_buffer/support/dx12_course.hpp](../../DirectX12/lessons/dx04_vertex_buffer/support/dx12_course.hpp#L264)，第 264—301 行：
 
 ```cpp
     DxScene(DxDevice& context,

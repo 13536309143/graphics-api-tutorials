@@ -1,5 +1,17 @@
 # dx05_indexed_cbv · 索引、CBV 与 Root Constants
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [上一课](../dx04_vertex_buffer/README.md) · [下一课](../dx06_texture_srv/README.md)
 
 ## 构建和运行
@@ -63,39 +75,63 @@ Frame 地址通过 root CBV 提供，Draw 是 20 DWORD root constants，SRV tabl
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L345)，第 345—374 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx05_indexed_cbv/main.cpp](main.cpp#L9)，第 9—62 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        D3D12_ROOT_PARAMETER params[3]{};
-        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        params[0].Descriptor.ShaderRegister = 0;
-        params[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        params[1].Constants = {1, 0, 20};
-        params[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        D3D12_DESCRIPTOR_RANGE range{};
-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        range.NumDescriptors = 1;
-        range.BaseShaderRegister = 0;
-        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        params[2].DescriptorTable = {1, &range};
-        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_STATIC_SAMPLER_DESC sampler{};
-        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW =
-            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        sampler.MaxLOD = D3D12_FLOAT32_MAX;
-        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_ROOT_SIGNATURE_DESC root{};
-        root.NumParameters = 3;
-        root.pParameters = params;
-        root.NumStaticSamplers = 1;
-        root.pStaticSamplers = &sampler;
-        root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-        signature = rootSignature(c, root);
-        auto vs = compileHlsl(mode == 3 ? "TriangleMain" : "VertexMain", "vs_5_1"),
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error("GLFW failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "DirectX 12 Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        DxWindow app(window, 5, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? "dx12_" + std::to_string(5) + ".ppm"
+                                                   : options.captureStem + ".ppm");
+        while (!glfwWindowShouldClose(window) && (!smoke || frame < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene && options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke && frame == 3 ? &output : nullptr);
+            ++frame;
+        }
+    }
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

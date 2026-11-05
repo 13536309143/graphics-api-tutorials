@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-05",
+  "projects": 256,
+  "experiments": 148,
+  "chapter_snapshots": 108,
+  "local_cpp_files": 1087,
+  "local_shader_stages": 378,
+  "third_party_dependencies_shared_in_integrated_build": true,
+  "standalone_cases": [
+    {
+      "target": "02_triangle",
+      "folder": "OpenGL",
+      "path": "OpenGL/lessons/02_triangle",
+      "kind": "lesson"
+    },
+    {
+      "target": "vk12_ch_pipeline_overview",
+      "folder": "Vulkan/native",
+      "path": "Vulkan/native/chapters/12_pipeline_overview",
+      "kind": "chapter"
+    },
+    {
+      "target": "dx42_ch_gltf_nodes",
+      "folder": "DirectX12",
+      "path": "DirectX12/chapters/42_gltf_nodes",
+      "kind": "chapter"
+    },
+    {
+      "target": "nv03_triangle",
+      "folder": "Vulkan/nvpro",
+      "path": "Vulkan/nvpro/lessons/nv03_triangle",
+      "kind": "lesson"
+    }
+  ],
+  "standalone_source_scope": "Copied out to unrelated directories; only external third-party source caches supplied, no sibling course source includes/libraries.",
+  "tests": [
+    {
+      "track": "opengl",
+      "passed": 34,
+      "failed": 0,
+      "configuration": "Debug",
+      "experiment_targets": 34,
+      "chapter_targets": 0,
+      "seconds": 26.01
+    },
+    {
+      "track": "vulkan-native",
+      "passed": 108,
+      "failed": 0,
+      "configuration": "Debug",
+      "experiment_targets": 54,
+      "chapter_targets": 54,
+      "seconds": 150.37
+    },
+    {
+      "track": "vulkan-nvpro",
+      "passed": 6,
+      "failed": 0,
+      "configuration": "Debug",
+      "experiment_targets": 6,
+      "chapter_targets": 0,
+      "seconds": 5.48
+    },
+    {
+      "track": "dx12",
+      "passed": 108,
+      "failed": 0,
+      "configuration": "Debug",
+      "experiment_targets": 54,
+      "chapter_targets": 54,
+      "seconds": 80.13
+    }
+  ],
+  "browser": "256 target bindings and available Debug binaries; 54+54 chapter index buttons; own-chapter GPU mip launches; mobile, preview and offline reading."
+}

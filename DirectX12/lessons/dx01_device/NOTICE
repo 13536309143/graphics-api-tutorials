@@ -1,0 +1,7 @@
+Graphics API Tutorials
+
+The Vulkan nvpro_core2 application-element integration is adapted from NVIDIA's nvpro_core2 project_template (Apache License 2.0). The pinned submodule retains NVIDIA copyright notices, PACKAGE-LICENSES and its third-party licenses.
+
+OpenGL third-party components retain their individual licenses (GLFW, GLM, Assimp, GLAD, stb). Course-created images and models in OpenGL/assets are dedicated under CC0 as stated in their LICENSE.txt.
+
+This project is an independent learning project and is not endorsed by NVIDIA, Microsoft, or Khronos.

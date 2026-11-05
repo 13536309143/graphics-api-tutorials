@@ -1,5 +1,5 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 06 课 · 物理设备、Adapter 与格式能力 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 06 课 · 物理设备、Adapter 与格式能力 · DirectX 12</h1>
-<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/01_context_device.html">对照精讲</a> · <a href="../05_validation/README.html">上一课</a> · <a href="../07_queues/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 06 课 · 物理设备、Adapter 与格式能力 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx06_ch_physical_device"><h1>第 06 课 · 物理设备、Adapter 与格式能力 · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/01_context_device.html">对照精讲</a> · <a data-course-target="dx05_ch_validation" href="../05_validation/README.html">上一课</a> · <a data-course-target="dx07_ch_queues" href="../07_queues/README.html">下一课</a></p>
 <h2>本课目标与先修</h2>
 <p>学习目标：解释“物理设备、Adapter 与格式能力”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
 <h2>为什么需要这一层</h2>
@@ -19,65 +19,44 @@
 <h2>nvpro_core2 框架对照</h2>
 <p>Context 的设备选择结果应与需求列表一起审查。框架选择到一个可用 device 后，新的效果仍可能要求额外格式或 sample count。</p>
 <p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>本章独立工程与关键注释</h2>
+<p><a data-course-target="dx06_ch_physical_device" href="main.cpp">main.cpp</a> · <a data-course-target="dx06_ch_physical_device" href="support/">本地辅助实现</a> · <a data-course-target="dx06_ch_physical_device" href="shaders/">本章着色器</a> · <a data-course-target="dx06_ch_physical_device" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
 <h2>运行与实际检查</h2>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>实际实验</td></tr>
-<tr><td>DirectX 12</td><td><a href="../../lessons/dx11_capabilities/README.html">dx11_capabilities</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk11_capabilities/README.html">vk11_capabilities</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx11_capabilities" href="../../lessons/dx11_capabilities/README.html">dx11_capabilities</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk11_capabilities" href="../../../Vulkan/native/lessons/vk11_capabilities/README.html">vk11_capabilities</a></td></tr>
 </table></div>
 <p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
 <pre><code>cmake --preset dx12
-cmake --build --preset dx12-debug --target dx11_capabilities --parallel 4
-.\DirectX12\build\bin\Debug\dx11_capabilities.exe
-ctest --preset dx12-debug -R &quot;^dx11_capabilities$&quot; --output-on-failure</code></pre>
+cmake --build --preset dx12-debug --target dx06_ch_physical_device --parallel 4
+.\DirectX12\build\bin\Debug\dx06_ch_physical_device.exe
+ctest --preset dx12-debug -R &quot;^dx06_ch_physical_device$&quot; --output-on-failure</code></pre>
 <p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
 <h2>关键实现：从当前源码定位</h2>
-<p>来自 <a href="../../common/advanced_labs.cpp#L129">DirectX12/common/advanced_labs.cpp</a>，第 129—172 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
-<pre><code>void capabilities(DxDevice&amp; c) {
-    D3D12_FEATURE_DATA_D3D12_OPTIONS options{};
-    dxCheck(c.device-&gt;CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &amp;options, sizeof(options)));
-    D3D12_FEATURE_DATA_FORMAT_SUPPORT format{DXGI_FORMAT_R8G8B8A8_UNORM};
-    dxCheck(c.device-&gt;CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &amp;format, sizeof(format)));
-    require((format.Support1 &amp; D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0,
-            &quot;RGBA8 render target unsupported&quot;);
-    std::cout &lt;&lt; &quot;ResourceBindingTier=&quot; &lt;&lt; options.ResourceBindingTier
-              &lt;&lt; &quot;, heapTier=&quot; &lt;&lt; options.ResourceHeapTier
-              &lt;&lt; &quot;, CBV alignment=&quot; &lt;&lt; D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT
-              &lt;&lt; &quot;, texture pitch alignment=&quot; &lt;&lt; D3D12_TEXTURE_DATA_PITCH_ALIGNMENT &lt;&lt; &#x27;\n&#x27;;
-    D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS ms{};
-    ms.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    ms.SampleCount = 4;
-    dxCheck(
-        c.device-&gt;CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &amp;ms, sizeof(ms)));
-    std::cout &lt;&lt; &quot;RGBA8 4x MSAA quality levels=&quot; &lt;&lt; ms.NumQualityLevels &lt;&lt; &#x27;\n&#x27;;
+<p>来自 <a data-course-target="dx06_ch_physical_device" href="main.cpp#L33">DirectX12/chapters/06_physical_device/main.cpp</a>，第 33—49 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 11);
+    DxDevice c(options.warp);
+    {
+        capabilities(c);
+    }
+    c.checkMessages();
+    return 0;
 }
-// UPLOAD 写入后复制到 DEFAULT，再转 COPY_SOURCE 并读回；upload 保留到 fence 完成。
-void stagingCopy(DxDevice&amp; c) {
-    std::vector&lt;uint32_t&gt; original(257);
-    for (uint32_t i = 0; i &lt; 257; ++i)
-        original[i] = i * 17 + 9;
-    auto upload = c.buffer(257 * 4, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-    auto gpu = c.buffer(257 * 4, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST);
-    auto readback = c.buffer(257 * 4, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    writeBuffer(upload.Get(), original.data(), original.size() * 4);
-    c.begin();
-    c.cmd-&gt;CopyBufferRegion(gpu.Get(), 0, upload.Get(), 0, 257 * 4);
-    auto b =
-        transition(gpu.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    c.cmd-&gt;ResourceBarrier(1, &amp;b);
-    c.cmd-&gt;CopyBufferRegion(readback.Get(), 0, gpu.Get(), 0, 257 * 4);
-    c.submit();
-    require(readBuffer(readback.Get(), 257) == original, &quot;DEFAULT staging-copy result mismatch&quot;);
-    std::cout &lt;&lt; &quot;Verified 257 DEFAULT round-trip words\n&quot;;
-}
-// 两组 allocator/list 与可变资源交替提交；等待的是本槽上次使用，不是每次提交后立即全局等待。
-void frameRing(DxDevice&amp; c, const LabOptions&amp; options) {
-    ComputeKernel kernels[2] = {ComputeKernel(c, options), ComputeKernel(c, options)};
-    ComPtr&lt;ID3D12CommandAllocator&gt; allocators[2];
-    ComPtr&lt;ID3D12GraphicsCommandList&gt; commands[2];
-    UINT64 completed[2]{};
-    int previous[2] = {-1, -1};</code></pre>
-<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。</p>
 <h2>受控修改实验</h2>
 <p>写出本项目基础与 MSAA 实验各自的能力清单，并标明查询位置。</p>
 <p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>

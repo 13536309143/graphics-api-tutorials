@@ -2,6 +2,12 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 四个 root constants 映射 b0，root UAV 映射 u0，root CBV 映射 b1。root parameter 的数组下标与 HLSL register 不是一套编号；更新 root constants 使用 DWORD 数而不是字节数。
@@ -10,7 +16,7 @@ root signature 组合 root constants、root descriptor 和 descriptor table。pa
 
 root constants 使用 32 位值数量与偏移，对应 HLSL cbuffer。20 DWORD 的 Draw 与 4 DWORD 的 Operation 不同；root signature 总成本也限制接口设计。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -28,53 +34,46 @@ cmake --build --preset dx12-debug --target dx16_push_constants --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L100)，第 100—143 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx16_push_constants/main.cpp](main.cpp#L136)，第 136—172 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-    void record(ID3D12GraphicsCommandList* cmd,
-                uint32_t mode,
-                uint32_t count,
-                uint32_t factor,
-                uint32_t bias,
-                uint32_t slot = 0) {
-        if (state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
-            auto b = transition(output.Get(), state, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-            cmd->ResourceBarrier(1, &b);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 16);
+    DxDevice c(options.warp);
+    {
+        ComputeKernel kernel(c, options);
+        uint32_t mode = ((0));
+        uint32_t count = (128);
+        for (uint32_t slot = 0; slot < ((1u)); ++slot) {
+            uint32_t factor = (9), bias = (17);
+            kernel.execute(mode, count, factor, bias, slot);
+            auto result = readBuffer(kernel.readback.Get(), mode == 2 ? (count + 63) / 64 : count);
+            if (mode == 2) {
+                auto sum = std::accumulate(result.begin(), result.end(), 0u);
+                require(sum == count * (count + 1) / 2, "Shared reduction result mismatch");
+            } else {
+                if (mode == 1) {
+                    factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                    bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                }
+                for (uint32_t i = 0; i < count; ++i)
+                    require(result[i] == i * factor + bias, "Compute/root-binding mismatch");
+            }
         }
-        uint32_t constants[4] = {mode, count, factor, bias};
-        cmd->SetPipelineState(pipeline.Get());
-        cmd->SetComputeRootSignature(signature.Get());
-        cmd->SetComputeRoot32BitConstants(0, 4, constants, 0);
-        cmd->SetComputeRootUnorderedAccessView(1, output->GetGPUVirtualAddress());
-        cmd->SetComputeRootConstantBufferView(2, parameters->GetGPUVirtualAddress() + slot * 256);
-        cmd->Dispatch((count + 63) / 64, 1, 1);
-        auto barrier = transition(
-            output.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-        cmd->ResourceBarrier(1, &barrier);
-        cmd->CopyBufferRegion(readback.Get(), 0, output.Get(), 0, 4096);
-        state = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        std::cout << "Verified experiment " << 16 << ", items=" << count
+                  << ", constant stride=256\n";
     }
-    void execute(uint32_t mode, uint32_t count, uint32_t factor, uint32_t bias, uint32_t slot = 0) {
-        c.begin();
-        record(c.cmd.Get(), mode, count, factor, bias, slot);
-        c.submit();
-    }
-};
-void capabilities(DxDevice& c) {
-    D3D12_FEATURE_DATA_D3D12_OPTIONS options{};
-    dxCheck(c.device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options)));
-    D3D12_FEATURE_DATA_FORMAT_SUPPORT format{DXGI_FORMAT_R8G8B8A8_UNORM};
-    dxCheck(c.device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &format, sizeof(format)));
-    require((format.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0,
-            "RGBA8 render target unsupported");
-    std::cout << "ResourceBindingTier=" << options.ResourceBindingTier
-              << ", heapTier=" << options.ResourceHeapTier
-              << ", CBV alignment=" << D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT
-              << ", texture pitch alignment=" << D3D12_TEXTURE_DATA_PITCH_ALIGNMENT << '\n';
-    D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS ms{};
-    ms.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    ms.SampleCount = 4;
-    dxCheck(
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

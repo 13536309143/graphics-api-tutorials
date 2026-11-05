@@ -34,6 +34,18 @@ StagingUploader 简化收集和拷贝录制，但输入数据、用途与完成�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,35 @@ StagingUploader 简化收集和拷贝录制，但输入数据、用途与完成�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx17_image_file --parallel 4
-.\DirectX12\build\bin\Debug\dx17_image_file.exe
-ctest --preset dx12-debug -R "^dx17_image_file$" --output-on-failure
+cmake --build --preset dx12-debug --target dx34_ch_image_upload --parallel 4
+.\DirectX12\build\bin\Debug\dx34_ch_image_upload.exe
+ctest --preset dx12-debug -R "^dx34_ch_image_upload$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L237)，第 237—280 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/34_image_upload/main.cpp](main.cpp#L296)，第 296—309 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-struct GpuTexture {
-    DxDevice& c;
-    ComPtr<ID3D12Resource> texture;
-    std::vector<Pixels> reference;
-    DXGI_FORMAT viewFormat;
-    GpuTexture(
-        DxDevice& context, const LabOptions& options, Pixels pixels, bool mips, bool srgb = false)
-        : c(context) {
-        reference = mips ? mipReference(pixels, srgb) : std::vector<Pixels>{pixels};
-        const UINT levels = UINT(reference.size());
-        const bool gpuMips = mips && !srgb;
-        viewFormat = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
-        D3D12_RESOURCE_DESC desc{};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        desc.Width = pixels.width;
-        desc.Height = pixels.height;
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = UINT16(levels);
-        desc.Format = srgb ? DXGI_FORMAT_R8G8B8A8_TYPELESS : DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count = 1;
-        if (gpuMips)
-            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        D3D12_HEAP_PROPERTIES hp{};
-        hp.Type = D3D12_HEAP_TYPE_DEFAULT;
-        dxCheck(c.device->CreateCommittedResource(&hp,
-                                                  D3D12_HEAP_FLAG_NONE,
-                                                  &desc,
-                                                  D3D12_RESOURCE_STATE_COPY_DEST,
-                                                  nullptr,
-                                                  IID_PPV_ARGS(&texture)));
-        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels);
-        std::vector<UINT> rows(levels);
-        std::vector<UINT64> rowBytes(levels);
-        UINT64 total{};
-        c.device->GetCopyableFootprints(
-            &desc, 0, levels, 0, footprints.data(), rows.data(), rowBytes.data(), &total);
-        auto upload = c.buffer(total, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-        std::vector<uint8_t> packed(static_cast<size_t>(total));
-        UINT copied = gpuMips ? 1 : levels;
-        for (UINT level = 0; level < copied; ++level)
-            for (UINT y = 0; y < reference[level].height; ++y)
-                std::memcpy(packed.data() + footprints[level].Offset +
-                                size_t(y) * footprints[level].Footprint.RowPitch,
-                            reference[level].rgba.data() + size_t(y) * reference[level].width * 4,
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 17);
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -137,4 +119,4 @@ API 可能要求更大的对齐行距或子资源起点。正确内容应逐行�
 
 ## 固定输入的实际 GPU 读回
 
-![dx17_image_file](../../../docs/previews/dx17_image_file.png)
+![dx34_ch_image_upload](../../../docs/previews/dx17_image_file.png)

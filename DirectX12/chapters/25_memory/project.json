@@ -1,0 +1,7 @@
+{
+  "target": "dx25_ch_memory",
+  "api": "dx",
+  "experiment": 47,
+  "chapter": "25_memory",
+  "independent": true
+}

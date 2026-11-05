@@ -34,6 +34,18 @@ Application 管理交换链，用户 viewport 是另一组离屏目标。比较�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,77 @@ Application 管理交换链，用户 viewport 是另一组离屏目标。比较�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk02_swapchain --parallel 4
-.\Vulkan\native\build\bin\Debug\vk02_swapchain.exe
-ctest --preset vulkan-native-debug -R "^vk02_swapchain$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk10_ch_swapchain --parallel 4
+.\Vulkan\native\build\bin\Debug\vk10_ch_swapchain.exe
+ctest --preset vulkan-native-debug -R "^vk10_ch_swapchain$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L207)，第 207—250 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/10_swapchain/main.cpp](main.cpp#L9)，第 9—64 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-    void recreate() {
-        cleanup();
-        VkSurfaceCapabilitiesKHR caps;
-        vkCheck(
-            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.c.physical, device.surface, &caps));
-        uint32_t count;
-        vkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(
-            device.c.physical, device.surface, &count, nullptr));
-        std::vector<VkSurfaceFormatKHR> formats(count);
-        vkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(
-            device.c.physical, device.surface, &count, formats.data()));
-        auto selected = formats[0];
-        for (auto f : formats)
-            if (f.format == VK_FORMAT_B8G8R8A8_UNORM &&
-                f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-                selected = f;
-        format = selected.format;
-        extent = caps.currentExtent;
-        if (extent.width == UINT32_MAX) {
+int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
+
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    if (!glfwInit())
+        throw std::runtime_error("GLFW initialization failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "Native Vulkan Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        NativeDevice d(window);
+        Swapchain swap(d, window, 2, options);
+        VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+        pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pi.queueFamilyIndex = d.c.family;
+        VkCommandPool pool;
+        vkCheck(vkCreateCommandPool(d.c.device, &pi, nullptr, &pool));
+        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        ai.commandPool = pool;
+        ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        ai.commandBufferCount = 1;
+        VkCommandBuffer cmd;
+        vkCheck(vkAllocateCommandBuffers(d.c.device, &ai, &cmd));
+        VkSemaphoreCreateInfo si{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkSemaphore acquired;
+        vkCheck(vkCreateSemaphore(d.c.device, &si, nullptr, &acquired));
+        VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkFence fence;
+        vkCheck(vkCreateFence(d.c.device, &fi, nullptr, &fence));
+        int frames = 0;
+        while (!glfwWindowShouldClose(window) && (!smoke || frames < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
             int w, h;
             glfwGetFramebufferSize(window, &w, &h);
-            extent = {
-                std::clamp(uint32_t(w), caps.minImageExtent.width, caps.maxImageExtent.width),
-                std::clamp(uint32_t(h), caps.minImageExtent.height, caps.maxImageExtent.height)};
-        }
-        VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        if ((caps.supportedUsageFlags & usage) != usage)
-            throw std::runtime_error("Surface does not support transfer readback/blit");
-        VkSwapchainCreateInfoKHR si{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
-        si.surface = device.surface;
-        si.minImageCount = caps.minImageCount + 1;
-        if (caps.maxImageCount)
-            si.minImageCount = std::min(si.minImageCount, caps.maxImageCount);
-        si.imageFormat = format;
-        si.imageColorSpace = selected.colorSpace;
-        si.imageExtent = extent;
-        si.imageArrayLayers = 1;
-        si.imageUsage = usage;
-        si.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        si.preTransform = caps.currentTransform;
-        si.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        si.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-        si.clipped = VK_TRUE;
+            if (w < 1 || h < 1) {
+                glfwWaitEvents();
+                continue;
+            }
+            if (uint32_t(w) != swap.extent.width || uint32_t(h) != swap.extent.height)
+                swap.recreate();
+            // 先等待上一轮命令完成，再复用命令缓冲和共享 UBO；本课程采用单帧串行同步。
+            vkCheck(vkWaitForFences(d.c.device, 1, &fence, VK_TRUE, UINT64_MAX));
+            uint32_t imageIndex;
+            // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -137,4 +161,4 @@ ctest --preset vulkan-native-debug -R "^vk02_swapchain$" --output-on-failure
 
 ## 固定输入的实际 GPU 读回
 
-![vk02_swapchain](../../../../docs/previews/vk02_swapchain.png)
+![vk10_ch_swapchain](../../../../docs/previews/vk02_swapchain.png)

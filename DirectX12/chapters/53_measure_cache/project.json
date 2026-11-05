@@ -1,0 +1,7 @@
+{
+  "target": "dx53_ch_measure_cache",
+  "api": "dx",
+  "experiment": 25,
+  "chapter": "53_measure_cache",
+  "independent": true
+}

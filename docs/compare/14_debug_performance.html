@@ -27,14 +27,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="02_triangle" href="../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk03_triangle" href="../../Vulkan/native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv03_triangle" href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx03_triangle" href="../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>帧尾错误号辅助定位；完整问题还需要查看绑定和实际 draw。</p>
-<p><a href="../../OpenGL/common/app.hpp#L123">OpenGL/common/app.hpp</a>，第 123—130 行：</p>
+<p><a href="../../OpenGL/lessons/02_triangle/support/app.hpp#L123">OpenGL/lessons/02_triangle/support/app.hpp</a>，第 123—130 行：</p>
 <pre><code>        GLenum e = glGetError();
         if (e != GL_NO_ERROR)
             throw std::runtime_error(&quot;OpenGL error: &quot; + std::to_string(e));
@@ -45,7 +45,7 @@
         glClearColor(0.035f, 0.055f, 0.09f, 1);</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>验证错误与外部 loader 诊断分开，先处理首个根因。</p>
-<p><a href="../../Vulkan/native/common/native_app.hpp#L9">Vulkan/native/common/native_app.hpp</a>，第 9—26 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk03_triangle/support/native_app.hpp#L9">Vulkan/native/lessons/vk03_triangle/support/native_app.hpp</a>，第 9—26 行：</p>
 <pre><code>inline VKAPI_ATTR VkBool32 VKAPI_CALL validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                                                  VkDebugUtilsMessageTypeFlagsEXT type,
                                                  const VkDebugUtilsMessengerCallbackDataEXT* data,
@@ -66,7 +66,7 @@ struct NativeDevice {
     VkContextRef c;</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>无窗口模式读回真实视口目标，不能代替长期交互和性能验证。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L174">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 174—203 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp#L174">Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp</a>，第 174—203 行：</p>
 <pre><code>    void onLastHeadlessFrame() override {
         auto size = target.getSize();
         VkBufferResource readback;
@@ -99,7 +99,7 @@ struct NativeDevice {
             dependency.memoryBarrierCount = 1;</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>ERROR/CORRUPTION 使 smoke 失败；抓帧再看数据和管线。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L142">DirectX12/common/dx12_course.hpp</a>，第 142—167 行：</p>
+<p><a href="../../DirectX12/lessons/dx03_triangle/support/dx12_course.hpp#L146">DirectX12/lessons/dx03_triangle/support/dx12_course.hpp</a>，第 146—171 行：</p>
 <pre><code>    void checkMessages() {
         if (!messages)
             return;

@@ -2,6 +2,12 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 GLFW 用平台扩展创建 SurfaceKHR；其支持条件依赖 physical device 与 queue family。实验创建隐藏窗口并查询 surface 能力与可用格式/模式，不会假定所有图形队列都可呈现。
@@ -10,7 +16,7 @@ GLFW 用平台扩展创建 SurfaceKHR；其支持条件依赖 physical device �
 
 处理 OUT_OF_DATE/SUBOPTIMAL 以及 framebuffer 尺寸变化。cleanup 等 GPU 后释放 scene/depth/MSAA/view/semaphore，重新创建，并重新执行实验的资源配置回调。格式变化可能影响 pipeline，不能永远假定只有 extent 改变。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -28,53 +34,26 @@ cmake --build --preset vulkan-native-debug --target vk40_surface_support --paral
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L710)，第 710—753 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk40_surface_support/main.cpp](main.cpp#L41)，第 41—57 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void surfaceInspection() {
-    require(glfwInit() != 0, "GLFW init failed");
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    auto* window = glfwCreateWindow(320, 240, "Surface inspection", nullptr, nullptr);
-    require(window != nullptr, "Window failed");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 40);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
     {
-        NativeDevice owner(window);
-        VkSurfaceCapabilitiesKHR caps{};
-        vkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(owner.c.physical, owner.surface, &caps));
-        uint32_t formats{}, modes{};
-        vkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(
-            owner.c.physical, owner.surface, &formats, nullptr));
-        vkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(
-            owner.c.physical, owner.surface, &modes, nullptr));
-        require(formats > 0 && modes > 0, "Surface has no formats/present modes");
-        std::cout << "Surface minImages=" << caps.minImageCount
-                  << ", maxImages=" << caps.maxImageCount << ", formats=" << formats
-                  << ", presentModes=" << modes << '\n';
+        surfaceInspection();
+        return validationErrors ? 1 : 0;
     }
-    glfwDestroyWindow(window);
-    glfwTerminate();
 }
-// 整池重置必须发生在该代命令完成之后；每代写不同数据以发现旧命令残留。
-void commandReuse(const VkContextRef& c) {
-    VkBufferResource output;
-    output.init(c, 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-    pi.queueFamilyIndex = c.family;
-    VkCommandPool pool{};
-    vkCheck(vkCreateCommandPool(c.device, &pi, nullptr, &pool));
-    VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-    ai.commandPool = pool;
-    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    ai.commandBufferCount = 1;
-    VkCommandBuffer cmd{};
-    vkCheck(vkAllocateCommandBuffers(c.device, &ai, &cmd));
-    VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-    VkFence fence{};
-    vkCheck(vkCreateFence(c.device, &fi, nullptr, &fence));
-    for (uint32_t generation = 0; generation < 4; ++generation) {
-        vkCheck(vkResetCommandPool(c.device, pool, 0));
-        VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-        vkCheck(vkBeginCommandBuffer(cmd, &bi));
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

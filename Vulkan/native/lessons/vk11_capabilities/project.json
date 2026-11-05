@@ -1,0 +1,7 @@
+{
+  "target": "vk11_capabilities",
+  "api": "vk",
+  "experiment": 11,
+  "chapter": null,
+  "independent": true
+}

@@ -1,5 +1,5 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 43 课 · GPU Mip 链生成与逐级验收 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 43 课 · GPU Mip 链生成与逐级验收 · DirectX 12</h1>
-<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/06_textures_color.html">对照精讲</a> · <a href="../42_gltf_nodes/README.html">上一课</a> · <a href="../44_mip_sampling/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 43 课 · GPU Mip 链生成与逐级验收 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx43_ch_mip_generation"><h1>第 43 课 · GPU Mip 链生成与逐级验收 · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/06_textures_color.html">对照精讲</a> · <a data-course-target="dx42_ch_gltf_nodes" href="../42_gltf_nodes/README.html">上一课</a> · <a data-course-target="dx44_ch_mip_sampling" href="../44_mip_sampling/README.html">下一课</a></p>
 <h2>本课目标与先修</h2>
 <p>学习目标：解释“GPU Mip 链生成与逐级验收”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
 <h2>为什么需要这一层</h2>
@@ -19,43 +19,45 @@
 <h2>nvpro_core2 框架对照</h2>
 <p>框架可能提供更多图像辅助，但应用必须确定支持格式、子资源范围与生成依赖。native mip helper 的规则可直接用于对照分析。</p>
 <p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>本章独立工程与关键注释</h2>
+<p><a data-course-target="dx43_ch_mip_generation" href="main.cpp">main.cpp</a> · <a data-course-target="dx43_ch_mip_generation" href="support/">本地辅助实现</a> · <a data-course-target="dx43_ch_mip_generation" href="shaders/">本章着色器</a> · <a data-course-target="dx43_ch_mip_generation" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
 <h2>运行与实际检查</h2>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>实际实验</td></tr>
-<tr><td>DirectX 12</td><td><a href="../../lessons/dx18_mip_chain/README.html">dx18_mip_chain</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk18_mip_chain/README.html">vk18_mip_chain</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx18_mip_chain" href="../../lessons/dx18_mip_chain/README.html">dx18_mip_chain</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk18_mip_chain" href="../../../Vulkan/native/lessons/vk18_mip_chain/README.html">vk18_mip_chain</a></td></tr>
 </table></div>
 <p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
 <pre><code>cmake --preset dx12
-cmake --build --preset dx12-debug --target dx18_mip_chain --parallel 4
-.\DirectX12\build\bin\Debug\dx18_mip_chain.exe
-ctest --preset dx12-debug -R &quot;^dx18_mip_chain$&quot; --output-on-failure</code></pre>
+cmake --build --preset dx12-debug --target dx43_ch_mip_generation --parallel 4
+.\DirectX12\build\bin\Debug\dx43_ch_mip_generation.exe
+ctest --preset dx12-debug -R &quot;^dx43_ch_mip_generation$&quot; --output-on-failure</code></pre>
 <p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
 <h2>关键实现：从当前源码定位</h2>
-<p>来自 <a href="../../shaders/lab.hlsl#L47">DirectX12/shaders/lab.hlsl</a>，第 47—68 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
-<pre><code>    float a = corner * 2.0943951;
-    Vertex v;
-    v.position = float3(center + float2(cos(a), sin(a)) * .028, 0);
-    v.normal = float3(.25 + .7 * (particle % 7) / 6, .65, .95);
-    v.uv = 0;
-    vertices[i] = v;
-} Texture2D&lt;float4&gt; mipSource : register(t0);
-RWTexture2D&lt;float4&gt; mipOutput : register(u2);
-[numthreads(8, 8, 1)] void MipMain(uint3 id : SV_DispatchThreadID) {
-    uint w, h;
-    mipOutput.GetDimensions(w, h);
-    if (id.x &gt;= w || id.y &gt;= h)
-        return;
-    uint sw, sh;
-    mipSource.GetDimensions(sw, sh);
-    uint2 base = id.xy * 2;
-    float4 sum = 0;
-    for (uint y = 0; y &lt; 2; ++y)
-        for (uint x = 0; x &lt; 2; ++x)
-            sum += mipSource.Load(int3(min(base + uint2(x, y), uint2(sw - 1, sh - 1)), 0));
-    mipOutput[id.xy] = sum * .25;
+<p>来自 <a data-course-target="dx43_ch_mip_generation" href="main.cpp#L265">DirectX12/chapters/43_mip_generation/main.cpp</a>，第 265—282 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 18);
+    DxDevice c(options.warp);
+    {
+        GpuTexture texture(c, options, Pixels{64, 64, checker()}, true);
+        texture.verify();
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
 }</code></pre>
-<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。</p>
 <h2>受控修改实验</h2>
 <p>把基图改为棋盘或分区整数颜色，为什么比任意照片更适合作为 mip 数值验收？</p>
 <p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>

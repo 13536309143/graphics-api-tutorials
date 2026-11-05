@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx08_compute_uav · Compute UAV 与 GPU 读回</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx08_compute_uav · Compute UAV 与 GPU 读回</h1>
-<p><a href="../../README.html">路线首页</a> · <a href="../dx07_depth_instancing/README.html">上一课</a> · <a href="../dx09_pbr/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx08_compute_uav · Compute UAV 与 GPU 读回</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx08_compute_uav"><h1>dx08_compute_uav · Compute UAV 与 GPU 读回</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="dx08_compute_uav" href="main.cpp">main.cpp</a> · <a data-course-target="dx08_compute_uav" href="support/">本地辅助实现</a> · <a data-course-target="dx08_compute_uav" href="shaders/">本课着色器</a> · <a data-course-target="dx08_compute_uav" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">路线首页</a> · <a data-course-target="dx07_depth_instancing" href="../dx07_depth_instancing/README.html">上一课</a> · <a data-course-target="dx09_pbr" href="../dx09_pbr/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
 <pre><code>cmake --preset dx12
@@ -9,7 +15,7 @@ cmake --build --preset dx12-debug --target dx08_compute_uav --parallel 4
 <p>预期结果：无窗口，在 GPU 计算 256 个 i*i+1 并逐项验证。</p>
 <h2>先读哪些代码</h2>
 <p>Compute Root UAV / Dispatch / Readback</p>
-<p>本目录 <a href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/dx12_course.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
+<p>本目录 <a data-course-target="dx08_compute_uav" href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/dx12_course.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
 <h2>原理和实现</h2>
 <p>计算缓冲放在 default heap 并允许 UAV，root UAV 传 GPU 地址。Dispatch 后转换 UAV→COPY_SOURCE 的屏障建立依赖，再复制到 READBACK heap，等待 fence 后 map。256 个值全部逐项验证，不只看第一个数。</p>
 <p>本课使用与 Vulkan 相同的几何和验证目标，比较资源绑定与同步的不同表达。CPU 创建的数据、GPU 资源和用于访问它的 view/descriptor 是不同层次；用调试层与抓帧工具分别核对接口约定和实际内容。命令异步执行，示例显式等待 fence 后才重用单份上传资源与 command allocator。</p>
@@ -26,45 +32,42 @@ cmake --build --preset dx12-debug --target dx08_compute_uav --parallel 4
 <p>计算写 DEFAULT UAV 后转 COPY_SOURCE，再拷 READBACK 并等待 fence。Map 的 read range 表示 CPU 将读哪些字节，不会自己触发 GPU 等待。</p>
 <p>配套精讲：<a href="../../../docs/compare/10_compute_readback.html">三 API 对照 · 计算与读回</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/dx12_course.hpp#L197">DirectX12/common/dx12_course.hpp</a>，第 197—226 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>inline void dxCompute(DxDevice&amp; c) {
-    auto storage = c.buffer(1024,
-                            D3D12_HEAP_TYPE_DEFAULT,
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
-         readback = c.buffer(1024, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    D3D12_ROOT_PARAMETER root{};
-    root.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
-    root.Descriptor.ShaderRegister = 0;
-    D3D12_ROOT_SIGNATURE_DESC desc{};
-    desc.NumParameters = 1;
-    desc.pParameters = &amp;root;
-    auto signature = rootSignature(c, desc);
-    auto cs = compileHlsl(&quot;ComputeMain&quot;, &quot;cs_5_1&quot;);
-    D3D12_COMPUTE_PIPELINE_STATE_DESC pso{};
-    pso.pRootSignature = signature.Get();
-    pso.CS = {cs-&gt;GetBufferPointer(), cs-&gt;GetBufferSize()};
-    ComPtr&lt;ID3D12PipelineState&gt; pipeline;
-    dxCheck(c.device-&gt;CreateComputePipelineState(&amp;pso, IID_PPV_ARGS(&amp;pipeline)));
-    c.begin();
-    c.cmd-&gt;SetComputeRootSignature(signature.Get());
-    c.cmd-&gt;SetPipelineState(pipeline.Get());
-    c.cmd-&gt;SetComputeRootUnorderedAccessView(0, storage-&gt;GetGPUVirtualAddress());
-    c.cmd-&gt;Dispatch(4, 1, 1);
-    auto b = transition(
-        storage.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    c.cmd-&gt;ResourceBarrier(1, &amp;b);
-    c.cmd-&gt;CopyBufferRegion(readback.Get(), 0, storage.Get(), 0, 1024);
-    c.submit();
-    void* mapped;</code></pre>
+<p>来自 <a data-course-target="dx08_compute_uav" href="main.cpp#L9">DirectX12/lessons/dx08_compute_uav/main.cpp</a>，第 9—35 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   &quot;shaders&quot; / &quot;scene.hlsl&quot;;
+    bool smoke = false, warp = false;
+    for (int i = 1; i &lt; argc; ++i) {
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+        warp |= std::strcmp(argv[i], &quot;--warp&quot;) == 0;
+    }
+    {
+        DxDevice c(warp);
+        {
+            dxCompute(c);
+        }
+        c.checkMessages();
+        return 0;
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
 <tr><td>OpenGL</td><td>基线外：当前 OpenGL 3.3 路线没有 compute 实现；粒子实例化不能作为 compute 对照。</td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv05_compute_readback/README.html">nv05_compute_readback</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="README.html">dx08_compute_uav</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk08_compute_readback" href="../../../Vulkan/native/lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv05_compute_readback" href="../../../Vulkan/nvpro/lessons/nv05_compute_readback/README.html">nv05_compute_readback</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx08_compute_uav" href="README.html">dx08_compute_uav</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>能把 DEFAULT resource 直接当作当前 READBACK 来 map 吗？</p>

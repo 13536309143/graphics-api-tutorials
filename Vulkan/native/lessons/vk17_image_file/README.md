@@ -2,6 +2,12 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 stb_image 解码后写入 staging，最终 image 使用 optimal tiling。这里只展示普通 2D 图片，压缩 GPU 格式、流式加载和完整材质导入是进一步工作，不因 PNG 成功就宣称全部资产格式已支持。
@@ -10,7 +16,7 @@ Image 创建声明 usage/format/extent/mip，MemoryRequirements 决定绑定存�
 
 对比相同图片的 UNORM 与 SRGB image view/format 路径，shader 参与线性计算后手动显示编码。GPU blit 对 sRGB 格式的颜色处理也应与规范和参考值一致；数值 mip 实验使用 UNORM 以便逐 texel 对照。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -28,53 +34,24 @@ cmake --build --preset vulkan-native-debug --target vk17_image_file --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L354)，第 354—397 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk17_image_file/main.cpp](main.cpp#L272)，第 272—286 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-struct GpuTexture {
-    VkContextRef c;
-    VkImageResource image;
-    VkSampler sampler{};
-    VkImageView selectedView{};
-    VkFormat format{};
-    std::vector<Pixels> reference;
-    explicit GpuTexture(
-        VkContextRef context, Pixels pixels, bool mips, bool srgb = false, bool clamp = false)
-        : c(context) {
-        reference = mips ? mipReference(pixels, srgb) : std::vector<Pixels>{pixels};
-        uint32_t levels = uint32_t(reference.size());
-        format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
-        if (mips) {
-            VkFormatProperties properties{};
-            vkGetPhysicalDeviceFormatProperties(c.physical, format, &properties);
-            VkFormatFeatureFlags required = VK_FORMAT_FEATURE_BLIT_SRC_BIT |
-                                            VK_FORMAT_FEATURE_BLIT_DST_BIT |
-                                            VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
-            require((properties.optimalTilingFeatures & required) == required,
-                    "Format cannot generate linear-blit mip chain");
-        }
-        image.init(c,
-                   {pixels.width, pixels.height},
-                   format,
-                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                       VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                   VK_IMAGE_ASPECT_COLOR_BIT,
-                   levels);
-        VkBufferResource upload;
-        upload.init(c, pixels.rgba.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-        upload.upload(pixels.rgba.data(), pixels.rgba.size());
-        immediate(c, [&](VkCommandBuffer cmd) {
-            for (uint32_t i = 0; i < levels; ++i)
-                imageDependency(cmd,
-                                image.image,
-                                i,
-                                VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                VK_PIPELINE_STAGE_2_NONE,
-                                0,
-                                VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT,
-                                VK_ACCESS_2_TRANSFER_WRITE_BIT);
-            VkBufferImageCopy copy{};
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 17);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

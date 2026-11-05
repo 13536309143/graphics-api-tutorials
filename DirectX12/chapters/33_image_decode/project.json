@@ -1,0 +1,7 @@
+{
+  "target": "dx33_ch_image_decode",
+  "api": "dx",
+  "experiment": 17,
+  "chapter": "33_image_decode",
+  "independent": true
+}

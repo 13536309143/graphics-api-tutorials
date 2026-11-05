@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 D3D12_DRAW_ARGUMENTS 配合 command signature 的 DRAW 类型与 ByteStride，再由 ExecuteIndirect 解释。signature 可声明其他绑定变更，但本例只控制 draw 参数，不改 root arguments。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,23 @@ cmake --build --preset dx12-debug --target dx27_indirect_draw --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L443)，第 443—486 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx27_indirect_draw/main.cpp](main.cpp#L55)，第 55—68 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        if (mode >= 4) {
-            cmd->IASetVertexBuffers(0, 1, &vb);
-            if (indices)
-                cmd->IASetIndexBuffer(&ib);
-        }
-        for (auto d : overrideDraws.empty() ? draws(mode, time) : overrideDraws) {
-            cmd->SetGraphicsRoot32BitConstants(1, 20, &d, 0);
-            if (indirectArguments)
-                cmd->ExecuteIndirect(
-                    indirectSignature.Get(), 1, indirectArguments.Get(), 0, nullptr, 0);
-            else if (mode == 3)
-                cmd->DrawInstanced(3, 1, 0, 0);
-            else if (mode == 4)
-                cmd->DrawInstanced(UINT(mesh.vertices.size()), 1, 0, 0);
-            else
-                cmd->DrawIndexedInstanced(UINT(mesh.indices.size()), mode == 7 ? 25 : 1, 0, 0, 0);
-        }
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 27);
+    {
+        return graphicsLab(argc, argv, options);
     }
-};
-struct DxRenderOptions {
-    const Geometry* mesh = nullptr;
-    D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE;
-    bool clampSampler = false, redOnly = false;
-    std::string captureStem;
-    UINT samples = 1;
-    std::function<void(DxScene&)> setup;
-    std::function<void(DxScene&, float)> update;
-    std::function<void(DxScene&, float)> beforeFrame;
-};
-class DxWindow {
-public:
-    DxDevice c;
-    GLFWwindow* window;
-    int mode, width = 0, height = 0;
-    ComPtr<IDXGISwapChain3> swap;
-    ComPtr<ID3D12DescriptorHeap> rtvHeap, dsvHeap;
-    ComPtr<ID3D12Resource> colors[2], depth, offscreen, multisample;
-    DxRenderOptions options;
-    std::unique_ptr<DxScene> scene;
-    UINT rtvStride = 0;
-    DxWindow(GLFWwindow* w, int lesson, bool warp, DxRenderOptions settings = {})
-        : c(warp), window(w), mode(lesson), options(std::move(settings)) {
-        D3D12_DESCRIPTOR_HEAP_DESC heap{};
-        heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

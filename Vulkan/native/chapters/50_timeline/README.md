@@ -34,6 +34,18 @@ Context 特性需求需要包含所用 timeline 能力；Application 自身的�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,43 @@ Context 特性需求需要包含所用 timeline 能力；Application 自身的�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk26_timeline_counter --parallel 4
-.\Vulkan\native\build\bin\Debug\vk26_timeline_counter.exe
-ctest --preset vulkan-native-debug -R "^vk26_timeline_counter$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk50_ch_timeline --parallel 4
+.\Vulkan\native\build\bin\Debug\vk50_ch_timeline.exe
+ctest --preset vulkan-native-debug -R "^vk50_ch_timeline$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L253)，第 253—296 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/50_timeline/main.cpp](main.cpp#L51)，第 51—72 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-void timelineCounter(const VkContextRef& c) {
-    VkSemaphoreTypeCreateInfo type{VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO};
-    type.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-    VkSemaphoreCreateInfo info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    info.pNext = &type;
-    VkSemaphore semaphore{};
-    vkCheck(vkCreateSemaphore(c.device, &info, nullptr, &semaphore));
-    VkSemaphoreSubmitInfo signal{VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO};
-    signal.semaphore = semaphore;
-    signal.value = 1;
-    signal.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    VkSubmitInfo2 first{VK_STRUCTURE_TYPE_SUBMIT_INFO_2};
-    first.signalSemaphoreInfoCount = 1;
-    first.pSignalSemaphoreInfos = &signal;
-    vkCheck(vkQueueSubmit2(c.queue, 1, &first, VK_NULL_HANDLE));
-    VkSemaphoreSubmitInfo wait = signal;
-    signal.value = 2;
-    VkSubmitInfo2 second{VK_STRUCTURE_TYPE_SUBMIT_INFO_2};
-    second.waitSemaphoreInfoCount = 1;
-    second.pWaitSemaphoreInfos = &wait;
-    second.signalSemaphoreInfoCount = 1;
-    second.pSignalSemaphoreInfos = &signal;
-    vkCheck(vkQueueSubmit2(c.queue, 1, &second, VK_NULL_HANDLE));
-    uint64_t target = 2;
-    VkSemaphoreWaitInfo cpu{VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO};
-    cpu.semaphoreCount = 1;
-    cpu.pSemaphores = &semaphore;
-    cpu.pValues = &target;
-    vkCheck(vkWaitSemaphores(c.device, &cpu, UINT64_MAX));
-    uint64_t counter{};
-    vkCheck(vkGetSemaphoreCounterValue(c.device, semaphore, &counter));
-    require(counter >= 2, "Timeline did not advance");
-    vkCheck(vkQueueWaitIdle(c.queue));
-    vkDestroySemaphore(c.device, semaphore, nullptr);
-    std::cout << "Verified timeline producer 1 -> consumer 2, counter=" << counter << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 26);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, true);
+        const auto& c = owner.c;
+        {
+            timelineCounter(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
 }
-// timestampValidBits 和 timestampPeriod 决定 tick 的解释，不把单次实验当 API 性能排名。
-void timestamps(const VkContextRef& c) {
-    uint32_t count{};
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &count, nullptr);
-    std::vector<VkQueueFamilyProperties> families(count);
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &count, families.data());
-    require(families[c.family].timestampValidBits != 0,
-            "Selected queue does not support timestamps");
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

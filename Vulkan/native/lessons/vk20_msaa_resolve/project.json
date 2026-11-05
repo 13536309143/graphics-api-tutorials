@@ -1,0 +1,7 @@
+{
+  "target": "vk20_msaa_resolve",
+  "api": "vk",
+  "experiment": 20,
+  "chapter": null,
+  "independent": true
+}

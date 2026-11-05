@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk03_triangle · 动态渲染与第一个三角形</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk03_triangle · 动态渲染与第一个三角形</h1>
-<p><a href="../../README.html">路线首页</a> · <a href="../vk02_swapchain/README.html">上一课</a> · <a href="../vk04_vertex_buffer/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk03_triangle · 动态渲染与第一个三角形</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="vk03_triangle"><h1>vk03_triangle · 动态渲染与第一个三角形</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="vk03_triangle" href="main.cpp">main.cpp</a> · <a data-course-target="vk03_triangle" href="support/">本地辅助实现</a> · <a data-course-target="vk03_triangle" href="shaders/">本课着色器</a> · <a data-course-target="vk03_triangle" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">路线首页</a> · <a data-course-target="vk02_swapchain" href="../vk02_swapchain/README.html">上一课</a> · <a data-course-target="vk04_vertex_buffer" href="../vk04_vertex_buffer/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
 <pre><code>cmake --preset vulkan-native
@@ -9,7 +15,7 @@ cmake --build --preset vulkan-native-debug --target vk03_triangle --parallel 4
 <p>预期结果：红绿蓝渐变三角形。</p>
 <h2>先读哪些代码</h2>
 <p>scene_vk.hpp 的 shaderModule/SceneVk pipeline → triangle.vert → nativeMain rendering attachments。</p>
-<p>本目录 <a href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/native_app.hpp 与 ../common/scene_vk.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
+<p>本目录 <a data-course-target="vk03_triangle" href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/native_app.hpp 与 ../common/scene_vk.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
 <h2>原理和实现</h2>
 <p>Vulkan 不会根据当前着色器自动推断完整绘制状态。图形 pipeline 组合 shader、图元拓扑、光栅化、深度与混合状态；pipeline layout 描述 shader 可访问的资源接口。动态渲染通过 VkRenderingInfo 绑定颜色/深度附件，不再预创建传统 VkRenderPass，但附件格式仍须与 pipeline 声明一致。本课三角形位置由 gl_VertexIndex 生成，使用单独的无顶点输入 VS，避免声明了属性却未提供绑定。</p>
 <h2>修改练习</h2>
@@ -27,45 +33,71 @@ cmake --build --preset vulkan-native-debug --target vk03_triangle --parallel 4
 <p>triangle.vert 用 gl_VertexIndex 生成位置与颜色，管线不要求 VBO。pipeline 声明颜色/深度格式，实际附件由 dynamic rendering 指定；省掉 render pass 不等于省掉兼容性。</p>
 <p>配套精讲：<a href="../../../../docs/compare/02_triangle_pipeline.html">三 API 对照 · 三角形、管线与着色器</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../../common/scene_vk.hpp#L391">Vulkan/common/scene_vk.hpp</a>，第 391—420 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-        gp.pNext = &amp;rendering;
-        gp.stageCount = 2;
-        gp.pStages = stages;
-        gp.pVertexInputState = &amp;vi;
-        gp.pInputAssemblyState = &amp;ia;
-        gp.pViewportState = &amp;viewport;
-        gp.pRasterizationState = &amp;raster;
-        gp.pMultisampleState = &amp;ms;
-        gp.pDepthStencilState = &amp;depth;
-        gp.pColorBlendState = &amp;blend;
-        gp.pDynamicState = &amp;dynamic;
-        gp.layout = pipelineLayout;
-        VkResult result = vkCreateGraphicsPipelines(c.device, cache, 1, &amp;gp, nullptr, &amp;pipeline);
-        vkDestroyShaderModule(c.device, vs, nullptr);
-        vkDestroyShaderModule(c.device, ps, nullptr);
-        vkCheck(result, &quot;Graphics pipeline&quot;);
-    }
+<p>来自 <a data-course-target="vk03_triangle" href="main.cpp#L9">Vulkan/native/lessons/vk03_triangle/main.cpp</a>，第 9—64 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
 
-    // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
-    void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
-        if (frameProvider)
-            f = frameProvider(float(size.width) / size.height, time, true);
-        uniform.upload(&amp;f, sizeof(f));
-        VkViewport viewport{
-            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
-        VkRect2D scissor{{0, 0}, size};
-        if (halfScissor)
-            scissor.extent.width /= 2;</code></pre>
+    bool smoke = false;
+    for (int i = 1; i &lt; argc; ++i)
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / &quot;shaders&quot;;
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    if (!glfwInit())
+        throw std::runtime_error(&quot;GLFW initialization failed&quot;);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, &quot;Native Vulkan Course&quot;, nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error(&quot;Window creation failed&quot;);
+    {
+        NativeDevice d(window);
+        Swapchain swap(d, window, 3, options);
+        VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+        pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pi.queueFamilyIndex = d.c.family;
+        VkCommandPool pool;
+        vkCheck(vkCreateCommandPool(d.c.device, &amp;pi, nullptr, &amp;pool));
+        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        ai.commandPool = pool;
+        ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        ai.commandBufferCount = 1;
+        VkCommandBuffer cmd;
+        vkCheck(vkAllocateCommandBuffers(d.c.device, &amp;ai, &amp;cmd));
+        VkSemaphoreCreateInfo si{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkSemaphore acquired;
+        vkCheck(vkCreateSemaphore(d.c.device, &amp;si, nullptr, &amp;acquired));
+        VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkFence fence;
+        vkCheck(vkCreateFence(d.c.device, &amp;fi, nullptr, &amp;fence));
+        int frames = 0;
+        while (!glfwWindowShouldClose(window) &amp;&amp; (!smoke || frames &lt; 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &amp;w, &amp;h);
+            if (w &lt; 1 || h &lt; 1) {
+                glfwWaitEvents();
+                continue;
+            }
+            if (uint32_t(w) != swap.extent.width || uint32_t(h) != swap.extent.height)
+                swap.recreate();
+            // 先等待上一轮命令完成，再复用命令缓冲和共享 UBO；本课程采用单帧串行同步。
+            vkCheck(vkWaitForFences(d.c.device, 1, &amp;fence, VK_TRUE, UINT64_MAX));
+            uint32_t imageIndex;
+            // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="README.html">vk03_triangle</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="02_triangle" href="../../../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk03_triangle" href="README.html">vk03_triangle</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv03_triangle" href="../../../nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx03_triangle" href="../../../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>固定片元输出正常，但原色异常，先检查哪段？</p>

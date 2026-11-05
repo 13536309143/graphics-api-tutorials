@@ -1,0 +1,7 @@
+{
+  "target": "dx24_ch_vertex_buffer",
+  "api": "dx",
+  "experiment": 4,
+  "chapter": "24_vertex_buffer",
+  "independent": true
+}

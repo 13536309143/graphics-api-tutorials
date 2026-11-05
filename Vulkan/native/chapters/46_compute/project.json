@@ -1,0 +1,7 @@
+{
+  "target": "vk46_ch_compute",
+  "api": "vk",
+  "experiment": 8,
+  "chapter": "46_compute",
+  "independent": true
+}

@@ -1,10 +1,15 @@
-#include "app.hpp"
+// 12_instancing
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/app.hpp"
 
 // 实例化绘制：配合本目录 README.md 阅读。
 // 本课重点：为实例属性设置 divisor，一次提交绘制多个对象。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "12_instancing - OpenGL Course");
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, "instance.vert", "color.frag");
+    // CPU 顶点数据上传后，由 VAO 保存属性布局；布局必须匹配顶点 shader。
     Mesh mesh(cube());
     Camera camera;
     camera.pos = glm::vec3(0, 5, 18);
@@ -25,6 +30,7 @@ int main(int argc, char** argv) try {
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
     glVertexAttribDivisor(3, 1); // 每个实例读一个 offset，而不是每个顶点读一个。
     glEnable(GL_DEPTH_TEST);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         camera.update(app);
         app.clear();
@@ -33,6 +39,7 @@ int main(int argc, char** argv) try {
         shader.set("time", app.time());
         shader.set("pulse", 1.f);
         glBindVertexArray(mesh.vao);
+        // 绘制使用当前程序、VAO 和附件；属性布局必须匹配顶点着色器。
         glDrawArraysInstanced(GL_TRIANGLES, 0, mesh.count, GLsizei(offsets.size()));
         app.end();
     }

@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 23 课：Cook-Torrance PBR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 23 课：Cook-Torrance PBR</h1>
-<p><a href="../../README.html">课程首页</a> · <a href="../22_bloom/README.html">上一课</a> · <a href="../24_pbr_textures/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 23 课：Cook-Torrance PBR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="23_pbr"><h1>第 23 课：Cook-Torrance PBR</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="23_pbr" href="main.cpp">main.cpp</a> · <a data-course-target="23_pbr" href="support/">本地辅助实现</a> · <a data-course-target="23_pbr" href="shaders/">本课着色器</a> · <a data-course-target="23_pbr" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">课程首页</a> · <a data-course-target="22_bloom" href="../22_bloom/README.html">上一课</a> · <a data-course-target="24_pbr_textures" href="../24_pbr_textures/README.html">下一课</a></p>
 <h2>目标与运行</h2>
 <pre><code>cmake --preset opengl
 cmake --build --preset opengl-debug --target 23_pbr --parallel 4
@@ -8,7 +14,7 @@ cmake --build --preset opengl-debug --target 23_pbr --parallel 4
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
 <p>pbr.frag 的 directBRDF、distributionGGX、geometrySchlick、fresnel</p>
-<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<p>从本课 <a data-course-target="23_pbr" href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
 <h2>原理与实现</h2>
 <p>PBR 是以一致的材质与光照约定组织着色，不是某个 OpenGL 专属 API。本课采用金属度/粗糙度工作流的 Cook-Torrance 微表面模型：镜面 BRDF 为 D*G*F/(4*NdotV*NdotL)，再与入射辐射度和 NdotL 相乘。</p>
 <p>D 使用 GGX 法线分布，粗糙度 r 先转换 alpha=r²，再使用 alpha² 进入分布公式；不要无意识重复平方。G 使用 Smith 思路的 Schlick-GGX 近似，直接光中的 k=(r+1)²/8。F 使用 Schlick 近似，介电材质 F0=0.04，金属的 F0 由基础颜色决定。</p>
@@ -29,9 +35,11 @@ cmake --build --preset opengl-debug --target 23_pbr --parallel 4
 <p>球阵列改变 metallic/roughness，其他条件保持可控。逐步检查 N、V、L、D、G、F，再组合镜面和漫反射；roughness 的平方约定应在不同 shader 中一致。</p>
 <p>配套精讲：<a href="../../../docs/compare/12_lighting_pbr_ibl.html">三 API 对照 · 直接光 PBR 与 IBL</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="main.cpp#L5">OpenGL/lessons/23_pbr/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<p>来自 <a data-course-target="23_pbr" href="main.cpp#L7">OpenGL/lessons/23_pbr/main.cpp</a>，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;23_pbr - OpenGL Course&quot;);
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, &quot;advanced.vert&quot;, &quot;pbr.frag&quot;);
     Mesh ball(sphere());
     Camera camera;
@@ -41,6 +49,7 @@ cmake --build --preset opengl-debug --target 23_pbr --parallel 4
         normal(asset(app, &quot;textures/normal.png&quot;)), mr(asset(app, &quot;textures/metalrough.png&quot;)),
         ao(asset(app, &quot;textures/ao.png&quot;));
     glEnable(GL_DEPTH_TEST);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         camera.update(app);
         app.clear();
@@ -52,18 +61,15 @@ cmake --build --preset opengl-debug --target 23_pbr --parallel 4
         mr.bind(2);
         ao.bind(3);
         shader.set(&quot;useMaps&quot;, 0);
-        shader.set(&quot;useNormal&quot;, 0);
-        for (int y = 0; y &lt; 5; ++y)
-            for (int x = 0; x &lt; 7; ++x) {
-                shader.set(&quot;metallic&quot;, float(y) / 4);</code></pre>
+        shader.set(&quot;useNormal&quot;, 0);</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="README.html">23_pbr</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="23_pbr" href="README.html">23_pbr</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk09_pbr" href="../../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv06_pbr_viewport" href="../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx09_pbr" href="../../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>金属度提高一定更亮吗？</p>

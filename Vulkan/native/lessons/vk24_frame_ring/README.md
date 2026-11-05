@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 每槽有独立 ComputeKernel 输出、command buffer 与 fence，slot=frameNumber%2。先等该槽再 reset/更新，GPU 仍可执行另一个槽的工作；最终检查每槽最后一代结果。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,31 @@ cmake --build --preset vulkan-native-debug --target vk24_frame_ring --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L200)，第 200—243 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk24_frame_ring/main.cpp](main.cpp#L212)，第 212—233 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void frameRing(const VkContextRef& c) {
-    // Two independent storage buffers and command buffers remain in flight.
-    // This isolates frame-slot lifetime; windowed renderers still use the simple serialized path.
-    ComputeKernel kernels[2] = {ComputeKernel(c), ComputeKernel(c)};
-    VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-    pi.queueFamilyIndex = c.family;
-    pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    VkCommandPool pool{};
-    vkCheck(vkCreateCommandPool(c.device, &pi, nullptr, &pool));
-    VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-    ai.commandPool = pool;
-    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    ai.commandBufferCount = 2;
-    VkCommandBuffer commands[2]{};
-    vkCheck(vkAllocateCommandBuffers(c.device, &ai, commands));
-    VkFence fences[2]{};
-    VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-    fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    for (auto& fence : fences)
-        vkCheck(vkCreateFence(c.device, &fi, nullptr, &fence));
-    int previous[2] = {-1, -1};
-    for (uint32_t frameNumber = 0; frameNumber < 8; ++frameNumber) {
-        uint32_t slot = frameNumber % 2;
-        vkCheck(vkWaitForFences(c.device, 1, &fences[slot], VK_TRUE, UINT64_MAX));
-        if (previous[slot] >= 0) {
-            auto result = readWords(kernels[slot].output, 257);
-            for (uint32_t i = 0; i < 257; ++i)
-                require(result[i] == i * 3 + uint32_t(previous[slot]),
-                        "In-flight slot overwritten");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 24);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            frameRing(c);
         }
-        vkCheck(vkResetFences(c.device, 1, &fences[slot]));
-        vkCheck(vkResetCommandBuffer(commands[slot], 0));
-        VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-        vkCheck(vkBeginCommandBuffer(commands[slot], &bi));
-        kernels[slot].record(commands[slot], 0, 257, 3, frameNumber);
-        vkCheck(vkEndCommandBuffer(commands[slot]));
-        VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-        submit.commandBufferCount = 1;
-        submit.pCommandBuffers = &commands[slot];
-        vkCheck(vkQueueSubmit(c.queue, 1, &submit, fences[slot]));
-        previous[slot] = int(frameNumber);
     }
-    vkCheck(vkWaitForFences(c.device, 2, fences, VK_TRUE, UINT64_MAX));
-    for (uint32_t slot = 0; slot < 2; ++slot) {
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

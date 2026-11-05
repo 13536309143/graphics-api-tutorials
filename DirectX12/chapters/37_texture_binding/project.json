@@ -1,0 +1,7 @@
+{
+  "target": "dx37_ch_texture_binding",
+  "api": "dx",
+  "experiment": 6,
+  "chapter": "37_texture_binding",
+  "independent": true
+}

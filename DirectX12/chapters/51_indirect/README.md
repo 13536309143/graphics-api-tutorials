@@ -34,6 +34,18 @@ VkDrawIndirectCommand 的四个 uint 字段与 stride 匹配，缓冲包含 INDI
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,35 @@ VkDrawIndirectCommand 的四个 uint 字段与 stride 匹配，缓冲包含 INDI
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx27_indirect_draw --parallel 4
-.\DirectX12\build\bin\Debug\dx27_indirect_draw.exe
-ctest --preset dx12-debug -R "^dx27_indirect_draw$" --output-on-failure
+cmake --build --preset dx12-debug --target dx51_ch_indirect --parallel 4
+.\DirectX12\build\bin\Debug\dx51_ch_indirect.exe
+ctest --preset dx12-debug -R "^dx51_ch_indirect$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L443)，第 443—486 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/51_indirect/main.cpp](main.cpp#L55)，第 55—68 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        if (mode >= 4) {
-            cmd->IASetVertexBuffers(0, 1, &vb);
-            if (indices)
-                cmd->IASetIndexBuffer(&ib);
-        }
-        for (auto d : overrideDraws.empty() ? draws(mode, time) : overrideDraws) {
-            cmd->SetGraphicsRoot32BitConstants(1, 20, &d, 0);
-            if (indirectArguments)
-                cmd->ExecuteIndirect(
-                    indirectSignature.Get(), 1, indirectArguments.Get(), 0, nullptr, 0);
-            else if (mode == 3)
-                cmd->DrawInstanced(3, 1, 0, 0);
-            else if (mode == 4)
-                cmd->DrawInstanced(UINT(mesh.vertices.size()), 1, 0, 0);
-            else
-                cmd->DrawIndexedInstanced(UINT(mesh.indices.size()), mode == 7 ? 25 : 1, 0, 0, 0);
-        }
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 27);
+    {
+        return graphicsLab(argc, argv, options);
     }
-};
-struct DxRenderOptions {
-    const Geometry* mesh = nullptr;
-    D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE;
-    bool clampSampler = false, redOnly = false;
-    std::string captureStem;
-    UINT samples = 1;
-    std::function<void(DxScene&)> setup;
-    std::function<void(DxScene&, float)> update;
-    std::function<void(DxScene&, float)> beforeFrame;
-};
-class DxWindow {
-public:
-    DxDevice c;
-    GLFWwindow* window;
-    int mode, width = 0, height = 0;
-    ComPtr<IDXGISwapChain3> swap;
-    ComPtr<ID3D12DescriptorHeap> rtvHeap, dsvHeap;
-    ComPtr<ID3D12Resource> colors[2], depth, offscreen, multisample;
-    DxRenderOptions options;
-    std::unique_ptr<DxScene> scene;
-    UINT rtvStride = 0;
-    DxWindow(GLFWwindow* w, int lesson, bool warp, DxRenderOptions settings = {})
-        : c(warp), window(w), mode(lesson), options(std::move(settings)) {
-        D3D12_DESCRIPTOR_HEAP_DESC heap{};
-        heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +117,4 @@ public:
 
 ## 固定输入的实际 GPU 读回
 
-![dx27_indirect_draw](../../../docs/previews/dx27_indirect_draw.png)
+![dx51_ch_indirect](../../../docs/previews/dx27_indirect_draw.png)

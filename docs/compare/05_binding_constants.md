@@ -54,7 +54,7 @@ DX12 常量缓冲 GPU 地址要求 256 字节对齐，本课程为 Frame 分配 
 
 block index、binding point 与实际 buffer 三层分开检查。
 
-[OpenGL/lessons/28_ubo/main.cpp](../../OpenGL/lessons/28_ubo/main.cpp#L15)，第 15—41 行：
+[OpenGL/lessons/28_ubo/main.cpp](../../OpenGL/lessons/28_ubo/main.cpp#L19)，第 19—45 行：
 
 ```cpp
     GLuint block = glGetUniformBlockIndex(shader.id, "CameraBlock");
@@ -62,6 +62,7 @@ block index、binding point 与实际 buffer 三层分开检查。
         throw std::runtime_error("Missing uniform block");
     glUniformBlockBinding(shader.id, block, 0);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, buffer);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         camera.update(app);
         app.clear();
@@ -83,14 +84,13 @@ block index、binding point 与实际 buffer 三层分开检查。
     glDeleteBuffers(1, &buffer);
     return 0;
 } catch (const std::exception& e) {
-    return failure(e);
 ```
 
 ### Vulkan 原生 · 已实现
 
 layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L282)，第 282—319 行：
+[Vulkan/native/lessons/vk05_indexed_uniform/support/scene_vk.hpp](../../Vulkan/native/lessons/vk05_indexed_uniform/support/scene_vk.hpp#L284)，第 284—321 行：
 
 ```cpp
         VkDescriptorSetLayoutBinding bindings[2] = {
@@ -103,6 +103,7 @@ layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。
         VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
         li.bindingCount = 2;
         li.pBindings = bindings;
+        // 绑定契约：set/binding、描述符类型和 shader 可见阶段必须与 GLSL 一致。
         vkCheck(vkCreateDescriptorSetLayout(c.device, &li, nullptr, &setLayout));
         VkDescriptorPoolSize sizes[2] = {{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
                                          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}};
@@ -130,14 +131,13 @@ layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。
         writes[1].dstBinding = 1;
         writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         writes[1].pImageInfo = &image;
-        vkUpdateDescriptorSets(c.device, 2, writes, 0, nullptr);
 ```
 
 ### Vulkan / nvpro_core2 · 已实现
 
 SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L435)，第 435—453 行：
+[Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp](../../Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp#L438)，第 438—456 行：
 
 ```cpp
             vkCmdPushConstants(cmd,
@@ -147,6 +147,7 @@ SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。
                                sizeof(d),
                                &d);
             if (indirectArguments)
+                // 绘制消费此前绑定的管线、顶点与资源；布局和资源状态必须已满足。
                 vkCmdDrawIndirect(cmd, indirectArguments, 0, 1, sizeof(VkDrawIndirectCommand));
             else if (mode == 3)
                 vkCmdDraw(cmd, 3, 1, 0, 0);
@@ -158,14 +159,13 @@ SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。
     }
     ~SceneVk() {
         if (pipeline)
-            vkDestroyPipeline(c.device, pipeline, nullptr);
 ```
 
 ### DirectX 12 · 已实现
 
 root parameter 2 指 t0，0 指 b0；两种编号不能混同。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L345)，第 345—380 行：
+[DirectX12/lessons/dx05_indexed_cbv/support/dx12_course.hpp](../../DirectX12/lessons/dx05_indexed_cbv/support/dx12_course.hpp#L353)，第 353—388 行：
 
 ```cpp
         D3D12_ROOT_PARAMETER params[3]{};

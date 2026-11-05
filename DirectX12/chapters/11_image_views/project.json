@@ -1,0 +1,7 @@
+{
+  "target": "dx11_ch_image_views",
+  "api": "dx",
+  "experiment": 41,
+  "chapter": "11_image_views",
+  "independent": true
+}

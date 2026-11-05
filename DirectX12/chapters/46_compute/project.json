@@ -1,0 +1,7 @@
+{
+  "target": "dx46_ch_compute",
+  "api": "dx",
+  "experiment": 8,
+  "chapter": "46_compute",
+  "independent": true
+}

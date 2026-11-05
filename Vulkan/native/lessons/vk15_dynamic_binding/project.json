@@ -1,0 +1,7 @@
+{
+  "target": "vk15_dynamic_binding",
+  "api": "vk",
+  "experiment": 15,
+  "chapter": null,
+  "independent": true
+}

@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 groupshared 与 GroupMemoryBarrierWithGroupSync 承担相同算法职责。线程在屏障前非一致 return 可能造成未定义结果或卡住，因此边界检查只改变贡献值，不让部分 lane 跳过同步。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,46 @@ cmake --build --preset dx12-debug --target dx30_shared_reduce --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/shaders/lab.hlsl](../../shaders/lab.hlsl#L12)，第 12—55 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx30_shared_reduce/main.cpp](main.cpp#L136)，第 136—172 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
-```hlsl
-[numthreads(64, 1, 1)] void ComputeMain(uint3 global : SV_DispatchThreadID,
-                                        uint3 local : SV_GroupThreadID,
-                                        uint3 group : SV_GroupID) {
-    uint i = global.x, lane = local.x;
-    if (mode == 2) {
-        partial[lane] = i < count ? i + 1 : 0;
-        GroupMemoryBarrierWithGroupSync();
-        for (uint stride = 32; stride > 0; stride >>= 1) {
-            if (lane < stride)
-                partial[lane] += partial[lane + stride];
-            GroupMemoryBarrierWithGroupSync();
+```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 30);
+    DxDevice c(options.warp);
+    {
+        ComputeKernel kernel(c, options);
+        uint32_t mode = (2);
+        uint32_t count = (257);
+        for (uint32_t slot = 0; slot < ((1u)); ++slot) {
+            uint32_t factor = (3), bias = (7);
+            kernel.execute(mode, count, factor, bias, slot);
+            auto result = readBuffer(kernel.readback.Get(), mode == 2 ? (count + 63) / 64 : count);
+            if (mode == 2) {
+                auto sum = std::accumulate(result.begin(), result.end(), 0u);
+                require(sum == count * (count + 1) / 2, "Shared reduction result mismatch");
+            } else {
+                if (mode == 1) {
+                    factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                    bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                }
+                for (uint32_t i = 0; i < count; ++i)
+                    require(result[i] == i * factor + bias, "Compute/root-binding mismatch");
+            }
         }
-        if (lane == 0)
-            values[group.x] = partial[0];
-    } else if (i < count) {
-        values[i] = i * (mode == 1 ? parameters.x : factor) + (mode == 1 ? parameters.y : bias);
+        std::cout << "Verified experiment " << 30 << ", items=" << count
+                  << ", constant stride=256\n";
     }
-} struct Vertex {
-    float3 position;
-    float3 normal;
-    float2 uv;
-};
-RWStructuredBuffer<Vertex> vertices : register(u1);
-cbuffer Tick : register(b2) {
-    float time;
-    uint particleCount;
-};
-[numthreads(64, 1, 1)] void ParticleMain(uint3 id : SV_DispatchThreadID) {
-    uint i = id.x;
-    if (i >= particleCount * 3)
-        return;
-    uint particle = i / 3, corner = i % 3;
-    float phase = particle * 2.39996323 + time * .35;
-    float radius = .1 + .75 * sqrt((float)particle / particleCount);
-    float2 center = float2(cos(phase), sin(phase)) * radius;
-    float a = corner * 2.0943951;
-    Vertex v;
-    v.position = float3(center + float2(cos(a), sin(a)) * .028, 0);
-    v.normal = float3(.25 + .7 * (particle % 7) / 6, .65, .95);
-    v.uv = 0;
-    vertices[i] = v;
-} Texture2D<float4> mipSource : register(t0);
-RWTexture2D<float4> mipOutput : register(u2);
-[numthreads(8, 8, 1)] void MipMain(uint3 id : SV_DispatchThreadID) {
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

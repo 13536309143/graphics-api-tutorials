@@ -28,14 +28,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/08_camera/README.html">08_camera</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="08_camera" href="../../OpenGL/lessons/08_camera/README.html">08_camera</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk05_indexed_uniform" href="../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv06_pbr_viewport" href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx05_indexed_cbv" href="../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>运动乘 dt；pitch 受限；view 与 projection 分别负责不同空间。</p>
-<p><a href="../../OpenGL/common/app.hpp#L333">OpenGL/common/app.hpp</a>，第 333—382 行：</p>
+<p><a href="../../OpenGL/lessons/08_camera/support/app.hpp#L334">OpenGL/lessons/08_camera/support/app.hpp</a>，第 334—383 行：</p>
 <pre><code>struct Camera {
     glm::vec3 pos{0, 1.2f, 6}, front{0, 0, -1};
     float yaw = -90, pitch = -8, fov = 45;
@@ -88,7 +88,7 @@ inline int failure(const std::exception&amp; e) {
     return 1;</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>共享右手空间，Vulkan 正 viewport 下额外翻转投影 Y。</p>
-<p><a href="../../shared/scene.hpp#L86">shared/scene.hpp</a>，第 86—101 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk05_indexed_uniform/support/scene.hpp#L86">Vulkan/native/lessons/vk05_indexed_uniform/support/scene.hpp</a>，第 86—101 行：</p>
 <pre><code>inline Frame frame(int mode, float aspect, bool vulkan) {
     Frame f;
     if (mode &lt;= 4)
@@ -107,7 +107,7 @@ inline int failure(const std::exception&amp; e) {
 </code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>框架不改变 SceneVk 的数学约定；UI 调整的是材质参数。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L411">Vulkan/common/scene_vk.hpp</a>，第 411—430 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp#L414">Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp</a>，第 414—433 行：</p>
 <pre><code>    void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
         auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
         if (frameProvider)

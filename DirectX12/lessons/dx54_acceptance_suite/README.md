@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 同样的 CPU 几何进入独立后端，texture view、MSAA resolve 和 CBV/PSO 使用期由 DX12 规则维护。CPU 生成正确 sRGB mip 与线性 GPU compute mip 是两条明确路径，不能混称同一种算法。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,26 @@ cmake --build --preset dx12-debug --target dx54_acceptance_suite --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L734)，第 734—777 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx54_acceptance_suite/main.cpp](main.cpp#L453)，第 453—469 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-            require(r[i] == i * 7 + 13, "CBV vector layout mismatch");
-        std::cout << "Verified Frame=64, Draw=80, offset=64 and 256-byte-aligned CBV selection\n";
-    } else if (id == 54) {
-        capabilities(c);
-        stagingCopy(c);
-        GpuTexture mips(c, options, Pixels{64, 64, checker()}, true);
-        mips.verify();
-        frameRing(c, options);
-        std::cout << "Completed buffer/texture/frame-slot acceptance suite\n";
-    } else
-        throw std::runtime_error("Unknown inspection id");
-}
-
-} // namespace
-int dxLabMain(int argc, char** argv, int id) {
-    auto options = labOptions(argc, argv, id);
-    if (id == 17 || id == 19 || id == 20 || id == 21 || id == 22 || id == 23 || id == 27 ||
-        id == 29 || id == 34 || id == 35 || id == 36 || id == 41 || id == 43 || id == 49 ||
-        id == 50 || id == 52 || id == 53)
-        return graphicsLab(argc, argv, options);
-    if (id == 40) {
-        surfaceInspection(options);
-        return 0;
-    }
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 54);
     DxDevice c(options.warp);
-    if (id >= 37)
-        inspection(c, options, id);
-    else if (id == 11)
-        capabilities(c);
-    else if (id == 12) {
-        c.begin();
-        dxCheck(c.cmd->Close());
-        ID3D12CommandList* lists[] = {c.cmd.Get()};
-        c.queue->ExecuteCommandLists(1, lists);
-        c.wait();
-        require(c.fence->GetCompletedValue() >= c.value, "Queue fence did not complete");
-        std::cout << "Verified command list close/submit and fence completion\n";
-    } else if (id == 13)
-        stagingCopy(c);
-    else if (id == 18) {
-        GpuTexture texture(c, options, Pixels{64, 64, checker()}, true);
-        texture.verify();
-    } else if (id == 24)
-        frameRing(c, options);
+    {
+        inspection(c, options);
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

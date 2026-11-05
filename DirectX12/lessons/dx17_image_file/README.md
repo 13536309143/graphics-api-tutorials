@@ -2,6 +2,12 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 解码结果按 footprint 行距复制进 UPLOAD buffer，再用 CopyTextureRegion 写入 texture。GPU 资源格式与字节布局要匹配；需要四通道时不能按原图三通道长度拷贝。
@@ -10,7 +16,7 @@ GetCopyableFootprints 返回 Offset、RowPitch 和各行信息，逐行填充后
 
 需要合法的 typeless resource/typed view 组合才能解释同一格式族；本课 sRGB SRV 与普通 UNORM 是不同读取约定。sRGB mip 的 CPU 参考先解码、平均再编码，不能直接平均已编码 RGB；alpha 仍是线性数据。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -28,53 +34,23 @@ cmake --build --preset dx12-debug --target dx17_image_file --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L237)，第 237—280 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx17_image_file/main.cpp](main.cpp#L296)，第 296—309 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-struct GpuTexture {
-    DxDevice& c;
-    ComPtr<ID3D12Resource> texture;
-    std::vector<Pixels> reference;
-    DXGI_FORMAT viewFormat;
-    GpuTexture(
-        DxDevice& context, const LabOptions& options, Pixels pixels, bool mips, bool srgb = false)
-        : c(context) {
-        reference = mips ? mipReference(pixels, srgb) : std::vector<Pixels>{pixels};
-        const UINT levels = UINT(reference.size());
-        const bool gpuMips = mips && !srgb;
-        viewFormat = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
-        D3D12_RESOURCE_DESC desc{};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        desc.Width = pixels.width;
-        desc.Height = pixels.height;
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = UINT16(levels);
-        desc.Format = srgb ? DXGI_FORMAT_R8G8B8A8_TYPELESS : DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count = 1;
-        if (gpuMips)
-            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        D3D12_HEAP_PROPERTIES hp{};
-        hp.Type = D3D12_HEAP_TYPE_DEFAULT;
-        dxCheck(c.device->CreateCommittedResource(&hp,
-                                                  D3D12_HEAP_FLAG_NONE,
-                                                  &desc,
-                                                  D3D12_RESOURCE_STATE_COPY_DEST,
-                                                  nullptr,
-                                                  IID_PPV_ARGS(&texture)));
-        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels);
-        std::vector<UINT> rows(levels);
-        std::vector<UINT64> rowBytes(levels);
-        UINT64 total{};
-        c.device->GetCopyableFootprints(
-            &desc, 0, levels, 0, footprints.data(), rows.data(), rowBytes.data(), &total);
-        auto upload = c.buffer(total, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-        std::vector<uint8_t> packed(static_cast<size_t>(total));
-        UINT copied = gpuMips ? 1 : levels;
-        for (UINT level = 0; level < copied; ++level)
-            for (UINT y = 0; y < reference[level].height; ++y)
-                std::memcpy(packed.data() + footprints[level].Offset +
-                                size_t(y) * footprints[level].Footprint.RowPitch,
-                            reference[level].rgba.data() + size_t(y) * reference[level].width * 4,
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 17);
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

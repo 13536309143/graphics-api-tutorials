@@ -1,0 +1,7 @@
+{
+  "target": "dx17_ch_targets",
+  "api": "dx",
+  "experiment": 20,
+  "chapter": "17_targets",
+  "independent": true
+}

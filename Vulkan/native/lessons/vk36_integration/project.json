@@ -1,0 +1,7 @@
+{
+  "target": "vk36_integration",
+  "api": "vk",
+  "experiment": 36,
+  "chapter": null,
+  "independent": true
+}

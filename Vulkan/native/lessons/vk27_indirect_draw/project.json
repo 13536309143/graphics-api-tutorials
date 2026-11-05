@@ -1,0 +1,7 @@
+{
+  "target": "vk27_indirect_draw",
+  "api": "vk",
+  "experiment": 27,
+  "chapter": null,
+  "independent": true
+}

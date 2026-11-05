@@ -1,9 +1,12 @@
-#include "model.hpp"
-#include "environment.hpp"
+// 34_gallery
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/model.hpp"
+#include "support/environment.hpp"
 
 // 综合实战：PBR 模型展厅，先阅读本目录 README.md。
 // 本课重点：组合模型、PBR 和 IBL，观察各渲染步骤共享哪些资源与状态。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "34_gallery - OpenGL Course");
     Environment env(app);
     Model robot(asset(app, "models/robot.gltf"));
@@ -15,6 +18,7 @@ int main(int argc, char** argv) try {
         sky(app, "sky.vert", "sky.frag"), bright(app, "screen.vert", "bright.frag"),
         blur(app, "screen.vert", "blur.frag"), tone(app, "screen.vert", "tone.frag");
     RenderTarget scene, highlights, ping, pong;
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width < 1 || app.height < 1) {
             app.end();

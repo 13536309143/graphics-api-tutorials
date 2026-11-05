@@ -1,0 +1,7 @@
+{
+  "target": "dx19_ch_record_submit",
+  "api": "dx",
+  "experiment": 12,
+  "chapter": "19_record_submit",
+  "independent": true
+}

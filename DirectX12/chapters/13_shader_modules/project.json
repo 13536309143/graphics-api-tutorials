@@ -1,0 +1,7 @@
+{
+  "target": "dx13_ch_shader_modules",
+  "api": "dx",
+  "experiment": 42,
+  "chapter": "13_shader_modules",
+  "independent": true
+}

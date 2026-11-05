@@ -1,0 +1,7 @@
+{
+  "target": "dx12_queue_submit",
+  "api": "dx",
+  "experiment": 12,
+  "chapter": null,
+  "independent": true
+}

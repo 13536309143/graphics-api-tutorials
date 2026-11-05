@@ -1,0 +1,7 @@
+{
+  "target": "dx15_ch_rendering_scope",
+  "api": "dx",
+  "experiment": 10,
+  "chapter": "15_rendering_scope",
+  "independent": true
+}

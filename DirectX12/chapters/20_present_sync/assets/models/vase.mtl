@@ -1,0 +1,4 @@
+newmtl Copper
+Kd 0.95 0.8 0.6
+map_Kd ../textures/albedo.png
+Ns 64

@@ -1,0 +1,7 @@
+{
+  "target": "vk09_ch_surface",
+  "api": "vk",
+  "experiment": 40,
+  "chapter": "09_surface",
+  "independent": true
+}

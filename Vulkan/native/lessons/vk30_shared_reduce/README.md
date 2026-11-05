@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 shared 数组在组内可见，barrier 保证迭代间写入/读取顺序。不同工作组没有可直接互相等待的全局 barrier，本课把跨组聚合留到独立阶段。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,28 +28,51 @@ cmake --build --preset vulkan-native-debug --target vk30_shared_reduce --paralle
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/shaders/lab.comp](../../../common/shaders/lab.comp#L19)，第 19—38 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk30_shared_reduce/main.cpp](main.cpp#L157)，第 157—199 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
-```glsl
-void main() {
-    uint i = gl_GlobalInvocationID.x;
-    uint lane = gl_LocalInvocationID.x;
-    if (operation.mode == 2) {
-        // All invocations reach each barrier, including padded tail lanes.
-        partial[lane] = i < operation.count ? i + 1 : 0;
-        barrier();
-        for (uint stride = 32; stride > 0; stride >>= 1) {
-            if (lane < stride)
-                partial[lane] += partial[lane + stride];
-            barrier();
+```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 30);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            ComputeKernel kernel(c);
+            uint32_t mode = (2);
+            uint32_t count = (257);
+            for (uint32_t slot = 0; slot < ((1u)); ++slot) {
+                uint32_t factor = (3), bias = (7);
+                kernel.execute(mode, count, factor, bias, slot);
+                auto result = readWords(kernel.output, mode == 2 ? (count + 63) / 64 : count);
+                if (mode == 2) {
+                    uint32_t total = std::accumulate(result.begin(), result.end(), 0u);
+                    require(total == count * (count + 1) / 2, "Shared-memory reduction mismatch");
+                } else {
+                    if (mode == 1) {
+                        factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                        bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                    }
+                    for (uint32_t i = 0; i < count; ++i)
+                        require(result[i] == i * factor + bias,
+                                "Compute/dynamic-binding result mismatch");
+                }
+            }
+            std::cout << "Verified experiment " << 30 << ", items=" << count
+                      << ", uniform stride=" << kernel.stride << '\n';
         }
-        if (lane == 0)
-            outputData.values[gl_WorkGroupID.x] = partial[0];
-    } else if (i < operation.count) {
-        uint factor = operation.mode == 1 ? parameters.values.x : operation.factor;
-        uint bias = operation.mode == 1 ? parameters.values.y : operation.bias;
-        outputData.values[i] = i * factor + bias;
     }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
 }
 ```
 

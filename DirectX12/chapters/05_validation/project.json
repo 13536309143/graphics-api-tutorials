@@ -1,0 +1,7 @@
+{
+  "target": "dx05_ch_validation",
+  "api": "dx",
+  "experiment": 38,
+  "chapter": "05_validation",
+  "independent": true
+}

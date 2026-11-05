@@ -1,0 +1,7 @@
+{
+  "target": "dx31_retire_resources",
+  "api": "dx",
+  "experiment": 31,
+  "chapter": null,
+  "independent": true
+}

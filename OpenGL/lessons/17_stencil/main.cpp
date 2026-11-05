@@ -1,15 +1,20 @@
-#include "advanced.hpp"
+// 17_stencil
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/advanced.hpp"
 
 // 模板测试与描边，先阅读本目录 README.md。
 // 本课重点：第一遍写 stencil，第二遍用放大模型绘制未被覆盖的描边。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "17_stencil - OpenGL Course");
     Shader solid(app, "advanced.vert", "surface.frag"), outline(app, "advanced.vert", "solid.frag");
+    // CPU 顶点数据上传后，由 VAO 保存属性布局；布局必须匹配顶点 shader。
     Mesh mesh(cube());
     Camera camera;
     RenderTarget target(1, false);
     Shader screen(app, "screen.vert", "screen.frag");
     Mesh plane(quad(), quadIndices());
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width < 1 || app.height < 1) {
             app.end();

@@ -1,0 +1,7 @@
+{
+  "target": "vk34_ch_image_upload",
+  "api": "vk",
+  "experiment": 17,
+  "chapter": "34_image_upload",
+  "independent": true
+}

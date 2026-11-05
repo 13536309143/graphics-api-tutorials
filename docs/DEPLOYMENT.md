@@ -1,5 +1,7 @@
 # 部署与打包
 
+各章现有自己的 C++、着色器、资源和 CMake，关键步骤有中文注释；可直接复制整个章节目录单独构建或打开调试。[每章独立工程与调试说明](INDEPENDENT_CHAPTERS.md)。
+
 ## 首次配置
 
 1. 安装 Git、CMake 3.24+、Visual Studio 2022 C++ 桌面工作负载和 Windows SDK。

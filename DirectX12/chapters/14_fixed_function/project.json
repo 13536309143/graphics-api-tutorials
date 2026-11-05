@@ -1,0 +1,7 @@
+{
+  "target": "dx14_ch_fixed_function",
+  "api": "dx",
+  "experiment": 43,
+  "chapter": "14_fixed_function",
+  "independent": true
+}

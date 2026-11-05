@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>每章独立工程与阅读方式</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../web/runner.css"><script defer src="../web/runner.js"></script><main><nav><a href="../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>每章独立工程与阅读方式</h1>
+<p>三种 API 的课程源码现在按章节隔离。原有 148 个专题实验各自拥有源码、shader 与 CMake；Vulkan / DX12 的 54 章教材另外各有 54 个完整代码快照，共 256 个可构建入口。章工程选择本章关联的实际实验路径，并不表示增加了 108 种全新图形技术。</p>
+<pre><code>Vulkan/native/chapters/41_obj_model/
+    README.md                 教材、对照、实验与本章运行按钮
+    main.cpp                  本章流程和实验实现，关键位置有中文注释
+    support/                  本章自己的设备、窗口、资源等 C++ 实现
+    shaders/                  本章实际使用的 .vert/.frag/.comp 或 HLSL 阶段
+    assets/                   本章需要的图片、模型等数据（如适用）
+    cmake/                    本地第三方依赖配方
+    CMakeLists.txt            独立配置入口
+    project.json              本地阅读器的目标标识</code></pre>
+<p>实际目录名请以各路线 COURSE.md 为准。OpenGL 与 nvpro_core2 的独立工程位于各自 lessons/。每个目录包含本章需要的课程实现；不会 include 其他章节或链接公共课程实现库。GLFW、GLM、Assimp、SDK 与 nvpro_core2 等第三方组件仍按固定版本获取；合集构建复用这些第三方库以缩短编译时间。</p>
+<h2>单独复制和构建</h2>
+<p>复制一个完整章节目录到任意位置，从该目录执行：</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p>运行程序位于 build/bin/Debug/。如果使用其他生成器，按其配置方式选择 Debug。仅复制 main.cpp 不足以构建；请保留 support、shader、资源、许可证和 cmake 文件。</p>
+<p>在仓库内仍可用根目录 presets 构建整条路线，旧实验名保持可用。教材主线的独立目标命名为 vkNN_ch_主题 / dxNN_ch_主题，实际名称见本章 project.json。从“开始学习.cmd”进入章节后，顶部“运行本课”启动该章自己的程序；原有专题实验表仍可分别运行。</p>
+<h2>改代码与 shader</h2>
+<p>只改当前章的 main.cpp / support / shaders，然后重新构建当前目标。每个程序读取同名的 .resources/shaders 与 .resources/assets，彼此不覆盖。Vulkan GLSL 由本章 glslc 编译；OpenGL 在运行时编译本章 GLSL；DX12 的 vertex.hlsl、fragment.hlsl、compute.hlsl / compute_lab.hlsl、particles.hlsl、mip.hlsl 按实际用途分开。初始化、设备查询与纯拷贝章节没有图形 shader，不用为它们补空的顶点/片段文件。</p>
+<h2>关键注释怎么读</h2>
+<p>先看 main.cpp 顶部的本章约束，再沿资源所有权、参数布局、管线绑定、命令提交、GPU 完成与回收阅读。辅助实现也在本章目录中，关键 API 处说明生产者/消费者、线程组边界、根签名或 descriptor 与 shader 的对应关系。shader 顶部说明输入输出与 C++ 契约。</p>
+<p>注释解释原因和约束，教材提供概念、受控修改和验收方法。固定同步模型和完整高级功能边界仍以 FEATURE_MATRIX.md 为准；把源码独立出来不会自动实现其他特性。</p>
+<h2>调试</h2>
+<p>Visual Studio 可直接打开章节文件夹并配置 CMake，或者打开 build/ 中生成的解决方案，将本章目标设为启动项。断点可直接下在本章 main.cpp 与 support 文件中；shader 源码也指向本章。资源路径由可执行文件位置计算，不依赖调试器的当前目录。详细的 VS Code、RenderDoc、PIX、Nsight 操作见 <a href="DEBUGGING.html">DEBUGGING.md</a>。</p>
+<p>运行 <code>python tools/check_independent_projects.py</code> 可核对全部工程的本地源码、shader、目标名称和依赖范围；运行测试与复制到仓库外的构建证据见 <a href="VALIDATION.html">验证记录</a>。</p></main></html>

@@ -1,0 +1,7 @@
+{
+  "target": "dx43_color_write_mask",
+  "api": "dx",
+  "experiment": 43,
+  "chapter": null,
+  "independent": true
+}

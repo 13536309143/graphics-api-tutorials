@@ -1,0 +1,7 @@
+{
+  "target": "vk43_color_write_mask",
+  "api": "vk",
+  "experiment": 43,
+  "chapter": null,
+  "independent": true
+}

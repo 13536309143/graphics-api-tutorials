@@ -1,0 +1,7 @@
+{
+  "target": "nv04_vma_staging_texture",
+  "api": "nv",
+  "experiment": 4,
+  "chapter": null,
+  "independent": true
+}

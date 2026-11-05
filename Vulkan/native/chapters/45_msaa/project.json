@@ -1,0 +1,7 @@
+{
+  "target": "vk45_ch_msaa",
+  "api": "vk",
+  "experiment": 20,
+  "chapter": "45_msaa",
+  "independent": true
+}

@@ -1,0 +1,7 @@
+{
+  "target": "dx15_dynamic_binding",
+  "api": "dx",
+  "experiment": 15,
+  "chapter": null,
+  "independent": true
+}

@@ -1,5 +1,17 @@
 # 第 25 课：IBL 与 Split Sum
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [课程首页](../../README.md) · [上一课](../24_pbr_textures/README.md) · [下一课](../26_deferred/README.md)
 
 ## 目标与运行
@@ -66,17 +78,20 @@ Environment 的三种产物各服务不同积分：irradiance、roughness-prefil
 
 ### 本课的真实源码切片
 
-来自 [OpenGL/lessons/25_ibl/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [OpenGL/lessons/25_ibl/main.cpp](main.cpp#L7)，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "25_ibl - OpenGL Course");
     Environment env(app);
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, "advanced.vert", "pbr.frag"), sky(app, "sky.vert", "sky.frag");
     Mesh ball(sphere()), box(cube());
     Camera camera;
     camera.pos = {0, 0, 14};
     camera.pitch = 0;
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         camera.update(app);
         app.clear();
@@ -92,9 +107,6 @@ int main(int argc, char** argv) try {
                 auto model =
                     glm::translate(glm::mat4(1), glm::vec3((x - 3) * 1.65f, (y - 2) * 1.65f, 0));
                 shader.set("model", glm::scale(model, glm::vec3(.65f)));
-                ball.draw();
-            }
-        env.sky(sky, box, app, camera);
 ```
 
 ### 同主题跨 API 导航

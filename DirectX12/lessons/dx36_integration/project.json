@@ -1,0 +1,7 @@
+{
+  "target": "dx36_integration",
+  "api": "dx",
+  "experiment": 36,
+  "chapter": null,
+  "independent": true
+}

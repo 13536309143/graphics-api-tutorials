@@ -1,9 +1,62 @@
-#include "dx12_course.hpp"
-// 本课重点：上传顶点并设置 vertex buffer view，核对 input layout 偏移。
-// 入口按课程编号选择路径；实现见 ../../common/dx12_course.hpp。
+// 关联教材：创建顶点资源与上传最小路径。
+// 关键约束：内容容量；draw count 不是字节数。
+// 关键约束：教学内存；易追踪不等于最优静态带宽。
+// 关键约束：更新保护；Map 不提供执行同步。
+// dx04_vertex_buffer
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/dx12_course.hpp"
+namespace course {
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error("GLFW failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "DirectX 12 Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        DxWindow app(window, 4, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? "dx12_" + std::to_string(4) + ".ppm"
+                                                   : options.captureStem + ".ppm");
+        while (!glfwWindowShouldClose(window) && (!smoke || frame < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene && options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke && frame == 3 ? &output : nullptr);
+            ++frame;
+        }
+    }
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
 int main(int argc, char** argv) try {
-    return course::dxMain(argc, argv, 4);
-} catch (const std::exception& e) {
-    std::cerr << e.what() << "\n";
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
     return 1;
 }

@@ -1,0 +1,7 @@
+{
+  "target": "dx16_ch_pipeline_interface",
+  "api": "dx",
+  "experiment": 16,
+  "chapter": "16_pipeline_interface",
+  "independent": true
+}

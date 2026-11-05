@@ -1,0 +1,7 @@
+{
+  "target": "vk08_compute_readback",
+  "api": "vk",
+  "experiment": 8,
+  "chapter": null,
+  "independent": true
+}

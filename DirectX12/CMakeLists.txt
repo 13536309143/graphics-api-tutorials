@@ -7,45 +7,15 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(../cmake/Dependencies.cmake)
 course_dependencies()
-add_library(dx_course INTERFACE)
-target_include_directories(dx_course INTERFACE common ../shared "${COURSE_GLM_INCLUDE}")
-target_link_libraries(dx_course INTERFACE d3d12 dxgi dxguid d3dcompiler glfw)
-target_compile_definitions(
-    dx_course INTERFACE UNICODE _UNICODE NOMINMAX GLFW_INCLUDE_NONE GLM_FORCE_DEPTH_ZERO_TO_ONE
-                        COURSE_HLSL_FILE=L"${CMAKE_CURRENT_SOURCE_DIR}/shaders/scene.hlsl")
-if(MSVC)
-    target_compile_options(dx_course INTERFACE /utf-8 /W4 /permissive- /wd4324)
-endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-get_property(multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-set(runtime_shader_dir "${CMAKE_BINARY_DIR}/bin")
-if(multi)
-    string(APPEND runtime_shader_dir "/$<CONFIG>")
-endif()
-add_custom_target(
-    dx_runtime_assets COMMAND ${CMAKE_COMMAND} -E copy_directory
-                              "${CMAKE_CURRENT_SOURCE_DIR}/shaders" "${runtime_shader_dir}/shaders")
-course_asset_dependencies()
-add_library(dx_advanced STATIC common/advanced_labs.cpp)
-target_link_libraries(dx_advanced PUBLIC dx_course assimp::assimp)
-target_include_directories(dx_advanced
-                           PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../OpenGL/third_party/stb")
-add_custom_target(
-    dx_advanced_assets
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/../OpenGL/assets"
-            "${runtime_shader_dir}/assets")
 
+course_asset_dependencies()
+
+# Each chapter owns its C++ and shader sources. Only third-party targets are reused.
 include(CTest)
-file(GLOB lessons CONFIGURE_DEPENDS "lessons/*")
-foreach(dir IN LISTS lessons)
-    get_filename_component(name "${dir}" NAME)
-    add_executable(${name} "${dir}/main.cpp")
-    target_link_libraries(${name} PRIVATE dx_course)
-    if(EXISTS "${dir}/advanced.json")
-        target_link_libraries(${name} PRIVATE dx_advanced)
-        add_dependencies(${name} dx_advanced_assets)
+file(GLOB projects CONFIGURE_DEPENDS "lessons/*" "chapters/*")
+foreach(dir IN LISTS projects)
+    if(EXISTS "${dir}/CMakeLists.txt")
+        add_subdirectory("${dir}")
     endif()
-    add_dependencies(${name} dx_runtime_assets)
-    add_test(NAME ${name} COMMAND ${name} --smoke)
-    set_tests_properties(${name} PROPERTIES TIMEOUT 40 RUN_SERIAL TRUE)
 endforeach()

@@ -2,13 +2,19 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 SDK 中的头文件、loader 导入库、glslc 与 validation layer 有不同用途。安装更高版本头文件不会升级驱动。程序枚举 loader 版本和实例扩展，再核对物理设备支持；glslc 产物使用 SPIR-V，不能拿 GLSL 文本直接创建 shader module。
 
 实例扩展用于窗口系统连接、debug utils 等实例层功能，设备扩展在创建设备时选择。glfwGetRequiredInstanceExtensions 返回当前平台 surface 所需扩展；无窗口计算不需要同一组 WSI 条件。pApplicationInfo 中的 apiVersion 不是“申请升级显卡”。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -25,53 +31,31 @@ cmake --build --preset vulkan-native-debug --target vk37_instance_extensions --p
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L775)，第 775—818 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk37_instance_extensions/main.cpp](main.cpp#L30)，第 30—51 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void inspection(const VkContextRef& c, int id) {
-    if (id == 37) {
-        uint32_t version{};
-        vkCheck(vkEnumerateInstanceVersion(&version));
-        uint32_t count{};
-        vkCheck(vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr));
-        std::vector<VkExtensionProperties> extensions(count);
-        vkCheck(vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data()));
-        bool found = false;
-        for (const auto& e : extensions) {
-            std::cout << e.extensionName << '\n';
-            found |= std::strcmp(e.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0;
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 37);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            inspection(c);
         }
-        require(found, "Debug utils extension missing");
-        std::cout << "Loader version=" << VK_API_VERSION_MAJOR(version) << '.'
-                  << VK_API_VERSION_MINOR(version) << '\n';
-    } else if (id == 38) {
-        uint32_t layers{};
-        vkCheck(vkEnumerateInstanceLayerProperties(&layers, nullptr));
-        std::vector<VkLayerProperties> list(layers);
-        vkCheck(vkEnumerateInstanceLayerProperties(&layers, list.data()));
-        for (const auto& l : list)
-            std::cout << "layer=" << l.layerName << '\n';
-        int delivered = 0;
-        VkDebugUtilsMessengerCreateInfoEXT info{
-            VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-        info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-        info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
-        info.pUserData = &delivered;
-        info.pfnUserCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT,
-                                  VkDebugUtilsMessageTypeFlagsEXT,
-                                  const VkDebugUtilsMessengerCallbackDataEXT*,
-                                  void* user) -> VkBool32 {
-            ++*static_cast<int*>(user);
-            return VK_FALSE;
-        };
-        auto create = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(c.instance, "vkCreateDebugUtilsMessengerEXT"));
-        auto destroy = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(c.instance, "vkDestroyDebugUtilsMessengerEXT"));
-        auto message = reinterpret_cast<PFN_vkSubmitDebugUtilsMessageEXT>(
-            vkGetInstanceProcAddr(c.instance, "vkSubmitDebugUtilsMessageEXT"));
-        require(create && destroy && message, "Debug utils functions missing");
-        VkDebugUtilsMessengerEXT messenger{};
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

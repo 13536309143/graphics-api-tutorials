@@ -1,0 +1,7 @@
+{
+  "target": "vk53_ch_measure_cache",
+  "api": "vk",
+  "experiment": 25,
+  "chapter": "53_measure_cache",
+  "independent": true
+}

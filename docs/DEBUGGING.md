@@ -1,5 +1,7 @@
 # 调试：CPU、API 验证与 GPU 帧
 
+各章现有自己的 C++、着色器、资源和 CMake，关键步骤有中文注释；可直接复制整个章节目录单独构建或打开调试。[每章独立工程与调试说明](INDEPENDENT_CHAPTERS.md)。
+
 ## Visual Studio
 
 打开仓库文件夹，选择根 CMake configure preset（例如 vulkan-native），构建 Debug 并将 vk03_triangle 设为启动目标。CPU 断点从各课 main.cpp 进入，然后到 NativeDevice/SceneVk、NvLesson 回调或 DxDevice/DxScene。Debug 有符号，CMake 会复制运行资源。不要把 Vulkan 的 GLSL main 误当成 C++ 可直接单步的函数。

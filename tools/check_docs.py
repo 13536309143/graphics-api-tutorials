@@ -29,6 +29,7 @@ for md in pages:
 topics=json.loads((root/'docs/comparison-topics.json').read_text(encoding='utf-8'))
 assert len(topics)==16
 for lesson,folder,path in [l.split('\t') for l in (root/'catalog.tsv').read_text(encoding='utf-8-sig').splitlines()]:
+    if '/chapters/' in path:continue
     text=(root/path/'README.md').read_text(encoding='utf-8')
     for phrase in ['深入学习：数据、接口与执行','本课的真实源码切片','同主题跨 API 导航','先预测，再验证']:
         assert phrase in text,(lesson,phrase)
@@ -42,7 +43,7 @@ for url in lab.values:
 
 catalog_rows = [row.split('\t') for row in (root/'catalog.tsv').read_text(encoding='utf-8').splitlines()]
 counts = {folder: sum(row[1] == folder for row in catalog_rows) for folder in ['OpenGL','Vulkan/native','Vulkan/nvpro','DirectX12']}
-assert counts == {'OpenGL':34,'Vulkan/native':54,'Vulkan/nvpro':6,'DirectX12':54}, counts
+assert counts == {'OpenGL':34,'Vulkan/native':108,'Vulkan/nvpro':6,'DirectX12':108}, counts
 curriculum = json.loads((root/'docs/curriculum.json').read_text(encoding='utf-8'))
 assert len(curriculum['chapters']) == 54
 assert {n for chapter in curriculum['chapters'] for n in chapter['labs']} == set(range(1,55))
@@ -54,4 +55,4 @@ for chapter in curriculum['chapters']:
 
 if broken:
     print(json.dumps(broken,ensure_ascii=False,indent=2));raise SystemExit(1)
-print(f'PASS: {len(pages)} offline Markdown/HTML pairs; all local links/assets exist; 148 catalog-backed experiments, 54+54 chapters; 16 comparison topics.')
+print(f'PASS: {len(pages)} offline Markdown/HTML pairs; all local links/assets exist; 148 experiments + 108 independent chapter targets, 54+54 chapters; 16 comparison topics.')

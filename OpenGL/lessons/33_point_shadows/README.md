@@ -1,5 +1,17 @@
 # 第 33 课：点光源全方向阴影
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [课程首页](../../README.md) · [上一课](../32_particles/README.md) · [下一课](../34_gallery/README.md)
 
 ## 目标与运行
@@ -64,10 +76,11 @@ Cubemap 采样器根据方向的最大绝对分量自动选面并计算面内坐
 
 ### 本课的真实源码切片
 
-来自 [OpenGL/lessons/33_point_shadows/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [OpenGL/lessons/33_point_shadows/main.cpp](main.cpp#L7)，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "33_point_shadows - OpenGL Course");
     GLuint fbo, depthCube;
     glGenFramebuffers(1, &fbo);
@@ -88,11 +101,10 @@ int main(int argc, char** argv) try {
     for (GLenum axis : {GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_WRAP_R})
         glTexParameteri(GL_TEXTURE_CUBE_MAP, axis, GL_CLAMP_TO_EDGE);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    // 绘制使用当前程序、VAO 和附件；属性布局必须匹配顶点着色器。
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glFramebufferTexture2D(
-        GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X, depthCube, 0);
-    RenderTarget::check();
 ```
 
 ### 同主题跨 API 导航

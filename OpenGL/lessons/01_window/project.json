@@ -1,0 +1,5 @@
+{
+  "target": "01_window",
+  "api": "gl",
+  "independent": true
+}

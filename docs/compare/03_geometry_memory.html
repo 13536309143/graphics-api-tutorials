@@ -25,14 +25,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/03_indexed/README.html">03_indexed</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk04_vertex_buffer/README.html">vk04_vertex_buffer</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx04_vertex_buffer/README.html">dx04_vertex_buffer</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="03_indexed" href="../../OpenGL/lessons/03_indexed/README.html">03_indexed</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk04_vertex_buffer" href="../../Vulkan/native/lessons/vk04_vertex_buffer/README.html">vk04_vertex_buffer</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv04_vma_staging_texture" href="../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.html">nv04_vma_staging_texture</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx04_vertex_buffer" href="../../DirectX12/lessons/dx04_vertex_buffer/README.html">dx04_vertex_buffer</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>EBO 绑定属于 VAO 状态，attribute stride 与 CPU 数据一致。</p>
-<p><a href="../../OpenGL/common/app.hpp#L217">OpenGL/common/app.hpp</a>，第 217—264 行：</p>
+<p><a href="../../OpenGL/lessons/03_indexed/support/app.hpp#L217">OpenGL/lessons/03_indexed/support/app.hpp</a>，第 217—264 行：</p>
 <pre><code>struct Mesh {
     GLuint vao = 0, vbo = 0, ebo = 0;
     GLsizei count = 0;
@@ -80,10 +80,10 @@
     void draw() const {
         glBindVertexArray(vao);
         if (indexed)
-            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);</code></pre>
+            // 绘制使用当前程序、VAO 和附件；属性布局必须匹配顶点着色器。</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>先满足 memoryTypeBits 与属性，再绑定资源；coherent 不等于执行同步。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L31">Vulkan/common/scene_vk.hpp</a>，第 31—75 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk04_vertex_buffer/support/scene_vk.hpp#L31">Vulkan/native/lessons/vk04_vertex_buffer/support/scene_vk.hpp</a>，第 31—75 行：</p>
 <pre><code>struct VkBufferResource {
     VkDevice device{};
     VkBuffer buffer{};
@@ -131,7 +131,7 @@ struct VkImageResource {
     VkDevice device{};</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>本段上传 device-local 顶点；纹理路径在 SceneVk，不能混作同一 helper。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L88">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 88—107 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/support/nvapp_course.hpp#L88">Vulkan/nvpro/lessons/nv04_vma_staging_texture/support/nvapp_course.hpp</a>，第 88—107 行：</p>
 <pre><code>        if (mode == 6) {
             auto&amp; vertices = scene-&gt;mesh.vertices;
             vkCheck(allocator.createBuffer(uploadedVertices,
@@ -154,7 +154,7 @@ struct VkImageResource {
     // 视口大小变化时重建 RenderTarget，并把新的 image view 交给 ImGui 显示。</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>UPLOAD 顶点和 index buffer view 保持清楚，性能优化可再改 DEFAULT。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L256">DirectX12/common/dx12_course.hpp</a>，第 256—293 行：</p>
+<p><a href="../../DirectX12/lessons/dx04_vertex_buffer/support/dx12_course.hpp#L264">DirectX12/lessons/dx04_vertex_buffer/support/dx12_course.hpp</a>，第 264—301 行：</p>
 <pre><code>    DxScene(DxDevice&amp; context,
             int lesson,
             const Geometry* replacement = nullptr,

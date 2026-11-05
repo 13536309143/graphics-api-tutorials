@@ -1,0 +1,7 @@
+{
+  "target": "vk54_acceptance_suite",
+  "api": "vk",
+  "experiment": 54,
+  "chapter": null,
+  "independent": true
+}

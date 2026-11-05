@@ -1,0 +1,7 @@
+{
+  "target": "dx32_pipeline_cache",
+  "api": "dx",
+  "experiment": 32,
+  "chapter": null,
+  "independent": true
+}

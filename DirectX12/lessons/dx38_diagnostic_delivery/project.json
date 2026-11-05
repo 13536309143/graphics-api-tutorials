@@ -1,0 +1,7 @@
+{
+  "target": "dx38_diagnostic_delivery",
+  "api": "dx",
+  "experiment": 38,
+  "chapter": null,
+  "independent": true
+}

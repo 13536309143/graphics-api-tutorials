@@ -34,6 +34,18 @@ staticAsset 将节点变换应用到顶点，以正确法线矩阵变换 normal�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,36 @@ staticAsset 将节点变换应用到顶点，以正确法线矩阵变换 normal�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk21_obj_model --parallel 4
-.\Vulkan\native\build\bin\Debug\vk21_obj_model.exe
-ctest --preset vulkan-native-debug -R "^vk21_obj_model$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk41_ch_obj_models --parallel 4
+.\Vulkan\native\build\bin\Debug\vk41_ch_obj_models.exe
+ctest --preset vulkan-native-debug -R "^vk41_ch_obj_models$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [shared/advanced.hpp](../../../../shared/advanced.hpp#L92)，第 92—135 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/41_obj_models/main.cpp](main.cpp#L31)，第 31—45 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-inline Geometry staticAsset(const std::filesystem::path& path) {
-    Assimp::Importer importer;
-    const auto* scene =
-        importer.ReadFile(path.string(),
-                          aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                              aiProcess_JoinIdenticalVertices | aiProcess_ValidateDataStructure);
-    require(scene && scene->mRootNode, "Assimp could not load course model");
-    Geometry result;
-    unsigned nodes = 0;
-    std::function<void(const aiNode*, glm::mat4)> visit = [&](const aiNode* node,
-                                                              glm::mat4 parent) {
-        ++nodes;
-        glm::mat4 transform = parent * assimpMatrix(node->mTransformation);
-        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
-        for (unsigned m = 0; m < node->mNumMeshes; ++m) {
-            const auto* mesh = scene->mMeshes[node->mMeshes[m]];
-            uint32_t base = uint32_t(result.vertices.size());
-            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
-                const auto& p = mesh->mVertices[i];
-                auto n = mesh->HasNormals() ? mesh->mNormals[i] : aiVector3D(0, 1, 0);
-                auto uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : aiVector3D();
-                result.vertices.push_back({glm::vec3(transform * glm::vec4(p.x, p.y, p.z, 1)),
-                                           glm::normalize(normalMatrix * glm::vec3(n.x, n.y, n.z)),
-                                           {uv.x, uv.y}});
-            }
-            for (unsigned f = 0; f < mesh->mNumFaces; ++f) {
-                require(mesh->mFaces[f].mNumIndices == 3, "Non-triangle after triangulation");
-                for (unsigned k = 0; k < 3; ++k)
-                    result.indices.push_back(base + mesh->mFaces[f].mIndices[k]);
-            }
-        }
-        for (unsigned i = 0; i < node->mNumChildren; ++i)
-            visit(node->mChildren[i], transform);
-    };
-    visit(scene->mRootNode, glm::mat4(1));
-    require(!result.vertices.empty() && !result.indices.empty(), "Empty imported model");
-    glm::vec3 lo(std::numeric_limits<float>::max()), hi(-std::numeric_limits<float>::max());
-    for (const auto& v : result.vertices) {
-        lo = glm::min(lo, v.position);
-        hi = glm::max(hi, v.position);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 21);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
     }
-    auto extent = hi - lo;
-    float scale = 2.f / std::max({extent.x, extent.y, extent.z, .0001f});
-    for (auto& v : result.vertices)
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +118,4 @@ inline Geometry staticAsset(const std::filesystem::path& path) {
 
 ## 固定输入的实际 GPU 读回
 
-![vk21_obj_model](../../../../docs/previews/vk21_obj_model.png)
+![vk41_ch_obj_models](../../../../docs/previews/vk21_obj_model.png)

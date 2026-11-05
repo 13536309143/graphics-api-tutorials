@@ -1,0 +1,7 @@
+{
+  "target": "vk29_gpu_particles",
+  "api": "vk",
+  "experiment": 29,
+  "chapter": null,
+  "independent": true
+}

@@ -1,0 +1,7 @@
+{
+  "target": "dx48_ch_compute_graphics",
+  "api": "dx",
+  "experiment": 29,
+  "chapter": "48_compute_graphics",
+  "independent": true
+}

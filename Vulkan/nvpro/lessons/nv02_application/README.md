@@ -1,5 +1,17 @@
 # nv02_application · nvapp Application 生命周期
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [原生 Vulkan 对照](../../../native/README.md)
 
 ## 构建与运行
@@ -44,17 +56,65 @@ Application 驱动回调，RenderTarget 提供离屏附件，ImTexture 将视图
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/nvpro/common/nvapp_course.hpp](../../common/nvapp_course.hpp#L108)，第 108—115 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/nvpro/lessons/nv02_application/main.cpp](main.cpp#L5)，第 5—60 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-    void onResize(VkCommandBuffer cmd, const VkExtent2D& size) override {
-        vkCheck(target.update(cmd, size));
-        if (!smoke)
-            display.update(target.getUiImageView());
+int runChapter(int argc, char** argv) {
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    // 课程编号与公共场景模式分别管理：第 4 课看纹理上传，第 6 课看 PBR。
+    int mode = ((2));
+    nvShaders = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    NvContextOwner owner;
+    auto& context = owner.context;
+    nvValidationErrors = 0;
+    nvvk::ContextInitInfo setup{};
+    setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+    setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
+    setup.enableValidationLayers = true;
+    setup.verbose = false;
+    setup.applicationName = "nvpro_core2 Course";
+    if (!smoke && 2 != 1 && 2 != 5) {
+        nvvk::addSurfaceExtensions(setup.instanceExtensions);
+        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
     }
-    void onUIRender() override {
-        if (ImGui::IsKeyPressed(ImGuiKey_Escape))
-            app->close();
+    vkCheck(context.init(setup));
+    VkDebugUtilsMessengerCreateInfoEXT debug{
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debug.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debug.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debug.pfnUserCallback = nvValidation;
+    vkCheck(
+        vkCreateDebugUtilsMessengerEXT(context.getInstance(), &debug, nullptr, &owner.messenger));
+    {
+        auto q = context.getQueueInfo(0);
+        VkContextRef c{context.getInstance(),
+                       context.getPhysicalDevice(),
+                       context.getDevice(),
+                       q.queue,
+                       q.familyIndex};
+        {
+            nvapp::ApplicationCreateInfo info;
+            info.name = "nvpro_core2 Course";
+            info.instance = c.instance;
+            info.device = c.device;
+            info.physicalDevice = c.physical;
+            info.queues = context.getQueueInfos();
+            info.windowSize = {960, 640};
+            info.headless = smoke;
+            info.headlessFrameCount = 4;
+            nvapp::Application app;
+            app.init(info);
+            auto element = std::make_shared<NvLesson>(mode,
+                                                      smoke,
+                                                      std::filesystem::path(argv[0]).parent_path() /
+                                                          ("nvpro_" + std::to_string(2) + ".ppm"));
+            app.addElement(element);
+            app.run();
+            app.deinit();
+        }
+    }
 ```
 
 ### 同主题跨 API 导航

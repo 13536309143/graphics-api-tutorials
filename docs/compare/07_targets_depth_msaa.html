@@ -27,14 +27,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/29_msaa/README.html">29_msaa</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk20_msaa_resolve/README.html">vk20_msaa_resolve</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv02_application/README.html">nv02_application</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx20_msaa_resolve/README.html">dx20_msaa_resolve</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="29_msaa" href="../../OpenGL/lessons/29_msaa/README.html">29_msaa</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk20_msaa_resolve" href="../../Vulkan/native/lessons/vk20_msaa_resolve/README.html">vk20_msaa_resolve</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv02_application" href="../../Vulkan/nvpro/lessons/nv02_application/README.html">nv02_application</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx20_msaa_resolve" href="../../DirectX12/lessons/dx20_msaa_resolve/README.html">dx20_msaa_resolve</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>多样本绘制与 resolve 是两个步骤；MSAA 不消除所有纹理闪烁。</p>
-<p><a href="../../OpenGL/lessons/29_msaa/main.cpp#L33">OpenGL/lessons/29_msaa/main.cpp</a>，第 33—56 行：</p>
+<p><a data-course-target="29_msaa" href="../../OpenGL/lessons/29_msaa/main.cpp#L38">OpenGL/lessons/29_msaa/main.cpp</a>，第 38—61 行：</p>
 <pre><code>        glBindFramebuffer(GL_READ_FRAMEBUFFER, msaa.fbo);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolved.fbo);
         glBlitFramebuffer(0,
@@ -61,7 +61,7 @@
     return failure(e);</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>4x 颜色/深度与 dynamic rendering resolve，目标与管线样本数一致。</p>
-<p><a href="../../Vulkan/native/common/native_app.hpp#L416">Vulkan/native/common/native_app.hpp</a>，第 416—451 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk20_msaa_resolve/support/native_app.hpp#L417">Vulkan/native/lessons/vk20_msaa_resolve/support/native_app.hpp</a>，第 417—452 行：</p>
 <pre><code>                color.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
                 color.resolveImageView = targetView;
                 color.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -100,7 +100,7 @@
                         VK_PIPELINE_STAGE_2_BLIT_BIT,</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>尺寸变化重建目标后，也要更新用于 UI 的 image view。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L108">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 108—115 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv02_application/support/nvapp_course.hpp#L108">Vulkan/nvpro/lessons/nv02_application/support/nvapp_course.hpp</a>，第 108—115 行：</p>
 <pre><code>    void onResize(VkCommandBuffer cmd, const VkExtent2D&amp; size) override {
         vkCheck(target.update(cmd, size));
         if (!smoke)
@@ -111,7 +111,7 @@
             app-&gt;close();</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>4x 目标经 ResolveSubresource 到单样本 back buffer。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L643">DirectX12/common/dx12_course.hpp</a>，第 643—678 行：</p>
+<p><a href="../../DirectX12/lessons/dx20_msaa_resolve/support/dx12_course.hpp#L653">DirectX12/lessons/dx20_msaa_resolve/support/dx12_course.hpp</a>，第 653—688 行：</p>
 <pre><code>            c.cmd-&gt;ResolveSubresource(
                 back.Get(), 0, multisample.Get(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
             auto restore = transition(multisample.Get(),

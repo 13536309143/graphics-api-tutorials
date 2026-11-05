@@ -1,0 +1,7 @@
+{
+  "target": "vk44_command_reuse",
+  "api": "vk",
+  "experiment": 44,
+  "chapter": null,
+  "independent": true
+}

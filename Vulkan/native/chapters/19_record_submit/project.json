@@ -1,0 +1,7 @@
+{
+  "target": "vk19_ch_record_submit",
+  "api": "vk",
+  "experiment": 12,
+  "chapter": "19_record_submit",
+  "independent": true
+}

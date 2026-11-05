@@ -48,41 +48,12 @@ else()
 endif()
 target_include_directories(nvvk PRIVATE "${course_utils_SOURCE_DIR}/include")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-set(shader_files triangle.vert scene.vert scene.frag square.comp)
-foreach(shader IN LISTS shader_files)
-    add_custom_command(
-        OUTPUT "${CMAKE_BINARY_DIR}/spv/${shader}.spv"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/spv"
-        COMMAND
-            Vulkan::glslc --target-env=vulkan1.3
-            "${CMAKE_CURRENT_SOURCE_DIR}/../common/shaders/${shader}" -o
-            "${CMAKE_BINARY_DIR}/spv/${shader}.spv"
-        DEPENDS "../common/shaders/${shader}")
-    list(APPEND outputs "${CMAKE_BINARY_DIR}/spv/${shader}.spv")
-endforeach()
-add_custom_target(nv_shaders DEPENDS ${outputs})
-get_property(multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-set(runtime_shader_dir "${CMAKE_BINARY_DIR}/bin")
-if(multi)
-    string(APPEND runtime_shader_dir "/$<CONFIG>")
-endif()
-add_custom_target(
-    nv_runtime_assets COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/spv"
-                              "${runtime_shader_dir}/shaders")
-add_dependencies(nv_runtime_assets nv_shaders)
+
+# Each chapter owns its C++ and shader sources. Only third-party targets are reused.
 include(CTest)
-file(GLOB lessons CONFIGURE_DEPENDS "lessons/*")
-foreach(dir IN LISTS lessons)
-    get_filename_component(name "${dir}" NAME)
-    add_executable(${name} "${dir}/main.cpp")
-    target_link_libraries(${name} PRIVATE nvpro2::nvapp)
-    target_include_directories(${name} PRIVATE common ../common ../../shared)
-    target_compile_definitions(${name} PRIVATE COURSE_SHADER_DIR="${CMAKE_BINARY_DIR}/spv"
-                                               GLM_FORCE_DEPTH_ZERO_TO_ONE)
-    if(MSVC)
-        target_compile_options(${name} PRIVATE /utf-8 /W3 /wd4324)
+file(GLOB projects CONFIGURE_DEPENDS "lessons/*" "chapters/*")
+foreach(dir IN LISTS projects)
+    if(EXISTS "${dir}/CMakeLists.txt")
+        add_subdirectory("${dir}")
     endif()
-    add_dependencies(${name} nv_runtime_assets)
-    add_test(NAME ${name} COMMAND ${name} --smoke)
-    set_tests_properties(${name} PROPERTIES TIMEOUT 60 RUN_SERIAL TRUE)
 endforeach()

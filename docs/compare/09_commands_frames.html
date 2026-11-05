@@ -33,14 +33,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/07_cube/README.html">07_cube</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk02_swapchain/README.html">vk02_swapchain</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx02_swapchain/README.html">dx02_swapchain</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="07_cube" href="../../OpenGL/lessons/07_cube/README.html">07_cube</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk02_swapchain" href="../../Vulkan/native/lessons/vk02_swapchain/README.html">vk02_swapchain</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv03_triangle" href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx02_swapchain" href="../../DirectX12/lessons/dx02_swapchain/README.html">dx02_swapchain</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时。</p>
-<p><a href="../../OpenGL/common/app.hpp#L91">OpenGL/common/app.hpp</a>，第 91—114 行：</p>
+<p><a href="../../OpenGL/lessons/07_cube/support/app.hpp#L91">OpenGL/lessons/07_cube/support/app.hpp</a>，第 91—114 行：</p>
 <pre><code>    void end() {
 
         // 自动验证使用固定帧数并在交换缓冲前读回当前后缓冲，检查是否真正绘出几何。
@@ -67,10 +67,9 @@
                 std::ofstream out(assets.parent_path() / (std::string(glfwGetWindowTitle(window)) +</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>成功 acquire 后才 reset fence，避免无提交却等待已重置 fence。</p>
-<p><a href="../../Vulkan/native/common/native_app.hpp#L365">Vulkan/native/common/native_app.hpp</a>，第 365—395 行：</p>
+<p><a data-course-target="vk02_swapchain" href="../../Vulkan/native/lessons/vk02_swapchain/main.cpp#L62">Vulkan/native/lessons/vk02_swapchain/main.cpp</a>，第 62—92 行：</p>
 <pre><code>            vkCheck(vkWaitForFences(d.c.device, 1, &amp;fence, VK_TRUE, UINT64_MAX));
             uint32_t imageIndex;
-
             // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。
             VkResult a = vkAcquireNextImageKHR(
                 d.c.device, swap.handle, UINT64_MAX, acquired, {}, &amp;imageIndex);
@@ -80,14 +79,13 @@
             }
             if (a != VK_SUBOPTIMAL_KHR)
                 vkCheck(a);
-
             // 只有成功获取图像、确定会提交时才重置 fence，避免下次永久等待。
             vkCheck(vkResetFences(d.c.device, 1, &amp;fence));
             vkCheck(vkResetCommandBuffer(cmd, 0));
             VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
             vkCheck(vkBeginCommandBuffer(cmd, &amp;begin));
-            VkImage target = mode == 10 ? swap.offscreen.image : swap.images[imageIndex];
-            VkImageView targetView = mode == 10 ? swap.offscreen.view : swap.views[imageIndex];
+            VkImage target = (swap.images[imageIndex]);
+            VkImageView targetView = (swap.views[imageIndex]);
             barrier(cmd,
                     target,
                     VK_IMAGE_LAYOUT_UNDEFINED,
@@ -98,10 +96,12 @@
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
             barrier(cmd,
                     swap.depth.image,
-                    VK_IMAGE_LAYOUT_UNDEFINED,</code></pre>
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_NONE,</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>自定义资源和框架帧调度都要满足各自生命周期。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L223">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 223—234 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp#L224">Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp</a>，第 224—235 行：</p>
 <pre><code>    void onDetach() override {
         vkDeviceWaitIdle(c.device);
         if (!smoke)
@@ -113,10 +113,10 @@
         allocator.deinit();
     }
 };
-inline int nvproMain(int argc, char** argv, int chapter) {</code></pre>
+</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>allocator Reset 由前次 submit 的等待保护，多帧版本须改变该契约。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L122">DirectX12/common/dx12_course.hpp</a>，第 122—147 行：</p>
+<p><a href="../../DirectX12/lessons/dx02_swapchain/support/dx12_course.hpp#L125">DirectX12/lessons/dx02_swapchain/support/dx12_course.hpp</a>，第 125—150 行：</p>
 <pre><code>    void begin() {
         dxCheck(allocator-&gt;Reset());
         dxCheck(cmd-&gt;Reset(allocator.Get(), nullptr));
@@ -124,6 +124,7 @@ inline int nvproMain(int argc, char** argv, int chapter) {</code></pre>
     void submit() {
         dxCheck(cmd-&gt;Close());
         ID3D12CommandList* lists[] = {cmd.Get()};
+        // 提交是异步的；Fence 完成值决定 allocator 与上传资源何时可复用。
         queue-&gt;ExecuteCommandLists(1, lists);
         wait();
     }
@@ -141,5 +142,4 @@ inline int nvproMain(int argc, char** argv, int chapter) {</code></pre>
         if (!messages)
             return;
         UINT64 count = messages-&gt;GetNumStoredMessagesAllowedByRetrievalFilter();
-        for (UINT64 i = 0; i &lt; count; ++i) {
-            SIZE_T bytes = 0;</code></pre></main></html>
+        for (UINT64 i = 0; i &lt; count; ++i) {</code></pre></main></html>

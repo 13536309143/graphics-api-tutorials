@@ -1,0 +1,5 @@
+{
+  "target": "27_ssao",
+  "api": "gl",
+  "independent": true
+}

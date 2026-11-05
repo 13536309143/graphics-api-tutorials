@@ -1,0 +1,7 @@
+{
+  "target": "dx40_surface_support",
+  "api": "dx",
+  "experiment": 40,
+  "chapter": null,
+  "independent": true
+}

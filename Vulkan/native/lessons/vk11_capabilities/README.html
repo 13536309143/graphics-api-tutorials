@@ -1,69 +1,50 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk11_capabilities · 能力与格式查询</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk11_capabilities · 能力与格式查询</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk11_capabilities · 能力与格式查询</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="vk11_capabilities"><h1>vk11_capabilities · 能力与格式查询</h1>
 <p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="vk11_capabilities" href="main.cpp">main.cpp</a> · <a data-course-target="vk11_capabilities" href="support/">本地辅助实现</a> · <a data-course-target="vk11_capabilities" href="shaders/">本课着色器</a> · <a data-course-target="vk11_capabilities" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 <code>cmake -S . -B build -A x64</code> 配置、<code>cmake --build build --config Debug</code> 构建；不需要其他章节源码。</p>
 <h2>目的与实际执行</h2>
 <p>Instance 管理应用与实现的连接；PhysicalDevice 描述能力；Device 启用选择的能力；Queue 接收提交。本工程用 Vulkan 1.3 C API、dynamic rendering 和 sync2。参考教程中传统 RenderPass/Framebuffer 会对照解释，本工程不因此伪称使用了那套对象。</p>
 <p>PhysicalDeviceProperties 提供 limits，MemoryProperties 描述 heap/type。格式还要单独查 optimal tiling features。实验检查 80 字节 Draw 的 push constant 容量及 D32 深度用途，同时输出 UBO 对齐、工作组限制和内存类型。</p>
-<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<p>本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
 <h2>构建和运行</h2>
 <pre><code>cmake --preset vulkan-native
 cmake --build --preset vulkan-native-debug --target vk11_capabilities --parallel 4
 .\Vulkan\native\build\bin\Debug\vk11_capabilities.exe</code></pre>
 <h2>深入学习：数据、接口与执行</h2>
 <ul>
-<li><a href="../../chapters/01_architecture/README.html">第 01 课：图形 API 的职责与课程地图</a></li>
-<li><a href="../../chapters/06_physical_device/README.html">第 06 课：物理设备、Adapter 与格式能力</a></li>
+<li><a data-course-target="vk01_ch_architecture" href="../../chapters/01_architecture/README.html">第 01 课：图形 API 的职责与课程地图</a></li>
+<li><a data-course-target="vk06_ch_physical_device" href="../../chapters/06_physical_device/README.html">第 06 课：物理设备、Adapter 与格式能力</a></li>
 </ul>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/advanced_labs.cpp#L146">Vulkan/native/common/advanced_labs.cpp</a>，第 146—189 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>void capabilities(const VkContextRef&amp; c) {
-    VkPhysicalDeviceProperties p{};
-    vkGetPhysicalDeviceProperties(c.physical, &amp;p);
-    VkPhysicalDeviceMemoryProperties m{};
-    vkGetPhysicalDeviceMemoryProperties(c.physical, &amp;m);
-    std::cout &lt;&lt; &quot;maxPushConstantsSize=&quot; &lt;&lt; p.limits.maxPushConstantsSize
-              &lt;&lt; &quot;, minUniformBufferOffsetAlignment=&quot; &lt;&lt; p.limits.minUniformBufferOffsetAlignment
-              &lt;&lt; &quot;, maxComputeWorkGroupInvocations=&quot; &lt;&lt; p.limits.maxComputeWorkGroupInvocations
-              &lt;&lt; &#x27;\n&#x27;;
-    for (uint32_t i = 0; i &lt; m.memoryTypeCount; ++i)
-        std::cout &lt;&lt; &quot;memoryType[&quot; &lt;&lt; i &lt;&lt; &quot;] heap=&quot; &lt;&lt; m.memoryTypes[i].heapIndex
-                  &lt;&lt; &quot; properties=&quot; &lt;&lt; m.memoryTypes[i].propertyFlags &lt;&lt; &#x27;\n&#x27;;
-    require(p.limits.maxPushConstantsSize &gt;= 80, &quot;80-byte Draw exceeds device limit&quot;);
-    VkFormatProperties depth{};
-    vkGetPhysicalDeviceFormatProperties(c.physical, VK_FORMAT_D32_SFLOAT, &amp;depth);
-    require((depth.optimalTilingFeatures &amp; VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0,
-            &quot;D32 unsupported&quot;);
-    std::cout &lt;&lt; &quot;Verified required limits and depth format\n&quot;;
+<p>来自 <a data-course-target="vk11_capabilities" href="main.cpp#L33">Vulkan/native/lessons/vk11_capabilities/main.cpp</a>，第 33—54 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 11);
+    nativeShaders = options.directory / &quot;shaders&quot;;
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto&amp; c = owner.c;
+        {
+            capabilities(c);
+        }
+    }
+    std::cout &lt;&lt; &quot;Validation errors: &quot; &lt;&lt; validationErrors &lt;&lt; &#x27;\n&#x27;;
+    return validationErrors ? 1 : 0;
 }
-// upload → device-local → readback 完整闭环；每次拷贝后的消费者访问不同。
-void stagingCopy(const VkContextRef&amp; c) {
-    constexpr size_t count = 257;
-    std::vector&lt;uint32_t&gt; original(count);
-    for (uint32_t i = 0; i &lt; count; ++i)
-        original[i] = i * 17 + 9;
-    VkBufferResource upload, gpu, readback;
-    upload.init(c, count * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    upload.upload(original.data(), count * 4);
-    gpu.init(c,
-             count * 4,
-             VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    readback.init(c, count * 4, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    immediate(c, [&amp;](VkCommandBuffer cmd) {
-        VkBufferCopy copy{0, 0, count * 4};
-        vkCmdCopyBuffer(cmd, upload.buffer, gpu.buffer, 1, &amp;copy);
-        bufferDependency(cmd,
-                         gpu.buffer,
-                         VK_PIPELINE_STAGE_2_COPY_BIT,
-                         VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                         VK_PIPELINE_STAGE_2_COPY_BIT,
-                         VK_ACCESS_2_TRANSFER_READ_BIT);
-        vkCmdCopyBuffer(cmd, gpu.buffer, readback.buffer, 1, &amp;copy);
-        bufferDependency(cmd,</code></pre>
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>程序</td></tr>
-<tr><td>Vulkan 原生</td><td><a href="README.html">vk11_capabilities</a></td></tr>
-<tr><td>对照后端</td><td><a href="../../../../DirectX12/lessons/dx11_capabilities/README.html">dx11_capabilities</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk11_capabilities" href="README.html">vk11_capabilities</a></td></tr>
+<tr><td>对照后端</td><td><a data-course-target="dx11_capabilities" href="../../../../DirectX12/lessons/dx11_capabilities/README.html">dx11_capabilities</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>画出一个三角形所需的五类对象，并说明哪些对象保存字节、哪些只保存解释或引用。</p>

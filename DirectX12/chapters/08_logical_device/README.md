@@ -34,6 +34,18 @@ Context 汇总这些创建步骤。阅读框架时关注需求到启用链的转
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,45 @@ Context 汇总这些创建步骤。阅读框架时关注需求到启用链的转
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx01_device --parallel 4
-.\DirectX12\build\bin\Debug\dx01_device.exe
-ctest --preset dx12-debug -R "^dx01_device$" --output-on-failure
+cmake --build --preset dx12-debug --target dx08_ch_logical_device --parallel 4
+.\DirectX12\build\bin\Debug\dx08_ch_logical_device.exe
+ctest --preset dx12-debug -R "^dx08_ch_logical_device$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L71)，第 71—114 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/08_logical_device/main.cpp](main.cpp#L9)，第 9—32 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-    explicit DxDevice(bool warp = false) {
-        UINT flags = 0;
-        ComPtr<ID3D12Debug> debug;
-        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug)))) {
-            debug->EnableDebugLayer();
-            flags |= DXGI_CREATE_FACTORY_DEBUG;
-            std::cout << "D3D12 debug layer enabled\n";
-        } else
-            std::cout
-                << "D3D12 debug layer unavailable; install Windows Graphics Tools for validation\n";
-        dxCheck(CreateDXGIFactory2(flags, IID_PPV_ARGS(&factory)));
-        ComPtr<IDXGIAdapter1> adapter;
-        if (warp) {
-            dxCheck(factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter)));
-            dxCheck(
-                D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
-        } else {
-            for (UINT i = 0; factory->EnumAdapterByGpuPreference(
-                                 i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter)) !=
-                             DXGI_ERROR_NOT_FOUND;
-                 ++i) {
-                DXGI_ADAPTER_DESC1 desc;
-                adapter->GetDesc1(&desc);
-                if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) &&
-                    SUCCEEDED(D3D12CreateDevice(
-                        adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device))))
-                    break;
-                adapter.Reset();
-            }
-            if (!device)
-                throw std::runtime_error("No D3D12 feature level 12_0 adapter; try --warp");
-        }
-        DXGI_ADAPTER_DESC1 desc;
-        adapter->GetDesc1(&desc);
-        std::wcout << L"GPU: " << desc.Description << L'\n';
-        device.As(&messages);
-        D3D12_COMMAND_QUEUE_DESC qi{};
-        qi.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-        dxCheck(device->CreateCommandQueue(&qi, IID_PPV_ARGS(&queue)));
-        dxCheck(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                               IID_PPV_ARGS(&allocator)));
-        dxCheck(device->CreateCommandList(
-            0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr, IID_PPV_ARGS(&cmd)));
-        dxCheck(cmd->Close());
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    {
+        DxDevice c(warp);
+        c.checkMessages();
+        return 0;
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

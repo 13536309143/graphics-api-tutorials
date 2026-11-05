@@ -1,0 +1,7 @@
+{
+  "target": "dx45_descriptor_update",
+  "api": "dx",
+  "experiment": 45,
+  "chapter": null,
+  "independent": true
+}

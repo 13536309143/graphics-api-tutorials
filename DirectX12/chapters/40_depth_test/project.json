@@ -1,0 +1,7 @@
+{
+  "target": "dx40_ch_depth_test",
+  "api": "dx",
+  "experiment": 7,
+  "chapter": "40_depth_test",
+  "independent": true
+}

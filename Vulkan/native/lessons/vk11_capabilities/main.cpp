@@ -1,10 +1,53 @@
-#include "advanced_labs.hpp"
-#include <exception>
-#include <iostream>
+// 关联教材：图形 API 的职责与课程地图。
+// 关键约束：职责边界；对象存在不代表已提交或已完成。
+// 关键约束：资源与引用；引用不复制内容，不自动管理使用期。
+// 关键约束：验收维度；API 合法与业务正确分别证明。
+// vk11_capabilities
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#define STB_IMAGE_IMPLEMENTATION
+#include "support/advanced.hpp"
+#include "support/native_app.hpp"
+#include <numeric>
 
-// 能力与格式查询：实验实现集中于 common/advanced_labs.cpp，避免复制资源所有权代码。
+namespace course {
+void capabilities(const VkContextRef& c) {
+    VkPhysicalDeviceProperties p{};
+    vkGetPhysicalDeviceProperties(c.physical, &p);
+    VkPhysicalDeviceMemoryProperties m{};
+    vkGetPhysicalDeviceMemoryProperties(c.physical, &m);
+    std::cout << "maxPushConstantsSize=" << p.limits.maxPushConstantsSize
+              << ", minUniformBufferOffsetAlignment=" << p.limits.minUniformBufferOffsetAlignment
+              << ", maxComputeWorkGroupInvocations=" << p.limits.maxComputeWorkGroupInvocations
+              << '\n';
+    for (uint32_t i = 0; i < m.memoryTypeCount; ++i)
+        std::cout << "memoryType[" << i << "] heap=" << m.memoryTypes[i].heapIndex
+                  << " properties=" << m.memoryTypes[i].propertyFlags << '\n';
+    require(p.limits.maxPushConstantsSize >= 80, "80-byte Draw exceeds device limit");
+    VkFormatProperties depth{};
+    vkGetPhysicalDeviceFormatProperties(c.physical, VK_FORMAT_D32_SFLOAT, &depth);
+    require((depth.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0,
+            "D32 unsupported");
+    std::cout << "Verified required limits and depth format\n";
+}
+
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 11);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            capabilities(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
 int main(int argc, char** argv) try {
-    return course::nativeLabMain(argc, argv, 11);
+    return course::runChapter(argc, argv);
 } catch (const std::exception& error) {
     std::cerr << "ERROR: " << error.what() << '\n';
     return 1;

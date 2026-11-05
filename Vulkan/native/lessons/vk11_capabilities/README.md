@@ -2,13 +2,19 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 Instance 管理应用与实现的连接；PhysicalDevice 描述能力；Device 启用选择的能力；Queue 接收提交。本工程用 Vulkan 1.3 C API、dynamic rendering 和 sync2。参考教程中传统 RenderPass/Framebuffer 会对照解释，本工程不因此伪称使用了那套对象。
 
 PhysicalDeviceProperties 提供 limits，MemoryProperties 描述 heap/type。格式还要单独查 optimal tiling features。实验检查 80 字节 Draw 的 push constant 容量及 D32 深度用途，同时输出 UBO 对齐、工作组限制和内存类型。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -25,53 +31,31 @@ cmake --build --preset vulkan-native-debug --target vk11_capabilities --parallel
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L146)，第 146—189 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk11_capabilities/main.cpp](main.cpp#L33)，第 33—54 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void capabilities(const VkContextRef& c) {
-    VkPhysicalDeviceProperties p{};
-    vkGetPhysicalDeviceProperties(c.physical, &p);
-    VkPhysicalDeviceMemoryProperties m{};
-    vkGetPhysicalDeviceMemoryProperties(c.physical, &m);
-    std::cout << "maxPushConstantsSize=" << p.limits.maxPushConstantsSize
-              << ", minUniformBufferOffsetAlignment=" << p.limits.minUniformBufferOffsetAlignment
-              << ", maxComputeWorkGroupInvocations=" << p.limits.maxComputeWorkGroupInvocations
-              << '\n';
-    for (uint32_t i = 0; i < m.memoryTypeCount; ++i)
-        std::cout << "memoryType[" << i << "] heap=" << m.memoryTypes[i].heapIndex
-                  << " properties=" << m.memoryTypes[i].propertyFlags << '\n';
-    require(p.limits.maxPushConstantsSize >= 80, "80-byte Draw exceeds device limit");
-    VkFormatProperties depth{};
-    vkGetPhysicalDeviceFormatProperties(c.physical, VK_FORMAT_D32_SFLOAT, &depth);
-    require((depth.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0,
-            "D32 unsupported");
-    std::cout << "Verified required limits and depth format\n";
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 11);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            capabilities(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
 }
-// upload → device-local → readback 完整闭环；每次拷贝后的消费者访问不同。
-void stagingCopy(const VkContextRef& c) {
-    constexpr size_t count = 257;
-    std::vector<uint32_t> original(count);
-    for (uint32_t i = 0; i < count; ++i)
-        original[i] = i * 17 + 9;
-    VkBufferResource upload, gpu, readback;
-    upload.init(c, count * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    upload.upload(original.data(), count * 4);
-    gpu.init(c,
-             count * 4,
-             VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    readback.init(c, count * 4, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    immediate(c, [&](VkCommandBuffer cmd) {
-        VkBufferCopy copy{0, 0, count * 4};
-        vkCmdCopyBuffer(cmd, upload.buffer, gpu.buffer, 1, &copy);
-        bufferDependency(cmd,
-                         gpu.buffer,
-                         VK_PIPELINE_STAGE_2_COPY_BIT,
-                         VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                         VK_PIPELINE_STAGE_2_COPY_BIT,
-                         VK_ACCESS_2_TRANSFER_READ_BIT);
-        vkCmdCopyBuffer(cmd, gpu.buffer, readback.buffer, 1, &copy);
-        bufferDependency(cmd,
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

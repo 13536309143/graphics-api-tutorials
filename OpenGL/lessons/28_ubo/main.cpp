@@ -1,9 +1,13 @@
-#include "advanced.hpp"
+// 28_ubo
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/advanced.hpp"
 
 // UBO 与 std140，先阅读本目录 README.md。
 // 本课重点：让多个程序共享相同布局和绑定点的相机 uniform block。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "28_ubo - OpenGL Course");
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, "ubo.vert", "solid.frag");
     Mesh box(cube());
     Camera camera;
@@ -17,6 +21,7 @@ int main(int argc, char** argv) try {
         throw std::runtime_error("Missing uniform block");
     glUniformBlockBinding(shader.id, block, 0);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, buffer);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         camera.update(app);
         app.clear();

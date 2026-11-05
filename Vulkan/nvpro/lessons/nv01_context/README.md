@@ -1,5 +1,17 @@
 # nv01_context · Context 与显式资源所有权
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [原生 Vulkan 对照](../../../native/README.md)
 
 ## 构建与运行
@@ -37,19 +49,25 @@ Context 根据扩展、特性和队列需求创建 Vulkan 对象。先读 setup�
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/nvpro/common/nvapp_course.hpp](../../common/nvapp_course.hpp#L245)，第 245—274 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/nvpro/lessons/nv01_context/main.cpp](main.cpp#L5)，第 5—52 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
+int runChapter(int argc, char** argv) {
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    // 课程编号与公共场景模式分别管理：第 4 课看纹理上传，第 6 课看 PBR。
+    int mode = ((1));
+    nvShaders = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    NvContextOwner owner;
+    auto& context = owner.context;
+    nvValidationErrors = 0;
     nvvk::ContextInitInfo setup{};
     setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
     setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
     setup.enableValidationLayers = true;
     setup.verbose = false;
     setup.applicationName = "nvpro_core2 Course";
-    if (!smoke && chapter != 1 && chapter != 5) {
-        nvvk::addSurfaceExtensions(setup.instanceExtensions);
-        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
-    }
     vkCheck(context.init(setup));
     VkDebugUtilsMessengerCreateInfoEXT debug{
         VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
@@ -65,11 +83,23 @@ Context 根据扩展、特性和队列需求创建 Vulkan 对象。先读 setup�
                        context.getDevice(),
                        q.queue,
                        q.familyIndex};
-        if (chapter == 1) {
+        {
             VkPhysicalDeviceProperties p;
             vkGetPhysicalDeviceProperties(c.physical, &p);
             std::cout << "nvpro_core2 context: " << p.deviceName << '\n';
-        } else if (chapter == 5)
+        }
+    }
+    std::cout << "Validation errors: " << nvValidationErrors << "\n";
+    return nvValidationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

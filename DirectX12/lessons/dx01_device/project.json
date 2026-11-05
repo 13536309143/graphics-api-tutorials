@@ -1,0 +1,7 @@
+{
+  "target": "dx01_device",
+  "api": "dx",
+  "experiment": 1,
+  "chapter": null,
+  "independent": true
+}

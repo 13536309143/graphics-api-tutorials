@@ -1,0 +1,7 @@
+{
+  "target": "dx34_ch_image_upload",
+  "api": "dx",
+  "experiment": 17,
+  "chapter": "34_image_upload",
+  "independent": true
+}

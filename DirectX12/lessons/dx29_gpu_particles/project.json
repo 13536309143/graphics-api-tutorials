@@ -1,0 +1,7 @@
+{
+  "target": "dx29_gpu_particles",
+  "api": "dx",
+  "experiment": 29,
+  "chapter": null,
+  "independent": true
+}

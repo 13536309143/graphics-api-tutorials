@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 VkDrawIndirectCommand 的四个 uint 字段与 stride 匹配，缓冲包含 INDIRECT_BUFFER usage，vkCmdDrawIndirect 读取参数。若以后 compute 写参数，需要 compute-write→draw-indirect-read 的依赖。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,24 @@ cmake --build --preset vulkan-native-debug --target vk27_indirect_draw --paralle
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L434)，第 434—477 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk27_indirect_draw/main.cpp](main.cpp#L42)，第 42—56 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
-            vkCmdPushConstants(cmd,
-                               pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                               0,
-                               sizeof(d),
-                               &d);
-            if (indirectArguments)
-                vkCmdDrawIndirect(cmd, indirectArguments, 0, 1, sizeof(VkDrawIndirectCommand));
-            else if (mode == 3)
-                vkCmdDraw(cmd, 3, 1, 0, 0);
-            else if (mode == 4)
-                vkCmdDraw(cmd, uint32_t(mesh.vertices.size()), 1, 0, 0);
-            else
-                vkCmdDrawIndexed(cmd, uint32_t(mesh.indices.size()), mode == 7 ? 25 : 1, 0, 0, 0);
-        }
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 27);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
     }
-    ~SceneVk() {
-        if (pipeline)
-            vkDestroyPipeline(c.device, pipeline, nullptr);
-        if (pipelineLayout)
-            vkDestroyPipelineLayout(c.device, pipelineLayout, nullptr);
-        if (descriptorPool)
-            vkDestroyDescriptorPool(c.device, descriptorPool, nullptr);
-        if (setLayout)
-            vkDestroyDescriptorSetLayout(c.device, setLayout, nullptr);
-        if (sampler)
-            vkDestroySampler(c.device, sampler, nullptr);
-    }
-};
+}
+} // namespace course
 
-// 计算课通过 storage buffer 写入 256 个结果，再在 CPU 上逐项核对。
-inline void computeSquares(const VkContextRef& c, const std::filesystem::path& shaders) {
-    VkBufferResource storage;
-    storage.init(c, 256 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    VkDescriptorSetLayoutBinding binding{
-        0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
-    VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    li.bindingCount = 1;
-    li.pBindings = &binding;
-    VkDescriptorSetLayout layout;
-    vkCheck(vkCreateDescriptorSetLayout(c.device, &li, nullptr, &layout));
-    VkPipelineLayoutCreateInfo pl{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    pl.setLayoutCount = 1;
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

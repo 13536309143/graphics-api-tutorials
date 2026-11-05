@@ -1,0 +1,7 @@
+{
+  "target": "vk29_ch_descriptor_layout",
+  "api": "vk",
+  "experiment": 5,
+  "chapter": "29_descriptor_layout",
+  "independent": true
+}

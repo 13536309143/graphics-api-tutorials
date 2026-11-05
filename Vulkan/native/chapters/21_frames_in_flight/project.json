@@ -1,0 +1,7 @@
+{
+  "target": "vk21_ch_frames_in_flight",
+  "api": "vk",
+  "experiment": 24,
+  "chapter": "21_frames_in_flight",
+  "independent": true
+}

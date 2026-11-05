@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 当前图形 root signature 使用 static sampler，寻址策略是创建接口的一部分。改变它通常涉及相应 root signature/PSO 组合；若需要频繁变化，可设计独立 sampler heap/table，而不是随意改纹理字节。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,23 @@ cmake --build --preset dx12-debug --target dx52_sampler_addressing --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L354)，第 354—397 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx52_sampler_addressing/main.cpp](main.cpp#L307)，第 307—320 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        range.NumDescriptors = 1;
-        range.BaseShaderRegister = 0;
-        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        params[2].DescriptorTable = {1, &range};
-        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_STATIC_SAMPLER_DESC sampler{};
-        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW =
-            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        sampler.MaxLOD = D3D12_FLOAT32_MAX;
-        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_ROOT_SIGNATURE_DESC root{};
-        root.NumParameters = 3;
-        root.pParameters = params;
-        root.NumStaticSamplers = 1;
-        root.pStaticSamplers = &sampler;
-        root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-        signature = rootSignature(c, root);
-        auto vs = compileHlsl(mode == 3 ? "TriangleMain" : "VertexMain", "vs_5_1"),
-             ps = compileHlsl("PixelMain", "ps_5_1");
-        D3D12_INPUT_ELEMENT_DESC elements[] = {{"POSITION",
-                                                0,
-                                                DXGI_FORMAT_R32G32B32_FLOAT,
-                                                0,
-                                                0,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                                                0},
-                                               {"NORMAL",
-                                                0,
-                                                DXGI_FORMAT_R32G32B32_FLOAT,
-                                                0,
-                                                12,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                                                0},
-                                               {"TEXCOORD",
-                                                0,
-                                                DXGI_FORMAT_R32G32_FLOAT,
-                                                0,
-                                                24,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                                                0}};
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC pso{};
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 52);
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

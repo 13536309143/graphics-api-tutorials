@@ -34,6 +34,18 @@ nv06 的 roughness UI 与原生 PBR 共享 shader，但视口尺寸/UI 成本不
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,35 @@ nv06 的 roughness UI 与原生 PBR 共享 shader，但视口尺寸/UI 成本不
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx23_orbit_camera --parallel 4
-.\DirectX12\build\bin\Debug\dx23_orbit_camera.exe
-ctest --preset dx12-debug -R "^dx23_orbit_camera$" --output-on-failure
+cmake --build --preset dx12-debug --target dx52_ch_camera_material --parallel 4
+.\DirectX12\build\bin\Debug\dx52_ch_camera_material.exe
+ctest --preset dx12-debug -R "^dx52_ch_camera_material$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L578)，第 578—621 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/52_camera_material/main.cpp](main.cpp#L41)，第 41—54 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-            scene.frameProvider = [](float aspect, float time, bool) {
-                auto projection = glm::perspectiveRH_ZO(glm::radians(48.f), aspect, .1f, 100.f);
-                glm::vec3 eye(std::sin(time * .3f) * 4, 1.6f, std::cos(time * .3f) * 4);
-                return Frame{projection * glm::lookAtRH(eye, glm::vec3(0), glm::vec3(0, 1, 0))};
-            };
-    };
-    // 计算先独立提交完成，再开始图形命令录制，避免在同一 allocator 正录制时把它重置。
-    render.beforeFrame = [id](DxScene& scene, float time) {
-        // The compute submission must finish before DxWindow resets its allocator to record graphics.
-        if (id == 29)
-            std::static_pointer_cast<RenderState>(scene.extension)->particles->execute(time);
-    };
-    return dxMain(argc, argv, mode, render);
-}
-void surfaceInspection(const LabOptions& options) {
-    require(glfwInit() != 0, "GLFW init failed");
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    auto* window = glfwCreateWindow(960, 640, "DXGI inspection", nullptr, nullptr);
-    require(window != nullptr, "Window failed");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 23);
     {
-        DxWindow app(window, 2, options.warp);
-        DXGI_SWAP_CHAIN_DESC1 desc{};
-        dxCheck(app.swap->GetDesc1(&desc));
-        require(desc.BufferCount == 2 && desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD,
-                "Unexpected swapchain configuration");
-        app.render(1, nullptr);
-        std::cout << "Verified HWND swapchain, buffers=" << desc.BufferCount
-                  << ", index=" << app.swap->GetCurrentBackBufferIndex() << '\n';
+        return graphicsLab(argc, argv, options);
     }
-    glfwDestroyWindow(window);
-    glfwTerminate();
 }
-// 查询、诊断与字节检查有明确的结果；合法 INFO 消息可能被默认过滤，临时空过滤器只扩大接收范围。
-void inspection(DxDevice& c, const LabOptions& options, int id) {
-    if (id == 37) {
-        UINT count = 0;
-        for (UINT i = 0;; ++i) {
-            ComPtr<IDXGIAdapter1> adapter;
-            auto hr = c.factory->EnumAdapters1(i, &adapter);
-            if (hr == DXGI_ERROR_NOT_FOUND)
-                break;
-            dxCheck(hr);
-            DXGI_ADAPTER_DESC1 d{};
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -137,4 +119,4 @@ void inspection(DxDevice& c, const LabOptions& options, int id) {
 
 ## 固定输入的实际 GPU 读回
 
-![dx23_orbit_camera](../../../docs/previews/dx23_orbit_camera.png)
+![dx52_ch_camera_material](../../../docs/previews/dx23_orbit_camera.png)

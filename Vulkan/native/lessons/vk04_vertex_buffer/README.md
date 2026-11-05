@@ -1,5 +1,17 @@
 # vk04_vertex_buffer · 顶点缓冲与布局
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [上一课](../vk03_triangle/README.md) · [下一课](../vk05_indexed_uniform/README.md)
 
 ## 构建和运行
@@ -59,39 +71,65 @@ HOST_COHERENT 是否意味着不用等待 GPU 就可以任意改写缓冲？
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L31)，第 31—60 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk04_vertex_buffer/main.cpp](main.cpp#L9)，第 9—64 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-struct VkBufferResource {
-    VkDevice device{};
-    VkBuffer buffer{};
-    VkDeviceMemory memory{};
-    VkDeviceSize size{};
-    VkBufferResource() = default;
-    VkBufferResource(const VkBufferResource&) = delete;
-    VkBufferResource& operator=(const VkBufferResource&) = delete;
-    void init(const VkContextRef& c,
-              VkDeviceSize bytes,
-              VkBufferUsageFlags usage,
-              VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
-        device = c.device;
-        size = bytes;
-        VkBufferCreateInfo info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-        info.size = bytes;
-        info.usage = usage;
-        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        vkCheck(vkCreateBuffer(device, &info, nullptr, &buffer));
-        VkMemoryRequirements req;
-        vkGetBufferMemoryRequirements(device, buffer, &req);
-        VkMemoryAllocateInfo alloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-        alloc.allocationSize = req.size;
-        alloc.memoryTypeIndex = memoryType(c, req.memoryTypeBits, flags);
-        vkCheck(vkAllocateMemory(device, &alloc, nullptr, &memory));
-        vkCheck(vkBindBufferMemory(device, buffer, memory, 0));
-    }
+int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
 
-    // 此处缓冲使用 HOST_VISIBLE | HOST_COHERENT；非 coherent 内存还需显式 flush。
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    if (!glfwInit())
+        throw std::runtime_error("GLFW initialization failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "Native Vulkan Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        NativeDevice d(window);
+        Swapchain swap(d, window, 4, options);
+        VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+        pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pi.queueFamilyIndex = d.c.family;
+        VkCommandPool pool;
+        vkCheck(vkCreateCommandPool(d.c.device, &pi, nullptr, &pool));
+        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        ai.commandPool = pool;
+        ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        ai.commandBufferCount = 1;
+        VkCommandBuffer cmd;
+        vkCheck(vkAllocateCommandBuffers(d.c.device, &ai, &cmd));
+        VkSemaphoreCreateInfo si{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkSemaphore acquired;
+        vkCheck(vkCreateSemaphore(d.c.device, &si, nullptr, &acquired));
+        VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkFence fence;
+        vkCheck(vkCreateFence(d.c.device, &fi, nullptr, &fence));
+        int frames = 0;
+        while (!glfwWindowShouldClose(window) && (!smoke || frames < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (w < 1 || h < 1) {
+                glfwWaitEvents();
+                continue;
+            }
+            if (uint32_t(w) != swap.extent.width || uint32_t(h) != swap.extent.height)
+                swap.recreate();
+            // 先等待上一轮命令完成，再复用命令缓冲和共享 UBO；本课程采用单帧串行同步。
+            vkCheck(vkWaitForFences(d.c.device, 1, &fence, VK_TRUE, UINT64_MAX));
+            uint32_t imageIndex;
+            // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。
 ```
 
 ### 同主题跨 API 导航

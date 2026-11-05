@@ -1,0 +1,7 @@
+{
+  "target": "vk10_ch_swapchain",
+  "api": "vk",
+  "experiment": 2,
+  "chapter": "10_swapchain",
+  "independent": true
+}

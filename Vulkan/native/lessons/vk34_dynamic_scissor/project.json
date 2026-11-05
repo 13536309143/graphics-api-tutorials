@@ -1,0 +1,7 @@
+{
+  "target": "vk34_dynamic_scissor",
+  "api": "vk",
+  "experiment": 34,
+  "chapter": null,
+  "independent": true
+}

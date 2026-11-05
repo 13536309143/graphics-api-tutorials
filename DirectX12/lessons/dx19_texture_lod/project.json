@@ -1,0 +1,7 @@
+{
+  "target": "dx19_texture_lod",
+  "api": "dx",
+  "experiment": 19,
+  "chapter": null,
+  "independent": true
+}

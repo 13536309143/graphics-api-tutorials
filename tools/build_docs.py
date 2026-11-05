@@ -2,6 +2,8 @@
 from pathlib import Path
 import html
 import re
+import json
+from urllib.parse import unquote, urlsplit
 
 ROOT=Path(__file__).resolve().parents[1]
 STYLE='''body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}'''
@@ -56,7 +58,20 @@ def build():
     for page in pages():
         prefix='../'*len(page.relative_to(ROOT).parts[:-1]);text=page.read_text(encoding='utf-8');heading=re.search(r'^# (.+)',text,re.M);title=heading[1] if heading else page.stem
         nav=f'<nav><a href="{prefix}index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav>'
-        content=f'<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><style>{STYLE}</style><link rel="stylesheet" href="{prefix}web/runner.css"><script defer src="{prefix}web/runner.js"></script><main>'+nav+render(text)+'</main></html>'
+        rendered = render(text)
+        def project_link(match):
+            raw = html.unescape(match[1]); parsed = urlsplit(raw)
+            if parsed.scheme or parsed.netloc: return match[0]
+            target = (page.parent / unquote(parsed.path)).resolve()
+            meta = target.parent / 'project.json'
+            if meta.is_file():
+                info = json.loads(meta.read_text(encoding='utf-8'))
+                return '<a data-course-target="'+info['target']+'" href="'+match[1]+'">'
+            return match[0]
+        rendered = re.sub(r'<a href="([^"]+)">', project_link, rendered)
+        project = page.parent / 'project.json'
+        project_meta = '<meta name="course-target" content="'+json.loads(project.read_text(encoding='utf-8'))['target']+'">' if project.is_file() else ''
+        content=f'<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><style>{STYLE}</style><link rel="stylesheet" href="{prefix}web/runner.css"><script defer src="{prefix}web/runner.js"></script><main>'+nav+project_meta+rendered+'</main></html>'
         page.with_suffix('.html').write_bytes(content.encode('utf-8'))
     (ROOT/'index.html').write_bytes((ROOT/'README.html').read_bytes())
     print('Rendered',len(pages()),'offline pages')

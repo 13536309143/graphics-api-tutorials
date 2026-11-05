@@ -1,0 +1,7 @@
+{
+  "target": "dx06_ch_physical_device",
+  "api": "dx",
+  "experiment": 11,
+  "chapter": "06_physical_device",
+  "independent": true
+}

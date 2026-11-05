@@ -93,44 +93,15 @@ else()
 endif()
 
 unset(CMAKE_POLICY_DEFAULT_CMP0175)
-add_library(course_images STATIC common/image.cpp)
-target_include_directories(course_images PUBLIC third_party/stb)
-add_library(course INTERFACE)
-target_include_directories(course INTERFACE common "${COURSE_GLM}")
-target_link_libraries(course INTERFACE glfw glad course_images assimp::assimp)
-target_compile_definitions(course INTERFACE GLFW_INCLUDE_NONE)
-if(MSVC)
-    target_compile_options(course INTERFACE /utf-8 /W4 /permissive-)
-else()
-    target_compile_options(course INTERFACE -Wall -Wextra -Wpedantic)
-endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 include(CTest)
-set(shader_output "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-if(CMAKE_CONFIGURATION_TYPES)
-    string(APPEND shader_output "/$<CONFIG>")
-endif()
-add_custom_target(
-    course_shaders
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
-            "${shader_output}/shaders"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-            "${shader_output}/assets")
-file(
-    GLOB lesson_dirs
-    LIST_DIRECTORIES true
-    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/lessons/*")
+set(COURSE_GLM_INCLUDE "${COURSE_GLM}" CACHE INTERNAL "Header-only math dependency")
+
+# Each lesson compiles its local source and copies only its local runtime resources.
+file(GLOB lesson_dirs CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/lessons/*")
 foreach(dir IN LISTS lesson_dirs)
-    if(IS_DIRECTORY "${dir}")
-        get_filename_component(name "${dir}" NAME)
-        add_executable(${name} "${dir}/main.cpp")
-        target_link_libraries(${name} PRIVATE course)
-        # 每次构建都复制着色器，修改 GLSL 后重新构建即可，不依赖运行时工作目录。
-        add_dependencies(${name} course_shaders)
-        if(BUILD_TESTING)
-            add_test(NAME ${name} COMMAND $<TARGET_FILE:${name}> --smoke)
-            set_tests_properties(${name} PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
-        endif()
+    if(EXISTS "${dir}/CMakeLists.txt")
+        add_subdirectory("${dir}")
     endif()
 endforeach()
 

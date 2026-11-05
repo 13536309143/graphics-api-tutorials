@@ -1,0 +1,7 @@
+{
+  "target": "vk14_ch_fixed_function",
+  "api": "vk",
+  "experiment": 43,
+  "chapter": "14_fixed_function",
+  "independent": true
+}

@@ -1,0 +1,7 @@
+{
+  "target": "vk30_ch_descriptor_instances",
+  "api": "vk",
+  "experiment": 45,
+  "chapter": "30_descriptor_instances",
+  "independent": true
+}

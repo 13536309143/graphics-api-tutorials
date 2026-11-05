@@ -54,12 +54,14 @@ OpenGL 使用 3.3 Core 和 GLSL 330。原生 Vulkan 使用 C API、Vulkan 1.3、
 
 先读最短清屏路径，建立 CPU 帧循环。
 
-[OpenGL/lessons/01_window/main.cpp](../../OpenGL/lessons/01_window/main.cpp#L5)，第 5—15 行：
+[OpenGL/lessons/01_window/main.cpp](../../OpenGL/lessons/01_window/main.cpp#L7)，第 7—19 行：
 
 ```cpp
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "01_window - OpenGL Course");
     // 渲染循环 = 处理事件 → 设置视口 → 清屏 → 交换前后缓冲。
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         app.clear();
         app.end();
@@ -74,7 +76,7 @@ int main(int argc, char** argv) try {
 
 从 instance、设备筛选和队列看显式初始化。
 
-[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L25)，第 25—56 行：
+[Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp](../../Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp#L25)，第 25—56 行：
 
 ```cpp
 struct NativeDevice {
@@ -115,17 +117,16 @@ struct NativeDevice {
 
 框架路线仍需声明特性和队列要求。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L234)，第 234—265 行：
+[Vulkan/nvpro/lessons/nv01_context/main.cpp](../../Vulkan/nvpro/lessons/nv01_context/main.cpp#L5)，第 5—52 行：
 
 ```cpp
-inline int nvproMain(int argc, char** argv, int chapter) {
+int runChapter(int argc, char** argv) {
     bool smoke = false;
     for (int i = 1; i < argc; ++i)
         smoke |= std::strcmp(argv[i], "--smoke") == 0;
-
     // 课程编号与公共场景模式分别管理：第 4 课看纹理上传，第 6 课看 PBR。
-    int mode = chapter == 4 ? 6 : chapter == 6 ? 9 : chapter;
-    nvShaders = std::filesystem::absolute(argv[0]).parent_path() / "shaders";
+    int mode = ((1));
+    nvShaders = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
     NvContextOwner owner;
     auto& context = owner.context;
     nvValidationErrors = 0;
@@ -135,10 +136,6 @@ inline int nvproMain(int argc, char** argv, int chapter) {
     setup.enableValidationLayers = true;
     setup.verbose = false;
     setup.applicationName = "nvpro_core2 Course";
-    if (!smoke && chapter != 1 && chapter != 5) {
-        nvvk::addSurfaceExtensions(setup.instanceExtensions);
-        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
-    }
     vkCheck(context.init(setup));
     VkDebugUtilsMessengerCreateInfoEXT debug{
         VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
@@ -150,13 +147,34 @@ inline int nvproMain(int argc, char** argv, int chapter) {
     {
         auto q = context.getQueueInfo(0);
         VkContextRef c{context.getInstance(),
+                       context.getPhysicalDevice(),
+                       context.getDevice(),
+                       q.queue,
+                       q.familyIndex};
+        {
+            VkPhysicalDeviceProperties p;
+            vkGetPhysicalDeviceProperties(c.physical, &p);
+            std::cout << "nvpro_core2 context: " << p.deviceName << '\n';
+        }
+    }
+    std::cout << "Validation errors: " << nvValidationErrors << "\n";
+    return nvValidationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### DirectX 12 · 已实现
 
 从 adapter、device、queue 看设备建立。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L61)，第 61—92 行：
+[DirectX12/lessons/dx01_device/support/dx12_course.hpp](../../DirectX12/lessons/dx01_device/support/dx12_course.hpp#L64)，第 64—95 行：
 
 ```cpp
 struct DxDevice {

@@ -1,0 +1,7 @@
+{
+  "target": "vk42_shader_inspection",
+  "api": "vk",
+  "experiment": 42,
+  "chapter": null,
+  "independent": true
+}

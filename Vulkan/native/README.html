@@ -13,16 +13,16 @@ ctest --preset vulkan-native-debug</code></pre>
 <p>程序位于 <code>Vulkan/native/build/bin/Debug</code>，shader 在旁边 shaders/，改源 shader 后重新 build。Release 使用 <code>vulkan-native-release</code>。每课也可在本地阅读器中点击运行。</p>
 <div class="table-scroll"><table>
 <tr><td>程序</td><td>课程</td></tr>
-<tr><td>vk01_instance_device</td><td><a href="lessons/vk01_instance_device/README.html">实例、设备与队列</a></td></tr>
-<tr><td>vk02_swapchain</td><td><a href="lessons/vk02_swapchain/README.html">Surface 与交换链</a></td></tr>
-<tr><td>vk03_triangle</td><td><a href="lessons/vk03_triangle/README.html">动态渲染与第一个三角形</a></td></tr>
-<tr><td>vk04_vertex_buffer</td><td><a href="lessons/vk04_vertex_buffer/README.html">顶点缓冲与布局</a></td></tr>
-<tr><td>vk05_indexed_uniform</td><td><a href="lessons/vk05_indexed_uniform/README.html">索引、UBO 与 Push Constants</a></td></tr>
-<tr><td>vk06_texture_descriptor</td><td><a href="lessons/vk06_texture_descriptor/README.html">纹理、Staging 与 Descriptor</a></td></tr>
-<tr><td>vk07_depth_instancing</td><td><a href="lessons/vk07_depth_instancing/README.html">深度与实例化</a></td></tr>
-<tr><td>vk08_compute_readback</td><td><a href="lessons/vk08_compute_readback/README.html">Compute、屏障与 GPU 读回</a></td></tr>
-<tr><td>vk09_pbr</td><td><a href="lessons/vk09_pbr/README.html">直接光 PBR</a></td></tr>
-<tr><td>vk10_offscreen</td><td><a href="lessons/vk10_offscreen/README.html">离屏目标与图像传输</a></td></tr>
+<tr><td>vk01_instance_device</td><td><a data-course-target="vk01_instance_device" href="lessons/vk01_instance_device/README.html">实例、设备与队列</a></td></tr>
+<tr><td>vk02_swapchain</td><td><a data-course-target="vk02_swapchain" href="lessons/vk02_swapchain/README.html">Surface 与交换链</a></td></tr>
+<tr><td>vk03_triangle</td><td><a data-course-target="vk03_triangle" href="lessons/vk03_triangle/README.html">动态渲染与第一个三角形</a></td></tr>
+<tr><td>vk04_vertex_buffer</td><td><a data-course-target="vk04_vertex_buffer" href="lessons/vk04_vertex_buffer/README.html">顶点缓冲与布局</a></td></tr>
+<tr><td>vk05_indexed_uniform</td><td><a data-course-target="vk05_indexed_uniform" href="lessons/vk05_indexed_uniform/README.html">索引、UBO 与 Push Constants</a></td></tr>
+<tr><td>vk06_texture_descriptor</td><td><a data-course-target="vk06_texture_descriptor" href="lessons/vk06_texture_descriptor/README.html">纹理、Staging 与 Descriptor</a></td></tr>
+<tr><td>vk07_depth_instancing</td><td><a data-course-target="vk07_depth_instancing" href="lessons/vk07_depth_instancing/README.html">深度与实例化</a></td></tr>
+<tr><td>vk08_compute_readback</td><td><a data-course-target="vk08_compute_readback" href="lessons/vk08_compute_readback/README.html">Compute、屏障与 GPU 读回</a></td></tr>
+<tr><td>vk09_pbr</td><td><a data-course-target="vk09_pbr" href="lessons/vk09_pbr/README.html">直接光 PBR</a></td></tr>
+<tr><td>vk10_offscreen</td><td><a data-course-target="vk10_offscreen" href="lessons/vk10_offscreen/README.html">离屏目标与图像传输</a></td></tr>
 </table></div>
 <h2>代码结构</h2>
 <p>每课 main.cpp 选择该课执行路径；共享初始化、资源与命令代码集中在 common/ 下。Vulkan/common/scene_vk.hpp 是原生和 nvpro 共用的低层渲染器；native/common/native_app.hpp 负责手工设备、Surface/交换链和同步。几何与 Frame/Draw 布局在 shared/scene.hpp。共享代码仍是教学源码，可直接打断点，不是黑盒二进制依赖。</p>

@@ -1,9 +1,43 @@
-#include "advanced_labs.hpp"
-#include <exception>
-#include <iostream>
-// 诊断消息链路：先读教材的参数约束，再运行独立实验核对实际设备和结果。
+// 关联教材：验证层、调试队列与诊断证据。
+// 关键约束：诊断创建时机；早期创建错误也能被观察。
+// 关键约束：合法测试消息；信息投递不等于发生 API 错误。
+// 关键约束：GPU 调试命名；不直接伪造工具事件载荷。
+// dx38_diagnostic_delivery
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#define STB_IMAGE_IMPLEMENTATION
+#include "support/advanced.hpp"
+#include "support/dx12_course.hpp"
+#include <numeric>
+#include <d3d11shader.h>
+
+namespace course {
+// 查询、诊断与字节检查有明确的结果；合法 INFO 消息可能被默认过滤，临时空过滤器只扩大接收范围。
+void inspection(DxDevice& c, const LabOptions& options) {
+    require(c.messages.Get() != nullptr, "D3D12 InfoQueue unavailable");
+    dxCheck(c.messages->PushEmptyStorageFilter());
+    UINT64 before = c.messages->GetNumStoredMessages();
+    dxCheck(c.messages->AddApplicationMessage(D3D12_MESSAGE_SEVERITY_INFO,
+                                              "Course informational diagnostic"));
+    require(c.messages->GetNumStoredMessages() > before,
+            "InfoQueue did not receive application message");
+    c.messages->PopStorageFilter();
+    std::cout
+        << "Verified informational diagnostic delivery without introducing invalid API usage\n";
+}
+
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 38);
+    DxDevice c(options.warp);
+    {
+        inspection(c, options);
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
 int main(int argc, char** argv) try {
-    return course::dxLabMain(argc, argv, 38);
+    return course::runChapter(argc, argv);
 } catch (const std::exception& error) {
     std::cerr << "ERROR: " << error.what() << '\n';
     return 1;

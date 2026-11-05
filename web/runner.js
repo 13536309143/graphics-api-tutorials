@@ -28,17 +28,19 @@
     });
   }
   const chapter = location.pathname.match(/\/lessons\/((?:vk|nv|dx)?[0-9]{2}_[a-z0-9_]+)\//);
-  if (chapter) {
+  const ownTarget = document.querySelector('meta[name="course-target"]')?.content || (chapter && chapter[1]);
+  if (ownTarget) {
     const controls = document.createElement('div'); controls.className = 'course-chapter-run';
-    addButton(chapter[1], controls, '▶ 运行本课'); bar.after(controls);
+    addButton(ownTarget, controls, '▶ 运行本课'); bar.after(controls);
     const tip = document.createElement('p'); tip.className = 'course-run-tip'; tip.textContent = '示例将在独立窗口打开。Esc 退出；有相机的课程按住右键转向，WASD 移动。'; controls.after(tip);
   }
   for (const table of document.querySelectorAll('table')) {
     let found = false;
     for (const row of table.rows) {
-      const link = row.querySelector('a[href*="lessons/"]');
+      const link = row.querySelector('a[data-course-target], a[href*="lessons/"]');
       const match = link && link.getAttribute('href').match(/lessons\/((?:vk|nv|dx)?[0-9]{2}_[a-z0-9_]+)\//);
-      if (match) {const cell = row.insertCell(); cell.className = 'course-table-run';addButton(match[1], cell, '▶ 运行');found = true;}
+      const target = link?.dataset.courseTarget || (match && match[1]);
+      if (target) {const cell = row.insertCell(); cell.className = 'course-table-run';addButton(target, cell, '▶ 运行');found = true;}
     }
     if (found) {const cell = table.rows[0].insertCell();cell.textContent = '运行示例';}
   }

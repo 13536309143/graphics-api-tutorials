@@ -65,7 +65,7 @@ nvapp 已有自己的帧循环和命令管理。课程自定义 SceneVk 却共�
 
 SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时。
 
-[OpenGL/common/app.hpp](../../OpenGL/common/app.hpp#L91)，第 91—114 行：
+[OpenGL/lessons/07_cube/support/app.hpp](../../OpenGL/lessons/07_cube/support/app.hpp#L91)，第 91—114 行：
 
 ```cpp
     void end() {
@@ -98,12 +98,11 @@ SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时�
 
 成功 acquire 后才 reset fence，避免无提交却等待已重置 fence。
 
-[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L365)，第 365—395 行：
+[Vulkan/native/lessons/vk02_swapchain/main.cpp](../../Vulkan/native/lessons/vk02_swapchain/main.cpp#L62)，第 62—92 行：
 
 ```cpp
             vkCheck(vkWaitForFences(d.c.device, 1, &fence, VK_TRUE, UINT64_MAX));
             uint32_t imageIndex;
-
             // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。
             VkResult a = vkAcquireNextImageKHR(
                 d.c.device, swap.handle, UINT64_MAX, acquired, {}, &imageIndex);
@@ -113,14 +112,13 @@ SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时�
             }
             if (a != VK_SUBOPTIMAL_KHR)
                 vkCheck(a);
-
             // 只有成功获取图像、确定会提交时才重置 fence，避免下次永久等待。
             vkCheck(vkResetFences(d.c.device, 1, &fence));
             vkCheck(vkResetCommandBuffer(cmd, 0));
             VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
             vkCheck(vkBeginCommandBuffer(cmd, &begin));
-            VkImage target = mode == 10 ? swap.offscreen.image : swap.images[imageIndex];
-            VkImageView targetView = mode == 10 ? swap.offscreen.view : swap.views[imageIndex];
+            VkImage target = (swap.images[imageIndex]);
+            VkImageView targetView = (swap.views[imageIndex]);
             barrier(cmd,
                     target,
                     VK_IMAGE_LAYOUT_UNDEFINED,
@@ -132,13 +130,15 @@ SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时�
             barrier(cmd,
                     swap.depth.image,
                     VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_NONE,
 ```
 
 ### Vulkan / nvpro_core2 · 已实现
 
 自定义资源和框架帧调度都要满足各自生命周期。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L223)，第 223—234 行：
+[Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp](../../Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp#L224)，第 224—235 行：
 
 ```cpp
     void onDetach() override {
@@ -152,14 +152,14 @@ SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时�
         allocator.deinit();
     }
 };
-inline int nvproMain(int argc, char** argv, int chapter) {
+
 ```
 
 ### DirectX 12 · 已实现
 
 allocator Reset 由前次 submit 的等待保护，多帧版本须改变该契约。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L122)，第 122—147 行：
+[DirectX12/lessons/dx02_swapchain/support/dx12_course.hpp](../../DirectX12/lessons/dx02_swapchain/support/dx12_course.hpp#L125)，第 125—150 行：
 
 ```cpp
     void begin() {
@@ -169,6 +169,7 @@ allocator Reset 由前次 submit 的等待保护，多帧版本须改变该契�
     void submit() {
         dxCheck(cmd->Close());
         ID3D12CommandList* lists[] = {cmd.Get()};
+        // 提交是异步的；Fence 完成值决定 allocator 与上传资源何时可复用。
         queue->ExecuteCommandLists(1, lists);
         wait();
     }
@@ -187,5 +188,4 @@ allocator Reset 由前次 submit 的等待保护，多帧版本须改变该契�
             return;
         UINT64 count = messages->GetNumStoredMessagesAllowedByRetrievalFilter();
         for (UINT64 i = 0; i < count; ++i) {
-            SIZE_T bytes = 0;
 ```

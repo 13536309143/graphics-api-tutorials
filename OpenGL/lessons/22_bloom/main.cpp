@@ -1,10 +1,14 @@
-#include "advanced.hpp"
+// 22_bloom
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/advanced.hpp"
 
 // Bloom 与高斯模糊，先阅读本目录 README.md。
 // 本课重点：从 HDR 提取亮部，交替模糊后再与原始场景合成。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "22_bloom - OpenGL Course");
     RenderTarget scene(2), ping, pong;
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, "advanced.vert", "hdr_scene.frag"), tone(app, "screen.vert", "tone.frag"),
         blur(app, "screen.vert", "blur.frag");
     Mesh ball(sphere()), plane(quad(), quadIndices());
@@ -14,6 +18,7 @@ int main(int argc, char** argv) try {
     float exposure = 1;
 
     // 每帧依次完成 HDR 场景、高亮提取、交替模糊与最终合成。
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width < 1 || app.height < 1) {
             app.end();

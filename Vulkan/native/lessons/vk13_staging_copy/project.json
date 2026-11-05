@@ -1,0 +1,7 @@
+{
+  "target": "vk13_staging_copy",
+  "api": "vk",
+  "experiment": 13,
+  "chapter": null,
+  "independent": true
+}

@@ -34,6 +34,18 @@ nv05 由 Context 提供设备/队列并复用 computeSquares。它不创建普�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,48 @@ nv05 由 Context 提供设备/队列并复用 computeSquares。它不创建普�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx08_compute_uav --parallel 4
-.\DirectX12\build\bin\Debug\dx08_compute_uav.exe
-ctest --preset dx12-debug -R "^dx08_compute_uav$" --output-on-failure
+cmake --build --preset dx12-debug --target dx46_ch_compute --parallel 4
+.\DirectX12\build\bin\Debug\dx46_ch_compute.exe
+ctest --preset dx12-debug -R "^dx46_ch_compute$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L197)，第 197—240 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/46_compute/main.cpp](main.cpp#L9)，第 9—35 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-inline void dxCompute(DxDevice& c) {
-    auto storage = c.buffer(1024,
-                            D3D12_HEAP_TYPE_DEFAULT,
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
-         readback = c.buffer(1024, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    D3D12_ROOT_PARAMETER root{};
-    root.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
-    root.Descriptor.ShaderRegister = 0;
-    D3D12_ROOT_SIGNATURE_DESC desc{};
-    desc.NumParameters = 1;
-    desc.pParameters = &root;
-    auto signature = rootSignature(c, desc);
-    auto cs = compileHlsl("ComputeMain", "cs_5_1");
-    D3D12_COMPUTE_PIPELINE_STATE_DESC pso{};
-    pso.pRootSignature = signature.Get();
-    pso.CS = {cs->GetBufferPointer(), cs->GetBufferSize()};
-    ComPtr<ID3D12PipelineState> pipeline;
-    dxCheck(c.device->CreateComputePipelineState(&pso, IID_PPV_ARGS(&pipeline)));
-    c.begin();
-    c.cmd->SetComputeRootSignature(signature.Get());
-    c.cmd->SetPipelineState(pipeline.Get());
-    c.cmd->SetComputeRootUnorderedAccessView(0, storage->GetGPUVirtualAddress());
-    c.cmd->Dispatch(4, 1, 1);
-    auto b = transition(
-        storage.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    c.cmd->ResourceBarrier(1, &b);
-    c.cmd->CopyBufferRegion(readback.Get(), 0, storage.Get(), 0, 1024);
-    c.submit();
-    void* mapped;
-    D3D12_RANGE readRange{0, 1024};
-    dxCheck(readback->Map(0, &readRange, &mapped));
-    for (uint32_t i = 0; i < 256; ++i)
-        if (static_cast<uint32_t*>(mapped)[i] != i * i + 1)
-            throw std::runtime_error("GPU compute mismatch");
-    D3D12_RANGE written{0, 0};
-    readback->Unmap(0, &written);
-    std::cout << "Verified all 256 GPU compute results\n";
-    c.checkMessages();
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    {
+        DxDevice c(warp);
+        {
+            dxCompute(c);
+        }
+        c.checkMessages();
+        return 0;
+    }
 }
-class DxScene {
-public:
-    DxDevice& c;
-    int mode;
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

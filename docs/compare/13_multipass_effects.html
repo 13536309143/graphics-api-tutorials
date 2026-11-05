@@ -33,14 +33,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/27_ssao/README.html">27_ssao</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="27_ssao" href="../../OpenGL/lessons/27_ssao/README.html">27_ssao</a></td></tr>
 <tr><td>Vulkan 原生</td><td>迁移设计</td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td>迁移设计</td></tr>
 <tr><td>DirectX 12</td><td>迁移设计</td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>先有 G-buffer，再估算遮挡、降噪，最后合成环境光。</p>
-<p><a href="../../OpenGL/lessons/27_ssao/main.cpp#L70">OpenGL/lessons/27_ssao/main.cpp</a>，第 70—116 行：</p>
+<p><a data-course-target="27_ssao" href="../../OpenGL/lessons/27_ssao/main.cpp#L74">OpenGL/lessons/27_ssao/main.cpp</a>，第 74—120 行：</p>
 <pre><code>        // 第二遍：从 G-buffer 和噪声构造采样方向，估算局部遮挡。
         occlusion.bind();
         ao.use();

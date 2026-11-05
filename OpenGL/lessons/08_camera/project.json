@@ -1,0 +1,5 @@
+{
+  "target": "08_camera",
+  "api": "gl",
+  "independent": true
+}

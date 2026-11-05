@@ -34,6 +34,18 @@ ContextInitInfo 中声明队列需求，getQueueInfo 返回 queue 与 familyInde
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,43 @@ ContextInitInfo 中声明队列需求，getQueueInfo 返回 queue 与 familyInde
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk39_queue_properties --parallel 4
-.\Vulkan\native\build\bin\Debug\vk39_queue_properties.exe
-ctest --preset vulkan-native-debug -R "^vk39_queue_properties$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk07_ch_queues --parallel 4
+.\Vulkan\native\build\bin\Debug\vk07_ch_queues.exe
+ctest --preset vulkan-native-debug -R "^vk07_ch_queues$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L284)，第 284—327 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/07_queues/main.cpp](main.cpp#L26)，第 26—47 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-    require(counter >= 2, "Timeline did not advance");
-    vkCheck(vkQueueWaitIdle(c.queue));
-    vkDestroySemaphore(c.device, semaphore, nullptr);
-    std::cout << "Verified timeline producer 1 -> consumer 2, counter=" << counter << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 39);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            inspection(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
 }
-// timestampValidBits 和 timestampPeriod 决定 tick 的解释，不把单次实验当 API 性能排名。
-void timestamps(const VkContextRef& c) {
-    uint32_t count{};
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &count, nullptr);
-    std::vector<VkQueueFamilyProperties> families(count);
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &count, families.data());
-    require(families[c.family].timestampValidBits != 0,
-            "Selected queue does not support timestamps");
-    VkQueryPoolCreateInfo info{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
-    info.queryType = VK_QUERY_TYPE_TIMESTAMP;
-    info.queryCount = 2;
-    VkQueryPool pool{};
-    vkCheck(vkCreateQueryPool(c.device, &info, nullptr, &pool));
-    VkBufferResource buffer;
-    buffer.init(
-        c, 1024 * 1024, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    immediate(c, [&](VkCommandBuffer cmd) {
-        vkCmdResetQueryPool(cmd, pool, 0, 2);
-        vkCmdWriteTimestamp2(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, pool, 0);
-        vkCmdFillBuffer(cmd, buffer.buffer, 0, VK_WHOLE_SIZE, 0x12345678);
-        vkCmdWriteTimestamp2(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, pool, 1);
-    });
-    uint64_t ticks[2]{};
-    vkCheck(vkGetQueryPoolResults(c.device,
-                                  pool,
-                                  0,
-                                  2,
-                                  sizeof(ticks),
-                                  ticks,
-                                  8,
-                                  VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT));
-    VkPhysicalDeviceProperties p{};
-    vkGetPhysicalDeviceProperties(c.physical, &p);
-    auto bits = families[c.family].timestampValidBits;
-    uint64_t mask = bits == 64 ? UINT64_MAX : ((uint64_t(1) << bits) - 1);
-    std::cout << "GPU fill measurement="
-              << ((ticks[1] - ticks[0]) & mask) * p.limits.timestampPeriod / 1e6
-              << " ms (single operation, not an API benchmark)\n";
-    vkDestroyQueryPool(c.device, pool, nullptr);
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

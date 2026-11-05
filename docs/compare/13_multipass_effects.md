@@ -67,7 +67,7 @@ SSAO 不会恢复屏幕外遮挡，也不是完整全局照明。验收时同时
 
 先有 G-buffer，再估算遮挡、降噪，最后合成环境光。
 
-[OpenGL/lessons/27_ssao/main.cpp](../../OpenGL/lessons/27_ssao/main.cpp#L70)，第 70—116 行：
+[OpenGL/lessons/27_ssao/main.cpp](../../OpenGL/lessons/27_ssao/main.cpp#L74)，第 74—120 行：
 
 ```cpp
         // 第二遍：从 G-buffer 和噪声构造采样方向，估算局部遮挡。

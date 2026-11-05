@@ -1,5 +1,5 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 31 课 · 动态 UBO 与 Root CBV 地址选择 · Vulkan 原生</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 31 课 · 动态 UBO 与 Root CBV 地址选择 · Vulkan 原生</h1>
-<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../../docs/compare/05_binding_constants.html">对照精讲</a> · <a href="../30_descriptor_instances/README.html">上一课</a> · <a href="../32_per_draw_constants/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 31 课 · 动态 UBO 与 Root CBV 地址选择 · Vulkan 原生</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="vk31_ch_dynamic_offsets"><h1>第 31 课 · 动态 UBO 与 Root CBV 地址选择 · Vulkan 原生</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../../docs/compare/05_binding_constants.html">对照精讲</a> · <a data-course-target="vk30_ch_descriptor_instances" href="../30_descriptor_instances/README.html">上一课</a> · <a data-course-target="vk32_ch_per_draw_constants" href="../32_per_draw_constants/README.html">下一课</a></p>
 <h2>本课目标与先修</h2>
 <p>学习目标：解释“动态 UBO 与 Root CBV 地址选择”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
 <h2>为什么需要这一层</h2>
@@ -19,65 +19,70 @@
 <h2>nvpro_core2 框架对照</h2>
 <p>框架路径仍可使用原生 dynamic descriptor；不要假定 allocator 已自动把任意应用偏移变成合法对齐。</p>
 <p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>本章独立工程与关键注释</h2>
+<p><a data-course-target="vk31_ch_dynamic_offsets" href="main.cpp">main.cpp</a> · <a data-course-target="vk31_ch_dynamic_offsets" href="support/">本地辅助实现</a> · <a data-course-target="vk31_ch_dynamic_offsets" href="shaders/">本章着色器</a> · <a data-course-target="vk31_ch_dynamic_offsets" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
 <h2>运行与实际检查</h2>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>实际实验</td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../lessons/vk15_dynamic_binding/README.html">vk15_dynamic_binding</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx15_dynamic_binding/README.html">dx15_dynamic_binding</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk15_dynamic_binding" href="../../lessons/vk15_dynamic_binding/README.html">vk15_dynamic_binding</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx15_dynamic_binding" href="../../../../DirectX12/lessons/dx15_dynamic_binding/README.html">dx15_dynamic_binding</a></td></tr>
 </table></div>
 <p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
 <pre><code>cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk15_dynamic_binding --parallel 4
-.\Vulkan\native\build\bin\Debug\vk15_dynamic_binding.exe
-ctest --preset vulkan-native-debug -R &quot;^vk15_dynamic_binding$&quot; --output-on-failure</code></pre>
+cmake --build --preset vulkan-native-debug --target vk31_ch_dynamic_offsets --parallel 4
+.\Vulkan\native\build\bin\Debug\vk31_ch_dynamic_offsets.exe
+ctest --preset vulkan-native-debug -R &quot;^vk31_ch_dynamic_offsets$&quot; --output-on-failure</code></pre>
 <p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
 <h2>关键实现：从当前源码定位</h2>
-<p>来自 <a href="../../common/advanced_labs.cpp#L114">Vulkan/native/common/advanced_labs.cpp</a>，第 114—157 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
-<pre><code>    void record(VkCommandBuffer cmd,
-                uint32_t mode,
-                uint32_t count,
-                uint32_t factor,
-                uint32_t bias,
-                uint32_t slot = 0) {
-        uint32_t constants[4] = {mode, count, factor, bias};
-        uint32_t offset = slot * stride;
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-        vkCmdBindDescriptorSets(
-            cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &amp;set, 1, &amp;offset);
-        vkCmdPushConstants(cmd, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, constants);
-        vkCmdDispatch(cmd, (count + 63) / 64, 1, 1);
-        bufferDependency(cmd,
-                         output.buffer,
-                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                         VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                         VK_PIPELINE_STAGE_2_HOST_BIT,
-                         VK_ACCESS_2_HOST_READ_BIT);
+<p>来自 <a data-course-target="vk31_ch_dynamic_offsets" href="main.cpp#L157">Vulkan/native/chapters/31_dynamic_offsets/main.cpp</a>，第 157—199 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 15);
+    nativeShaders = options.directory / &quot;shaders&quot;;
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto&amp; c = owner.c;
+        {
+            ComputeKernel kernel(c);
+            uint32_t mode = ((1));
+            uint32_t count = (128);
+            for (uint32_t slot = 0; slot &lt; ((3u)); ++slot) {
+                uint32_t factor = (3), bias = (7);
+                kernel.execute(mode, count, factor, bias, slot);
+                auto result = readWords(kernel.output, mode == 2 ? (count + 63) / 64 : count);
+                if (mode == 2) {
+                    uint32_t total = std::accumulate(result.begin(), result.end(), 0u);
+                    require(total == count * (count + 1) / 2, &quot;Shared-memory reduction mismatch&quot;);
+                } else {
+                    if (mode == 1) {
+                        factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                        bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                    }
+                    for (uint32_t i = 0; i &lt; count; ++i)
+                        require(result[i] == i * factor + bias,
+                                &quot;Compute/dynamic-binding result mismatch&quot;);
+                }
+            }
+            std::cout &lt;&lt; &quot;Verified experiment &quot; &lt;&lt; 15 &lt;&lt; &quot;, items=&quot; &lt;&lt; count
+                      &lt;&lt; &quot;, uniform stride=&quot; &lt;&lt; kernel.stride &lt;&lt; &#x27;\n&#x27;;
+        }
     }
-    void execute(uint32_t mode, uint32_t count, uint32_t factor, uint32_t bias, uint32_t slot = 0) {
-        immediate(c, [&amp;](VkCommandBuffer cmd) {
-            record(cmd, mode, count, factor, bias, slot);
-        });
-    }
-    ~ComputeKernel() {
-        vkDestroyPipeline(c.device, pipeline, nullptr);
-        vkDestroyPipelineLayout(c.device, pipelineLayout, nullptr);
-        vkDestroyDescriptorPool(c.device, pool, nullptr);
-        vkDestroyDescriptorSetLayout(c.device, layout, nullptr);
-    }
-};
-void capabilities(const VkContextRef&amp; c) {
-    VkPhysicalDeviceProperties p{};
-    vkGetPhysicalDeviceProperties(c.physical, &amp;p);
-    VkPhysicalDeviceMemoryProperties m{};
-    vkGetPhysicalDeviceMemoryProperties(c.physical, &amp;m);
-    std::cout &lt;&lt; &quot;maxPushConstantsSize=&quot; &lt;&lt; p.limits.maxPushConstantsSize
-              &lt;&lt; &quot;, minUniformBufferOffsetAlignment=&quot; &lt;&lt; p.limits.minUniformBufferOffsetAlignment
-              &lt;&lt; &quot;, maxComputeWorkGroupInvocations=&quot; &lt;&lt; p.limits.maxComputeWorkGroupInvocations
-              &lt;&lt; &#x27;\n&#x27;;
-    for (uint32_t i = 0; i &lt; m.memoryTypeCount; ++i)
-        std::cout &lt;&lt; &quot;memoryType[&quot; &lt;&lt; i &lt;&lt; &quot;] heap=&quot; &lt;&lt; m.memoryTypes[i].heapIndex
-                  &lt;&lt; &quot; properties=&quot; &lt;&lt; m.memoryTypes[i].propertyFlags &lt;&lt; &#x27;\n&#x27;;</code></pre>
-<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+    std::cout &lt;&lt; &quot;Validation errors: &quot; &lt;&lt; validationErrors &lt;&lt; &#x27;\n&#x27;;
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。</p>
 <h2>受控修改实验</h2>
 <p>把三个槽的参数互换而不改变 shader，预测结果应如何变化。</p>
 <p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>

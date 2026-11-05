@@ -34,7 +34,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk01_instance_device",
-        "file": "Vulkan/native/common/native_app.hpp",
+        "file": "Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp",
         "anchor": "struct NativeDevice",
         "count": 32,
         "explanation": "从 instance、设备筛选和队列看显式初始化。",
@@ -43,16 +43,16 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv01_context",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
-        "anchor": "inline int nvproMain",
-        "count": 32,
+        "file": "Vulkan/nvpro/lessons/nv01_context/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56,
         "explanation": "框架路线仍需声明特性和队列要求。",
         "status": "已实现"
       },
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx01_device",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx01_device/support/dx12_course.hpp",
         "anchor": "struct DxDevice",
         "count": 32,
         "explanation": "从 adapter、device、queue 看设备建立。",
@@ -86,7 +86,7 @@
       "gl": {
         "folder": "OpenGL",
         "lesson": "01_window",
-        "file": "OpenGL/common/app.hpp",
+        "file": "OpenGL/lessons/01_window/support/app.hpp",
         "anchor": "App(int argc",
         "count": 53,
         "explanation": "先 current context，再加载 GL 入口；GPU 对象先于 context 销毁。",
@@ -95,7 +95,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk01_instance_device",
-        "file": "Vulkan/native/common/native_app.hpp",
+        "file": "Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp",
         "anchor": "NativeDevice(GLFWwindow",
         "count": 42,
         "explanation": "扩展属于实例或设备，队列族还要检查实际呈现支持。",
@@ -104,7 +104,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv01_context",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv01_context/main.cpp",
         "anchor": "nvvk::ContextInitInfo setup",
         "count": 32,
         "explanation": "Context 减少创建代码，需求选择与失败处理仍由应用负责。",
@@ -113,7 +113,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx01_device",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx01_device/support/dx12_course.hpp",
         "anchor": "explicit DxDevice",
         "count": 42,
         "explanation": "在设备创建前启用调试层；WARP 是软件参考路径。",
@@ -156,7 +156,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk03_triangle",
-        "file": "Vulkan/common/scene_vk.hpp",
+        "file": "Vulkan/native/lessons/vk03_triangle/support/scene_vk.hpp",
         "anchor": "VkGraphicsPipelineCreateInfo gp",
         "count": 32,
         "explanation": "动态渲染仍要求 pipeline 声明附件格式；还要设置 viewport/scissor。",
@@ -165,7 +165,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv03_triangle",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp",
         "anchor": "void onRender",
         "count": 42,
         "explanation": "场景写入离屏 RenderTarget，最后才被 ImGui 采样。",
@@ -208,7 +208,7 @@
       "gl": {
         "folder": "OpenGL",
         "lesson": "03_indexed",
-        "file": "OpenGL/common/app.hpp",
+        "file": "OpenGL/lessons/03_indexed/support/app.hpp",
         "anchor": "struct Mesh",
         "count": 48,
         "explanation": "EBO 绑定属于 VAO 状态，attribute stride 与 CPU 数据一致。",
@@ -217,7 +217,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk04_vertex_buffer",
-        "file": "Vulkan/common/scene_vk.hpp",
+        "file": "Vulkan/native/lessons/vk04_vertex_buffer/support/scene_vk.hpp",
         "anchor": "struct VkBufferResource",
         "count": 45,
         "explanation": "先满足 memoryTypeBits 与属性，再绑定资源；coherent 不等于执行同步。",
@@ -226,7 +226,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv04_vma_staging_texture",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv04_vma_staging_texture/support/nvapp_course.hpp",
         "anchor": "if (mode == 6)",
         "count": 20,
         "explanation": "本段上传 device-local 顶点；纹理路径在 SceneVk，不能混作同一 helper。",
@@ -235,7 +235,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx04_vertex_buffer",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx04_vertex_buffer/support/dx12_course.hpp",
         "anchor": "DxScene(DxDevice",
         "count": 38,
         "explanation": "UPLOAD 顶点和 index buffer view 保持清楚，性能优化可再改 DEFAULT。",
@@ -269,7 +269,7 @@
       "gl": {
         "folder": "OpenGL",
         "lesson": "08_camera",
-        "file": "OpenGL/common/app.hpp",
+        "file": "OpenGL/lessons/08_camera/support/app.hpp",
         "anchor": "struct Camera",
         "count": 50,
         "explanation": "运动乘 dt；pitch 受限；view 与 projection 分别负责不同空间。",
@@ -278,7 +278,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk05_indexed_uniform",
-        "file": "shared/scene.hpp",
+        "file": "Vulkan/native/lessons/vk05_indexed_uniform/support/scene.hpp",
         "anchor": "inline Frame frame",
         "count": 16,
         "explanation": "共享右手空间，Vulkan 正 viewport 下额外翻转投影 Y。",
@@ -287,7 +287,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv06_pbr_viewport",
-        "file": "Vulkan/common/scene_vk.hpp",
+        "file": "Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp",
         "anchor": "void render(VkCommandBuffer",
         "count": 20,
         "explanation": "框架不改变 SceneVk 的数学约定；UI 调整的是材质参数。",
@@ -339,7 +339,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk05_indexed_uniform",
-        "file": "Vulkan/common/scene_vk.hpp",
+        "file": "Vulkan/native/lessons/vk05_indexed_uniform/support/scene_vk.hpp",
         "anchor": "VkDescriptorSetLayoutBinding bindings",
         "count": 38,
         "explanation": "layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。",
@@ -348,7 +348,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv06_pbr_viewport",
-        "file": "Vulkan/common/scene_vk.hpp",
+        "file": "Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp",
         "anchor": "vkCmdPushConstants",
         "count": 19,
         "explanation": "SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。",
@@ -357,7 +357,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx05_indexed_cbv",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx05_indexed_cbv/support/dx12_course.hpp",
         "anchor": "D3D12_ROOT_PARAMETER params",
         "count": 36,
         "explanation": "root parameter 2 指 t0，0 指 b0；两种编号不能混同。",
@@ -391,25 +391,25 @@
       "gl": {
         "folder": "OpenGL",
         "lesson": "05_texture",
-        "file": "OpenGL/common/advanced.hpp",
-        "anchor": "void upload(int",
-        "count": 20,
+        "file": "OpenGL/lessons/05_texture/main.cpp",
+        "anchor": "int main",
+        "count": 56,
         "explanation": "sRGB 用于颜色，normal/roughness 等数据应保持线性。",
         "status": "已实现"
       },
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk18_mip_chain",
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "struct GpuTexture",
-        "count": 36,
+        "file": "Vulkan/native/lessons/vk18_mip_chain/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56,
         "explanation": "实际生成多级图像并逐 texel 读回验证；详见 54 课主线纹理章节。",
         "status": "已实现"
       },
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv04_vma_staging_texture",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv04_vma_staging_texture/support/nvapp_course.hpp",
         "anchor": "void onAttach",
         "count": 34,
         "explanation": "框架层负责分配目标和顶点上传；纹理细节沿 SceneVk 展开。",
@@ -418,9 +418,9 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx18_mip_chain",
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "struct GpuTexture",
-        "count": 36,
+        "file": "DirectX12/lessons/dx18_mip_chain/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56,
         "explanation": "实际生成多级图像并逐 texel 读回验证；详见 54 课主线纹理章节。",
         "status": "已实现"
       }
@@ -461,7 +461,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk20_msaa_resolve",
-        "file": "Vulkan/native/common/native_app.hpp",
+        "file": "Vulkan/native/lessons/vk20_msaa_resolve/support/native_app.hpp",
         "anchor": "color.resolveMode",
         "count": 36,
         "explanation": "4x 颜色/深度与 dynamic rendering resolve，目标与管线样本数一致。",
@@ -470,7 +470,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv02_application",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv02_application/support/nvapp_course.hpp",
         "anchor": "void onResize",
         "count": 8,
         "explanation": "尺寸变化重建目标后，也要更新用于 UI 的 image view。",
@@ -479,7 +479,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx20_msaa_resolve",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx20_msaa_resolve/support/dx12_course.hpp",
         "anchor": "ResolveSubresource",
         "count": 36,
         "explanation": "4x 目标经 ResolveSubresource 到单样本 back buffer。",
@@ -522,7 +522,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk06_texture_descriptor",
-        "file": "Vulkan/common/scene_vk.hpp",
+        "file": "Vulkan/native/lessons/vk06_texture_descriptor/support/scene_vk.hpp",
         "anchor": "inline void barrier(",
         "count": 35,
         "explanation": "屏障声明前后阶段、访问及布局；并非只修改一个枚举。",
@@ -531,7 +531,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv03_triangle",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp",
         "anchor": "void onRender",
         "count": 48,
         "explanation": "GENERAL→GENERAL 仍声明颜色写入与后续采样依赖。",
@@ -540,7 +540,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx08_compute_uav",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp",
         "anchor": "void wait()",
         "count": 14,
         "explanation": "CPU 等 fence 只解决完成条件；资源状态还要与实际访问一致。",
@@ -574,7 +574,7 @@
       "gl": {
         "folder": "OpenGL",
         "lesson": "07_cube",
-        "file": "OpenGL/common/app.hpp",
+        "file": "OpenGL/lessons/07_cube/support/app.hpp",
         "anchor": "void end()",
         "count": 24,
         "explanation": "SwapBuffers 交出图像，不代表可以用 CPU 调用耗时表示 GPU 耗时。",
@@ -583,7 +583,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk02_swapchain",
-        "file": "Vulkan/native/common/native_app.hpp",
+        "file": "Vulkan/native/lessons/vk02_swapchain/main.cpp",
         "anchor": "vkCheck(vkWaitForFences",
         "count": 31,
         "explanation": "成功 acquire 后才 reset fence，避免无提交却等待已重置 fence。",
@@ -592,7 +592,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv03_triangle",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp",
         "anchor": "void onDetach",
         "count": 12,
         "explanation": "自定义资源和框架帧调度都要满足各自生命周期。",
@@ -601,7 +601,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx02_swapchain",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx02_swapchain/support/dx12_course.hpp",
         "anchor": "void begin()",
         "count": 26,
         "explanation": "allocator Reset 由前次 submit 的等待保护，多帧版本须改变该契约。",
@@ -644,16 +644,16 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk08_compute_readback",
-        "file": "Vulkan/common/shaders/square.comp",
-        "anchor": "layout(local_size_x",
-        "count": 18,
+        "file": "Vulkan/native/lessons/vk08_compute_readback/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56,
         "explanation": "全局调用索引覆盖 256 项，host 逐项核对，不仅检查第一个值。",
         "status": "已实现"
       },
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv05_compute_readback",
-        "file": "Vulkan/common/scene_vk.hpp",
+        "file": "Vulkan/nvpro/lessons/nv05_compute_readback/support/scene_vk.hpp",
         "anchor": "inline void computeSquares",
         "count": 37,
         "explanation": "Context 提供队列和设备；计算管线与资源依赖仍是 Vulkan。",
@@ -662,7 +662,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx08_compute_uav",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp",
         "anchor": "inline void dxCompute",
         "count": 48,
         "explanation": "DEFAULT UAV 结果拷贝到 READBACK，经 fence 后 Map。",
@@ -696,7 +696,7 @@
       "gl": {
         "folder": "OpenGL",
         "lesson": "31_skeletal",
-        "file": "OpenGL/common/model.hpp",
+        "file": "OpenGL/lessons/31_skeletal/support/model.hpp",
         "anchor": "void draw(const Shader",
         "count": 38,
         "explanation": "按 mesh 节点变换与 inverse bind pose 构造局部蒙皮矩阵。",
@@ -705,7 +705,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk22_gltf_scene",
-        "file": "shared/advanced.hpp",
+        "file": "Vulkan/native/lessons/vk22_gltf_scene/support/advanced.hpp",
         "anchor": "inline Geometry staticAsset",
         "count": 36,
         "explanation": "真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。",
@@ -723,7 +723,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx22_gltf_scene",
-        "file": "shared/advanced.hpp",
+        "file": "DirectX12/lessons/dx22_gltf_scene/support/advanced.hpp",
         "anchor": "inline Geometry staticAsset",
         "count": 36,
         "explanation": "真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。",
@@ -766,16 +766,16 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk09_pbr",
-        "file": "Vulkan/common/shaders/scene.frag",
-        "anchor": "vec3 pbr",
-        "count": 26,
+        "file": "Vulkan/native/lessons/vk09_pbr/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56,
         "explanation": "D/G/F 和距离衰减在 GLSL 中显式计算；当前没有 IBL。",
         "status": "已实现"
       },
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv06_pbr_viewport",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv06_pbr_viewport/support/nvapp_course.hpp",
         "anchor": "void onUIRender",
         "count": 22,
         "explanation": "调粗糙度后交给相同 SceneVk；UI 和呈现路径不同。",
@@ -879,7 +879,7 @@
       "gl": {
         "folder": "OpenGL",
         "lesson": "02_triangle",
-        "file": "OpenGL/common/app.hpp",
+        "file": "OpenGL/lessons/02_triangle/support/app.hpp",
         "anchor": "GLenum e = glGetError",
         "count": 8,
         "explanation": "帧尾错误号辅助定位；完整问题还需要查看绑定和实际 draw。",
@@ -888,7 +888,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk03_triangle",
-        "file": "Vulkan/native/common/native_app.hpp",
+        "file": "Vulkan/native/lessons/vk03_triangle/support/native_app.hpp",
         "anchor": "inline VKAPI_ATTR",
         "count": 18,
         "explanation": "验证错误与外部 loader 诊断分开，先处理首个根因。",
@@ -897,7 +897,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv03_triangle",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp",
         "anchor": "void onLastHeadlessFrame",
         "count": 30,
         "explanation": "无窗口模式读回真实视口目标，不能代替长期交互和性能验证。",
@@ -906,7 +906,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx03_triangle",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx03_triangle/support/dx12_course.hpp",
         "anchor": "void checkMessages()",
         "count": 26,
         "explanation": "ERROR/CORRUPTION 使 smoke 失败；抓帧再看数据和管线。",
@@ -949,7 +949,7 @@
       "vk": {
         "folder": "Vulkan/native",
         "lesson": "vk09_pbr",
-        "file": "Vulkan/common/scene_vk.hpp",
+        "file": "Vulkan/native/lessons/vk09_pbr/support/scene_vk.hpp",
         "anchor": "class SceneVk",
         "count": 28,
         "explanation": "底层渲染器接收借用上下文，不负责创建窗口/交换链。",
@@ -958,7 +958,7 @@
       "nv": {
         "folder": "Vulkan/nvpro",
         "lesson": "nv06_pbr_viewport",
-        "file": "Vulkan/nvpro/common/nvapp_course.hpp",
+        "file": "Vulkan/nvpro/lessons/nv06_pbr_viewport/support/nvapp_course.hpp",
         "anchor": "class NvLesson",
         "count": 35,
         "explanation": "生命周期回调管理自定义资源；不是第四个图形 API。",
@@ -967,7 +967,7 @@
       "dx": {
         "folder": "DirectX12",
         "lesson": "dx09_pbr",
-        "file": "DirectX12/common/dx12_course.hpp",
+        "file": "DirectX12/lessons/dx09_pbr/support/dx12_course.hpp",
         "anchor": "class DxScene",
         "count": 25,
         "explanation": "独立 DxScene/DxWindow 先可解释，再考虑抽象统一 Renderer。",

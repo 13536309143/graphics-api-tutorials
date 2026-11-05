@@ -1,0 +1,7 @@
+{
+  "target": "dx50_backface_culling",
+  "api": "dx",
+  "experiment": 50,
+  "chapter": null,
+  "independent": true
+}

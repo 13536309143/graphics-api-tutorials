@@ -1,0 +1,5 @@
+{
+  "target": "11_framebuffer",
+  "api": "gl",
+  "independent": true
+}

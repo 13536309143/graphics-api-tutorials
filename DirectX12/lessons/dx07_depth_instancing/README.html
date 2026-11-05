@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx07_depth_instancing · DSV、深度与实例化</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx07_depth_instancing · DSV、深度与实例化</h1>
-<p><a href="../../README.html">路线首页</a> · <a href="../dx06_texture_srv/README.html">上一课</a> · <a href="../dx08_compute_uav/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx07_depth_instancing · DSV、深度与实例化</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx07_depth_instancing"><h1>dx07_depth_instancing · DSV、深度与实例化</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="dx07_depth_instancing" href="main.cpp">main.cpp</a> · <a data-course-target="dx07_depth_instancing" href="support/">本地辅助实现</a> · <a data-course-target="dx07_depth_instancing" href="shaders/">本课着色器</a> · <a data-course-target="dx07_depth_instancing" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">路线首页</a> · <a data-course-target="dx06_texture_srv" href="../dx06_texture_srv/README.html">上一课</a> · <a data-course-target="dx08_compute_uav" href="../dx08_compute_uav/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
 <pre><code>cmake --preset dx12
@@ -9,7 +15,7 @@ cmake --build --preset dx12-debug --target dx07_depth_instancing --parallel 4
 <p>预期结果：一次提交绘制 25 个棋盘立方体。</p>
 <h2>先读哪些代码</h2>
 <p>DSV / Depth State / InstanceID</p>
-<p>本目录 <a href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/dx12_course.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
+<p>本目录 <a data-course-target="dx07_depth_instancing" href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/dx12_course.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
 <h2>原理和实现</h2>
 <p>深度图 default heap、D32 格式、DEPTH_WRITE 状态；DSV 绑定与 PSO 的 depth format/test/func 必须一致。实例位置由 SV_InstanceID 产生。一个命令列表使用完整的当前状态，不继承另一个列表里的资源绑定。</p>
 <p>本课使用与 Vulkan 相同的几何和验证目标，比较资源绑定与同步的不同表达。CPU 创建的数据、GPU 资源和用于访问它的 view/descriptor 是不同层次；用调试层与抓帧工具分别核对接口约定和实际内容。命令异步执行，示例显式等待 fence 后才重用单份上传资源与 command allocator。</p>
@@ -29,45 +35,69 @@ cmake --build --preset dx12-debug --target dx07_depth_instancing --parallel 4
 <p>深度资源、DSV 和 PSO 深度状态共同成立，SV_InstanceID 给每实例偏移。draw 的 instance count 不会自动改变 mesh 索引数或上传尺寸。</p>
 <p>配套精讲：<a href="../../../docs/compare/07_targets_depth_msaa.html">三 API 对照 · 目标、深度与 MSAA</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/dx12_course.hpp#L525">DirectX12/common/dx12_course.hpp</a>，第 525—554 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>    void resize(int w, int h) {
-        if (width == w &amp;&amp; height == h)
-            return;
-        c.wait();
-        for (auto&amp; image : colors)
-            image.Reset();
-        depth.Reset();
-        offscreen.Reset();
-        multisample.Reset();
-        dxCheck(swap-&gt;ResizeBuffers(2, UINT(w), UINT(h), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
-        width = w;
-        height = h;
-        for (UINT i = 0; i &lt; 2; ++i) {
-            dxCheck(swap-&gt;GetBuffer(i, IID_PPV_ARGS(&amp;colors[i])));
-            c.device-&gt;CreateRenderTargetView(colors[i].Get(), nullptr, rtv(i));
+<p>来自 <a data-course-target="dx07_depth_instancing" href="main.cpp#L9">DirectX12/lessons/dx07_depth_instancing/main.cpp</a>，第 9—62 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   &quot;shaders&quot; / &quot;scene.hlsl&quot;;
+    bool smoke = false, warp = false;
+    for (int i = 1; i &lt; argc; ++i) {
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+        warp |= std::strcmp(argv[i], &quot;--warp&quot;) == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error(&quot;GLFW failed&quot;);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, &quot;DirectX 12 Course&quot;, nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error(&quot;Window creation failed&quot;);
+    {
+        DxWindow app(window, 7, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? &quot;dx12_&quot; + std::to_string(7) + &quot;.ppm&quot;
+                                                   : options.captureStem + &quot;.ppm&quot;);
+        while (!glfwWindowShouldClose(window) &amp;&amp; (!smoke || frame &lt; 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &amp;w, &amp;h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene &amp;&amp; options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke &amp;&amp; frame == 3 ? &amp;output : nullptr);
+            ++frame;
         }
-        D3D12_HEAP_PROPERTIES heap{};
-        heap.Type = D3D12_HEAP_TYPE_DEFAULT;
-        D3D12_RESOURCE_DESC desc{};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        desc.Width = UINT64(w);
-        desc.Height = UINT(h);
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = 1;
-        desc.Format = DXGI_FORMAT_D32_FLOAT;
-        desc.SampleDesc.Count = options.samples;
-        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        D3D12_CLEAR_VALUE clear{};
-        clear.Format = desc.Format;
-        clear.DepthStencil.Depth = 1;</code></pre>
+    }
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../../OpenGL/lessons/29_msaa/README.html">29_msaa</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk10_offscreen/README.html">vk10_offscreen</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv02_application/README.html">nv02_application</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="README.html">dx07_depth_instancing</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="29_msaa" href="../../../OpenGL/lessons/29_msaa/README.html">29_msaa</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk10_offscreen" href="../../../Vulkan/native/lessons/vk10_offscreen/README.html">vk10_offscreen</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv02_application" href="../../../Vulkan/nvpro/lessons/nv02_application/README.html">nv02_application</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx07_depth_instancing" href="README.html">dx07_depth_instancing</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>关闭 depth write 但保留 test 会怎样？</p>

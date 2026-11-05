@@ -34,6 +34,18 @@ glslc 生成 SPIR-V，模块创建要求长度与 word 对齐等合法条件。�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,38 @@ glslc 生成 SPIR-V，模块创建要求长度与 word 对齐等合法条件。�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx42_shader_inspection --parallel 4
-.\DirectX12\build\bin\Debug\dx42_shader_inspection.exe
-ctest --preset dx12-debug -R "^dx42_shader_inspection$" --output-on-failure
+cmake --build --preset dx12-debug --target dx13_ch_shader_modules --parallel 4
+.\DirectX12\build\bin\Debug\dx13_ch_shader_modules.exe
+ctest --preset dx12-debug -R "^dx13_ch_shader_modules$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L639)，第 639—682 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/13_shader_modules/main.cpp](main.cpp#L55)，第 55—71 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-    } else if (id == 39) {
-        auto desc = c.queue->GetDesc();
-        require(desc.Type == D3D12_COMMAND_LIST_TYPE_DIRECT, "Expected direct queue");
-        std::cout << "queue type=" << desc.Type << ", priority=" << desc.Priority
-                  << ", flags=" << desc.Flags << ", nodeMask=" << desc.NodeMask << '\n';
-    } else if (id == 42) {
-        auto shader = labShader(options, "ComputeMain");
-        ComPtr<ID3D11ShaderReflection> reflection;
-        dxCheck(D3DReflect(
-            shader->GetBufferPointer(), shader->GetBufferSize(), IID_PPV_ARGS(&reflection)));
-        UINT x{}, y{}, z{};
-        reflection->GetThreadGroupSize(&x, &y, &z);
-        require(x == 64 && y == 1 && z == 1, "Unexpected shader thread-group reflection");
-        D3D11_SHADER_DESC desc{};
-        dxCheck(reflection->GetDesc(&desc));
-        std::cout << "Verified shader reflection: threads=" << x
-                  << ", bindings=" << desc.BoundResources << '\n';
-    } else if (id == 44) {
-        auto upload = c.buffer(256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-        auto readback = c.buffer(256, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-        for (uint32_t generation = 0; generation < 4; ++generation) {
-            std::vector<uint32_t> values(64, 41 + generation);
-            writeBuffer(upload.Get(), values.data(), 256);
-            c.begin();
-            c.cmd->CopyBufferRegion(readback.Get(), 0, upload.Get(), 0, 256);
-            c.submit();
-            require(readBuffer(readback.Get(), 64) == values,
-                    "Allocator reset contains stale commands");
-        }
-        std::cout << "Verified 4 allocator/list generations after completed fence values\n";
-    } else if (id == 45) {
-        ComputeKernel kernel(c, options);
-        kernel.execute(0, 128, 2, 3);
-        auto first = readBuffer(kernel.readback.Get(), 128);
-        auto second = c.buffer(4096,
-                               D3D12_HEAP_TYPE_DEFAULT,
-                               D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                               D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-        auto readback = c.buffer(4096, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-        c.begin();
-        c.cmd->SetComputeRootSignature(kernel.signature.Get());
-        c.cmd->SetPipelineState(kernel.pipeline.Get());
-        uint32_t values[4] = {0, 128, 5, 11};
-        c.cmd->SetComputeRoot32BitConstants(0, 4, values, 0);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 42);
+    DxDevice c(options.warp);
+    {
+        inspection(c, options);
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

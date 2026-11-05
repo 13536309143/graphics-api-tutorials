@@ -1,0 +1,7 @@
+{
+  "target": "dx21_ch_frames_in_flight",
+  "api": "dx",
+  "experiment": 24,
+  "chapter": "21_frames_in_flight",
+  "independent": true
+}

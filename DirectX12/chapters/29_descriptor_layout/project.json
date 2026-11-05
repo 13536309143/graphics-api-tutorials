@@ -1,0 +1,7 @@
+{
+  "target": "dx29_ch_descriptor_layout",
+  "api": "dx",
+  "experiment": 5,
+  "chapter": "29_descriptor_layout",
+  "independent": true
+}

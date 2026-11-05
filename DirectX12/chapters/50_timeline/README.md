@@ -34,6 +34,18 @@ Context 特性需求需要包含所用 timeline 能力；Application 自身的�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,43 @@ Context 特性需求需要包含所用 timeline 能力；Application 自身的�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx26_timeline_counter --parallel 4
-.\DirectX12\build\bin\Debug\dx26_timeline_counter.exe
-ctest --preset dx12-debug -R "^dx26_timeline_counter$" --output-on-failure
+cmake --build --preset dx12-debug --target dx50_ch_timeline --parallel 4
+.\DirectX12\build\bin\Debug\dx50_ch_timeline.exe
+ctest --preset dx12-debug -R "^dx50_ch_timeline$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L786)，第 786—829 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/50_timeline/main.cpp](main.cpp#L22)，第 22—43 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 26);
+    DxDevice c(options.warp);
+    {
+        dxCheck(c.queue->Signal(c.fence.Get(), ++c.value));
+        dxCheck(c.queue->Wait(c.fence.Get(), c.value));
+        dxCheck(c.queue->Signal(c.fence.Get(), ++c.value));
+        waitValue(c, c.value);
+        require(c.fence->GetCompletedValue() >= 2, "Fence counter did not advance");
         std::cout << "Verified queue producer 1 -> consumer 2 fence chain\n";
-    } else if (id == 31) {
-        for (int i = 0; i < 4; ++i)
-            stagingCopy(c);
-        std::cout << "Retired 4 UPLOAD/DEFAULT/READBACK generations after fence completion\n";
-    } else if (id == 32) {
-        ComPtr<ID3DBlob> cache, exactShader;
-        {
-            ComputeKernel first(c, options);
-            first.execute(0, 257, 3, 7);
-            require(readBuffer(first.readback.Get(), 257)[256] == 775,
-                    "Initial cached PSO result mismatch");
-            dxCheck(first.pipeline->GetCachedBlob(&cache));
-            exactShader = first.compiledShader;
-        }
-        {
-            ComputeKernel second(c, options, cache.Get(), exactShader.Get());
-            second.execute(0, 257, 3, 7);
-            require(readBuffer(second.readback.Get(), 257)[256] == 775,
-                    "Reloaded cached PSO mismatch");
-        }
-        std::cout << "Verified cached PSO reload, bytes=" << cache->GetBufferSize() << '\n';
-    } else if (id == 33) {
-        dxCheck(c.queue->SetName(L"Course Graphics Queue"));
-        dxCheck(c.cmd->SetName(L"Course Upload Commands"));
-        dxCheck(c.allocator->SetName(L"Course Upload Allocator"));
-        c.begin();
-        c.submit();
-        std::cout << "Named queue, command list and allocator for GPU debugging; event regions "
-                     "require PIX helpers\n";
-    } else {
-        ComputeKernel kernel(c, options);
-        uint32_t mode = id == 30 ? 2 : id == 14 || id == 15 ? 1 : 0;
-        uint32_t count = id == 28 || id == 30 ? 257 : 128;
-        for (uint32_t slot = 0; slot < (id == 15 ? 3u : 1u); ++slot) {
-            uint32_t factor = id == 16 ? 9 : 3, bias = id == 16 ? 17 : 7;
-            kernel.execute(mode, count, factor, bias, slot);
-            auto result = readBuffer(kernel.readback.Get(), mode == 2 ? (count + 63) / 64 : count);
-            if (mode == 2) {
-                auto sum = std::accumulate(result.begin(), result.end(), 0u);
-                require(sum == count * (count + 1) / 2, "Shared reduction result mismatch");
-            } else {
-                if (mode == 1) {
-                    factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

@@ -1,0 +1,7 @@
+{
+  "target": "vk49_ch_group_shared",
+  "api": "vk",
+  "experiment": 30,
+  "chapter": "49_group_shared",
+  "independent": true
+}

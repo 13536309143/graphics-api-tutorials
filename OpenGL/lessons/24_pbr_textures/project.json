@@ -1,0 +1,5 @@
+{
+  "target": "24_pbr_textures",
+  "api": "gl",
+  "independent": true
+}

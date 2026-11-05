@@ -1,0 +1,7 @@
+{
+  "target": "vk31_ch_dynamic_offsets",
+  "api": "vk",
+  "experiment": 15,
+  "chapter": "31_dynamic_offsets",
+  "independent": true
+}

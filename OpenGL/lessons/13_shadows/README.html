@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 13 课：阴影贴图</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 13 课：阴影贴图</h1>
-<p><a href="../../README.html">课程首页</a> · <a href="../12_instancing/README.html">上一课</a> · <a href="../14_model_obj/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 13 课：阴影贴图</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="13_shadows"><h1>第 13 课：阴影贴图</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="13_shadows" href="main.cpp">main.cpp</a> · <a data-course-target="13_shadows" href="support/">本地辅助实现</a> · <a data-course-target="13_shadows" href="shaders/">本课着色器</a> · <a data-course-target="13_shadows" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">课程首页</a> · <a data-course-target="12_instancing" href="../12_instancing/README.html">上一课</a> · <a data-course-target="14_model_obj" href="../14_model_obj/README.html">下一课</a></p>
 <h2>学完你应该能够</h2>
 <p>说明“从光源视角判断遮挡”，运行并修改本课示例。</p>
 <h2>运行与观察</h2>
@@ -14,7 +20,7 @@ cmake --build --preset opengl-debug --target 13_shadows --parallel 4
 <p>lightSpace=lightProjection*lightView；片段投影后除以 w，再从 [-1,1] 映射到 [0,1]。深度纹理只接到 FBO 的 GL_DEPTH_ATTACHMENT，使用 glDrawBuffer(GL_NONE)/glReadBuffer(GL_NONE)。采样时使用独立单元 1，颜色纹理仍在单元 0。</p>
 <p>同一表面的浮点误差会造成 shadow acne；bias 给比较留出余量，过大又会让阴影脱离物体（peter panning）。本例使用依赖 N·L 的 bias 和 3×3 PCF，让边缘稍柔和。纹理边界设白色深度 1，超出光源远平面的片段不加阴影；这些是有限视锥的处理，不是无限范围阴影。</p>
 <p>观察地面上的旋转方块投影，按空格关闭阴影作对照。第一遍/第二遍必须用同一帧物体变换；视口也必须从 2048×2048 恢复成窗口大小。</p>
-<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<p>首先阅读 <a data-course-target="13_shadows" href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
 <h2>动手练习</h2>
 <p>修改 ShadowMap::size 看锯齿；把 bias 设 0 看 acne；关闭 PCF 比较边缘。</p>
 <p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build --preset opengl-debug --target 13_shadows --parallel 4</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
@@ -27,10 +33,12 @@ cmake --build --preset opengl-debug --target 13_shadows --parallel 4
 <p>深度遍用 lightVP 保存从光源看到的最近表面，光照遍再比较。偏移修正有限精度，不应靠极大的 bias 隐藏所有问题；先看深度图是否覆盖场景。</p>
 <p>配套精讲：<a href="../../../docs/compare/13_multipass_effects.html">三 API 对照 · 阴影、SSAO 与后处理</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="main.cpp#L5">OpenGL/lessons/13_shadows/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<p>来自 <a data-course-target="13_shadows" href="main.cpp#L7">OpenGL/lessons/13_shadows/main.cpp</a>，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;13_shadows - OpenGL Course&quot;);
     Shader depth(app, &quot;depth.vert&quot;, &quot;depth.frag&quot;), lit(app, &quot;lit.vert&quot;, &quot;lit.frag&quot;);
+    // CPU 顶点数据上传后，由 VAO 保存属性布局；布局必须匹配顶点 shader。
     Mesh mesh(cube());
     Texture texture;
     Camera camera;
@@ -49,16 +57,14 @@ cmake --build --preset opengl-debug --target 13_shadows --parallel 4
         s.set(&quot;model&quot;, glm::translate(glm::mat4(1), glm::vec3(2, 0, -2)));
         mesh.draw();
     };
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
-        camera.update(app);
-        glm::vec3 light(-3, 6, 3);
-        auto lightSpace = glm::ortho(-7.f, 7.f, -7.f, 7.f, 1.f, 20.f) *
-                          glm::lookAt(light, glm::vec3(0), glm::vec3(0, 1, 0));</code></pre>
+        camera.update(app);</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="README.html">13_shadows</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="13_shadows" href="README.html">13_shadows</a></td></tr>
 <tr><td>Vulkan 原生</td><td>迁移设计：vk10 已有离屏/blit；完整 Bloom/SSAO 仍需资源、采样管线及逐遍依赖。</td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td>迁移设计：RenderTarget 与 ImGui 仅是接入点；新增多遍效果仍要自己描述写后读。</td></tr>
 <tr><td>DirectX 12</td><td>迁移设计：dx10 是 CopyResource，迁移后处理需新增可采样目标和全屏像素管线。</td></tr>

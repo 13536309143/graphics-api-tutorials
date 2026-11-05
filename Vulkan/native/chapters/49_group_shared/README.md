@@ -34,6 +34,18 @@ groupshared 与 GroupMemoryBarrierWithGroupSync 承担相同算法职责。线�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,41 +57,64 @@ groupshared 与 GroupMemoryBarrierWithGroupSync 承担相同算法职责。线�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk30_shared_reduce --parallel 4
-.\Vulkan\native\build\bin\Debug\vk30_shared_reduce.exe
-ctest --preset vulkan-native-debug -R "^vk30_shared_reduce$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk49_ch_group_shared --parallel 4
+.\Vulkan\native\build\bin\Debug\vk49_ch_group_shared.exe
+ctest --preset vulkan-native-debug -R "^vk49_ch_group_shared$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/common/shaders/lab.comp](../../../common/shaders/lab.comp#L19)，第 19—38 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/49_group_shared/main.cpp](main.cpp#L157)，第 157—199 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
-```glsl
-void main() {
-    uint i = gl_GlobalInvocationID.x;
-    uint lane = gl_LocalInvocationID.x;
-    if (operation.mode == 2) {
-        // All invocations reach each barrier, including padded tail lanes.
-        partial[lane] = i < operation.count ? i + 1 : 0;
-        barrier();
-        for (uint stride = 32; stride > 0; stride >>= 1) {
-            if (lane < stride)
-                partial[lane] += partial[lane + stride];
-            barrier();
+```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 30);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            ComputeKernel kernel(c);
+            uint32_t mode = (2);
+            uint32_t count = (257);
+            for (uint32_t slot = 0; slot < ((1u)); ++slot) {
+                uint32_t factor = (3), bias = (7);
+                kernel.execute(mode, count, factor, bias, slot);
+                auto result = readWords(kernel.output, mode == 2 ? (count + 63) / 64 : count);
+                if (mode == 2) {
+                    uint32_t total = std::accumulate(result.begin(), result.end(), 0u);
+                    require(total == count * (count + 1) / 2, "Shared-memory reduction mismatch");
+                } else {
+                    if (mode == 1) {
+                        factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                        bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                    }
+                    for (uint32_t i = 0; i < count; ++i)
+                        require(result[i] == i * factor + bias,
+                                "Compute/dynamic-binding result mismatch");
+                }
+            }
+            std::cout << "Verified experiment " << 30 << ", items=" << count
+                      << ", uniform stride=" << kernel.stride << '\n';
         }
-        if (lane == 0)
-            outputData.values[gl_WorkGroupID.x] = partial[0];
-    } else if (i < operation.count) {
-        uint factor = operation.mode == 1 ? parameters.values.x : operation.factor;
-        uint bias = operation.mode == 1 ? parameters.values.y : operation.bias;
-        outputData.values[i] = i * factor + bias;
     }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
 }
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

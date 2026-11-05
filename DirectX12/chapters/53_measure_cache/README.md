@@ -34,6 +34,18 @@ UI、离屏与框架调度应从场景 pass 测量中区分。工具抓帧的额
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,38 @@ UI、离屏与框架调度应从场景 pass 测量中区分。工具抓帧的额
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx25_timestamps --parallel 4
-.\DirectX12\build\bin\Debug\dx25_timestamps.exe
-ctest --preset dx12-debug -R "^dx25_timestamps$" --output-on-failure
+cmake --build --preset dx12-debug --target dx53_ch_measure_cache --parallel 4
+.\DirectX12\build\bin\Debug\dx53_ch_measure_cache.exe
+ctest --preset dx12-debug -R "^dx53_ch_measure_cache$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L210)，第 210—253 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/53_measure_cache/main.cpp](main.cpp#L59)，第 59—75 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-void timestamps(DxDevice& c) {
-    D3D12_QUERY_HEAP_DESC desc{};
-    desc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-    desc.Count = 2;
-    ComPtr<ID3D12QueryHeap> heap;
-    dxCheck(c.device->CreateQueryHeap(&desc, IID_PPV_ARGS(&heap)));
-    auto upload = c.buffer(1024 * 1024, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-    auto gpu = c.buffer(1024 * 1024, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST);
-    auto result = c.buffer(16, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    std::vector<uint8_t> bytes(1024 * 1024);
-    writeBuffer(upload.Get(), bytes.data(), bytes.size());
-    c.begin();
-    c.cmd->EndQuery(heap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
-    c.cmd->CopyBufferRegion(gpu.Get(), 0, upload.Get(), 0, bytes.size());
-    c.cmd->EndQuery(heap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
-    c.cmd->ResolveQueryData(heap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, 2, result.Get(), 0);
-    c.submit();
-    auto words = readBuffer(result.Get(), 4);
-    uint64_t ticks[2]{};
-    std::memcpy(ticks, words.data(), 16);
-    UINT64 frequency{};
-    dxCheck(c.queue->GetTimestampFrequency(&frequency));
-    require(frequency != 0, "Invalid timestamp frequency");
-    std::cout << "GPU copy measurement=" << double(ticks[1] - ticks[0]) * 1000 / frequency
-              << " ms (not a cross-API benchmark)\n";
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 25);
+    DxDevice c(options.warp);
+    {
+        timestamps(c);
+    }
+    c.checkMessages();
+    return 0;
 }
-// 线性 UNORM mip 在 GPU 上由 SRV→UAV 逐级生成；sRGB 材质链用线性平均后再编码的 CPU 路径。
-struct GpuTexture {
-    DxDevice& c;
-    ComPtr<ID3D12Resource> texture;
-    std::vector<Pixels> reference;
-    DXGI_FORMAT viewFormat;
-    GpuTexture(
-        DxDevice& context, const LabOptions& options, Pixels pixels, bool mips, bool srgb = false)
-        : c(context) {
-        reference = mips ? mipReference(pixels, srgb) : std::vector<Pixels>{pixels};
-        const UINT levels = UINT(reference.size());
-        const bool gpuMips = mips && !srgb;
-        viewFormat = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
-        D3D12_RESOURCE_DESC desc{};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        desc.Width = pixels.width;
-        desc.Height = pixels.height;
-        desc.DepthOrArraySize = 1;
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

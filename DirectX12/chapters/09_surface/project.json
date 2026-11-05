@@ -1,0 +1,7 @@
+{
+  "target": "dx09_ch_surface",
+  "api": "dx",
+  "experiment": 40,
+  "chapter": "09_surface",
+  "independent": true
+}

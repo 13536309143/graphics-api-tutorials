@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 枚举 layer 后创建 debug messenger，并按 severity/type 分类。实验额外注册 INFO 回调，提交应用信息并确认回调收到。外部 loader manifest 诊断与应用 VUID 分别记录。GPU 区域标签通过 debug-utils entry points 录制。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,31 @@ cmake --build --preset vulkan-native-debug --target vk38_diagnostic_delivery --p
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L775)，第 775—818 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk38_diagnostic_delivery/main.cpp](main.cpp#L54)，第 54—75 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void inspection(const VkContextRef& c, int id) {
-    if (id == 37) {
-        uint32_t version{};
-        vkCheck(vkEnumerateInstanceVersion(&version));
-        uint32_t count{};
-        vkCheck(vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr));
-        std::vector<VkExtensionProperties> extensions(count);
-        vkCheck(vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data()));
-        bool found = false;
-        for (const auto& e : extensions) {
-            std::cout << e.extensionName << '\n';
-            found |= std::strcmp(e.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0;
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 38);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            inspection(c);
         }
-        require(found, "Debug utils extension missing");
-        std::cout << "Loader version=" << VK_API_VERSION_MAJOR(version) << '.'
-                  << VK_API_VERSION_MINOR(version) << '\n';
-    } else if (id == 38) {
-        uint32_t layers{};
-        vkCheck(vkEnumerateInstanceLayerProperties(&layers, nullptr));
-        std::vector<VkLayerProperties> list(layers);
-        vkCheck(vkEnumerateInstanceLayerProperties(&layers, list.data()));
-        for (const auto& l : list)
-            std::cout << "layer=" << l.layerName << '\n';
-        int delivered = 0;
-        VkDebugUtilsMessengerCreateInfoEXT info{
-            VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-        info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-        info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
-        info.pUserData = &delivered;
-        info.pfnUserCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT,
-                                  VkDebugUtilsMessageTypeFlagsEXT,
-                                  const VkDebugUtilsMessengerCallbackDataEXT*,
-                                  void* user) -> VkBool32 {
-            ++*static_cast<int*>(user);
-            return VK_FALSE;
-        };
-        auto create = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(c.instance, "vkCreateDebugUtilsMessengerEXT"));
-        auto destroy = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(c.instance, "vkDestroyDebugUtilsMessengerEXT"));
-        auto message = reinterpret_cast<PFN_vkSubmitDebugUtilsMessageEXT>(
-            vkGetInstanceProcAddr(c.instance, "vkSubmitDebugUtilsMessageEXT"));
-        require(create && destroy && message, "Debug utils functions missing");
-        VkDebugUtilsMessengerEXT messenger{};
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

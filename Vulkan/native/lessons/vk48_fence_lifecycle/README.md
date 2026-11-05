@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 acquire semaphore 让提交等待图像可用，render-finished semaphore 供 present 等待，fence 让 CPU 复用上一代资源。独立实验验证 signaled→reset→submit→complete；实际窗口路径只在成功 acquire 后 reset fence，避免错误分支留下永远不会完成的等待。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,31 @@ cmake --build --preset vulkan-native-debug --target vk48_fence_lifecycle --paral
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L890)，第 890—933 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk48_fence_lifecycle/main.cpp](main.cpp#L29)，第 29—50 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        require(r.size >= 257 && r.alignment > 0, "Invalid memory requirements");
-        std::cout << "requested=257, allocation=" << r.size << ", alignment=" << r.alignment
-                  << ", memoryTypeBits=" << r.memoryTypeBits << '\n';
-    } else if (id == 48) {
-        VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-        fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        VkFence fence{};
-        vkCheck(vkCreateFence(c.device, &fi, nullptr, &fence));
-        require(vkGetFenceStatus(c.device, fence) == VK_SUCCESS, "Initial fence not signaled");
-        vkCheck(vkResetFences(c.device, 1, &fence));
-        require(vkGetFenceStatus(c.device, fence) == VK_NOT_READY,
-                "Reset fence signaled unexpectedly");
-        VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-        vkCheck(vkQueueSubmit(c.queue, 1, &submit, fence));
-        vkCheck(vkWaitForFences(c.device, 1, &fence, VK_TRUE, UINT64_MAX));
-        vkDestroyFence(c.device, fence, nullptr);
-        std::cout << "Verified signaled -> reset -> submitted -> complete fence lifecycle\n";
-    } else if (id == 51) {
-        static_assert(sizeof(Frame) == 64 && sizeof(Draw) == 80 && offsetof(Draw, settings) == 64);
-        ComputeKernel kernel(c);
-        kernel.execute(1, 128, 0, 0, 2);
-        auto r = readWords(kernel.output, 128);
-        for (uint32_t i = 0; i < 128; ++i)
-            require(r[i] == i * 7 + 13, "UBO layout mismatch");
-        std::cout
-            << "Verified Frame=64, Draw=80, settings offset=64 and GPU uniform vector decoding\n";
-    } else if (id == 54) {
-        capabilities(c);
-        stagingCopy(c);
-        GpuTexture mips(c, Pixels{64, 64, checker()}, true);
-        mips.verify();
-        frameRing(c);
-        std::cout << "Completed resource/texture/frame-slot acceptance suite\n";
-    } else
-        throw std::runtime_error("Unknown inspection id");
-}
-
-} // namespace
-int nativeLabMain(int argc, char** argv, int id) {
-    auto options = labOptions(argc, argv, id);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 48);
     nativeShaders = options.directory / "shaders";
-    if (id == 17 || id == 19 || id == 20 || id == 21 || id == 22 || id == 23 || id == 27 ||
-        id == 29 || id == 34 || id == 35 || id == 36 || id == 41 || id == 43 || id == 49 ||
-        id == 50 || id == 52 || id == 53)
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            inspection(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

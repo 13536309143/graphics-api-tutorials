@@ -1,0 +1,7 @@
+{
+  "target": "dx45_ch_msaa",
+  "api": "dx",
+  "experiment": 20,
+  "chapter": "45_msaa",
+  "independent": true
+}

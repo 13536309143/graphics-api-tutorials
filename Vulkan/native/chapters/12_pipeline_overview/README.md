@@ -34,6 +34,18 @@ PSO 包含 VS/PS、input layout、raster/blend/depth、目标格式和 sample de
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,77 @@ PSO 包含 VS/PS、input layout、raster/blend/depth、目标格式和 sample de
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk03_triangle --parallel 4
-.\Vulkan\native\build\bin\Debug\vk03_triangle.exe
-ctest --preset vulkan-native-debug -R "^vk03_triangle$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk12_ch_pipeline_overview --parallel 4
+.\Vulkan\native\build\bin\Debug\vk12_ch_pipeline_overview.exe
+ctest --preset vulkan-native-debug -R "^vk12_ch_pipeline_overview$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L391)，第 391—434 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/12_pipeline_overview/main.cpp](main.cpp#L9)，第 9—64 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-        gp.pNext = &rendering;
-        gp.stageCount = 2;
-        gp.pStages = stages;
-        gp.pVertexInputState = &vi;
-        gp.pInputAssemblyState = &ia;
-        gp.pViewportState = &viewport;
-        gp.pRasterizationState = &raster;
-        gp.pMultisampleState = &ms;
-        gp.pDepthStencilState = &depth;
-        gp.pColorBlendState = &blend;
-        gp.pDynamicState = &dynamic;
-        gp.layout = pipelineLayout;
-        VkResult result = vkCreateGraphicsPipelines(c.device, cache, 1, &gp, nullptr, &pipeline);
-        vkDestroyShaderModule(c.device, vs, nullptr);
-        vkDestroyShaderModule(c.device, ps, nullptr);
-        vkCheck(result, "Graphics pipeline");
-    }
+int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
 
-    // 这里只录制绘制指令；外层调用者负责开始/结束渲染、附件布局和提交同步。
-    void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {
-        auto f = overrideFrame.value_or(frame(mode, float(size.width) / size.height, true));
-        if (frameProvider)
-            f = frameProvider(float(size.width) / size.height, time, true);
-        uniform.upload(&f, sizeof(f));
-        VkViewport viewport{
-            0, 0, float(size.width) / (halfViewport ? 2 : 1), float(size.height), 0, 1};
-        VkRect2D scissor{{0, 0}, size};
-        if (halfScissor)
-            scissor.extent.width /= 2;
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        vkCmdBindDescriptorSets(
-            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor, 0, nullptr);
-        if (mode >= 4) {
-            VkBuffer vb = overrideVertices ? overrideVertices : vertices.buffer;
-            VkDeviceSize offset = 0;
-            vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
-            if (indices.buffer)
-                vkCmdBindIndexBuffer(cmd, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-        }
-        for (auto d : overrideDraws.empty() ? draws(mode, time) : overrideDraws) {
-            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    if (!glfwInit())
+        throw std::runtime_error("GLFW initialization failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "Native Vulkan Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        NativeDevice d(window);
+        Swapchain swap(d, window, 3, options);
+        VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+        pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pi.queueFamilyIndex = d.c.family;
+        VkCommandPool pool;
+        vkCheck(vkCreateCommandPool(d.c.device, &pi, nullptr, &pool));
+        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        ai.commandPool = pool;
+        ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        ai.commandBufferCount = 1;
+        VkCommandBuffer cmd;
+        vkCheck(vkAllocateCommandBuffers(d.c.device, &ai, &cmd));
+        VkSemaphoreCreateInfo si{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkSemaphore acquired;
+        vkCheck(vkCreateSemaphore(d.c.device, &si, nullptr, &acquired));
+        VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkFence fence;
+        vkCheck(vkCreateFence(d.c.device, &fi, nullptr, &fence));
+        int frames = 0;
+        while (!glfwWindowShouldClose(window) && (!smoke || frames < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (w < 1 || h < 1) {
+                glfwWaitEvents();
+                continue;
+            }
+            if (uint32_t(w) != swap.extent.width || uint32_t(h) != swap.extent.height)
+                swap.recreate();
+            // 先等待上一轮命令完成，再复用命令缓冲和共享 UBO；本课程采用单帧串行同步。
+            vkCheck(vkWaitForFences(d.c.device, 1, &fence, VK_TRUE, UINT64_MAX));
+            uint32_t imageIndex;
+            // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +159,4 @@ ctest --preset vulkan-native-debug -R "^vk03_triangle$" --output-on-failure
 
 ## 固定输入的实际 GPU 读回
 
-![vk03_triangle](../../../../docs/previews/vk03_triangle.png)
+![vk12_ch_pipeline_overview](../../../../docs/previews/vk03_triangle.png)

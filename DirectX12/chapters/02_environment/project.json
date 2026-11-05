@@ -1,0 +1,7 @@
+{
+  "target": "dx02_ch_environment",
+  "api": "dx",
+  "experiment": 37,
+  "chapter": "02_environment",
+  "independent": true
+}

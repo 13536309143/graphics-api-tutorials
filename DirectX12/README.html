@@ -13,16 +13,16 @@ ctest --preset dx12-debug</code></pre>
 <p>程序位于 <code>DirectX12/build/bin/Debug</code>，shader 在旁边 shaders/，改源 shader 后重新 build。Release 使用 <code>dx12-release</code>。每课也可在本地阅读器中点击运行。</p>
 <div class="table-scroll"><table>
 <tr><td>程序</td><td>课程</td></tr>
-<tr><td>dx01_device</td><td><a href="lessons/dx01_device/README.html">设备、适配器与调试层</a></td></tr>
-<tr><td>dx02_swapchain</td><td><a href="lessons/dx02_swapchain/README.html">交换链、RTV 与呈现</a></td></tr>
-<tr><td>dx03_triangle</td><td><a href="lessons/dx03_triangle/README.html">Root Signature、PSO 与三角形</a></td></tr>
-<tr><td>dx04_vertex_buffer</td><td><a href="lessons/dx04_vertex_buffer/README.html">顶点缓冲与 VBV</a></td></tr>
-<tr><td>dx05_indexed_cbv</td><td><a href="lessons/dx05_indexed_cbv/README.html">索引、CBV 与 Root Constants</a></td></tr>
-<tr><td>dx06_texture_srv</td><td><a href="lessons/dx06_texture_srv/README.html">纹理上传、SRV 与描述符堆</a></td></tr>
-<tr><td>dx07_depth_instancing</td><td><a href="lessons/dx07_depth_instancing/README.html">DSV、深度与实例化</a></td></tr>
-<tr><td>dx08_compute_uav</td><td><a href="lessons/dx08_compute_uav/README.html">Compute UAV 与 GPU 读回</a></td></tr>
-<tr><td>dx09_pbr</td><td><a href="lessons/dx09_pbr/README.html">HLSL 直接光 PBR</a></td></tr>
-<tr><td>dx10_offscreen</td><td><a href="lessons/dx10_offscreen/README.html">离屏 RTV 与 CopyResource</a></td></tr>
+<tr><td>dx01_device</td><td><a data-course-target="dx01_device" href="lessons/dx01_device/README.html">设备、适配器与调试层</a></td></tr>
+<tr><td>dx02_swapchain</td><td><a data-course-target="dx02_swapchain" href="lessons/dx02_swapchain/README.html">交换链、RTV 与呈现</a></td></tr>
+<tr><td>dx03_triangle</td><td><a data-course-target="dx03_triangle" href="lessons/dx03_triangle/README.html">Root Signature、PSO 与三角形</a></td></tr>
+<tr><td>dx04_vertex_buffer</td><td><a data-course-target="dx04_vertex_buffer" href="lessons/dx04_vertex_buffer/README.html">顶点缓冲与 VBV</a></td></tr>
+<tr><td>dx05_indexed_cbv</td><td><a data-course-target="dx05_indexed_cbv" href="lessons/dx05_indexed_cbv/README.html">索引、CBV 与 Root Constants</a></td></tr>
+<tr><td>dx06_texture_srv</td><td><a data-course-target="dx06_texture_srv" href="lessons/dx06_texture_srv/README.html">纹理上传、SRV 与描述符堆</a></td></tr>
+<tr><td>dx07_depth_instancing</td><td><a data-course-target="dx07_depth_instancing" href="lessons/dx07_depth_instancing/README.html">DSV、深度与实例化</a></td></tr>
+<tr><td>dx08_compute_uav</td><td><a data-course-target="dx08_compute_uav" href="lessons/dx08_compute_uav/README.html">Compute UAV 与 GPU 读回</a></td></tr>
+<tr><td>dx09_pbr</td><td><a data-course-target="dx09_pbr" href="lessons/dx09_pbr/README.html">HLSL 直接光 PBR</a></td></tr>
+<tr><td>dx10_offscreen</td><td><a data-course-target="dx10_offscreen" href="lessons/dx10_offscreen/README.html">离屏 RTV 与 CopyResource</a></td></tr>
 </table></div>
 <h2>代码结构</h2>
 <p>每课 main.cpp 选择该课执行路径；共享初始化、资源与命令代码集中在 common/ 下。common/dx12_course.hpp 包含设备、命令、资源与绘制；shaders/scene.hlsl 包含 VS/PS/CS，Debug 编译保留调试信息。几何与 Frame/Draw 布局在 shared/scene.hpp。共享代码仍是教学源码，可直接打断点，不是黑盒二进制依赖。</p>

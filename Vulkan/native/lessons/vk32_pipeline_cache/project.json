@@ -1,0 +1,7 @@
+{
+  "target": "vk32_pipeline_cache",
+  "api": "vk",
+  "experiment": 32,
+  "chapter": null,
+  "independent": true
+}

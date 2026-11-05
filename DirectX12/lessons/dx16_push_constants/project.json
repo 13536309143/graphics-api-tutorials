@@ -1,0 +1,7 @@
+{
+  "target": "dx16_push_constants",
+  "api": "dx",
+  "experiment": 16,
+  "chapter": null,
+  "independent": true
+}

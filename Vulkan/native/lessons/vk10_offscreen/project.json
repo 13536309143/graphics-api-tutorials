@@ -1,0 +1,7 @@
+{
+  "target": "vk10_offscreen",
+  "api": "vk",
+  "experiment": 10,
+  "chapter": null,
+  "independent": true
+}

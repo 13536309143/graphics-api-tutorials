@@ -1,0 +1,5 @@
+{
+  "target": "02_triangle",
+  "api": "gl",
+  "independent": true
+}

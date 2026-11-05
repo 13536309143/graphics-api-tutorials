@@ -1,0 +1,7 @@
+{
+  "target": "vk19_texture_lod",
+  "api": "vk",
+  "experiment": 19,
+  "chapter": null,
+  "independent": true
+}

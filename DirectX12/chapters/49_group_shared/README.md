@@ -34,6 +34,18 @@ shared 数组在组内可见，barrier 保证迭代间写入/读取顺序。不�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,58 @@ shared 数组在组内可见，barrier 保证迭代间写入/读取顺序。不�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx30_shared_reduce --parallel 4
-.\DirectX12\build\bin\Debug\dx30_shared_reduce.exe
-ctest --preset dx12-debug -R "^dx30_shared_reduce$" --output-on-failure
+cmake --build --preset dx12-debug --target dx49_ch_group_shared --parallel 4
+.\DirectX12\build\bin\Debug\dx49_ch_group_shared.exe
+ctest --preset dx12-debug -R "^dx49_ch_group_shared$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/shaders/lab.hlsl](../../shaders/lab.hlsl#L12)，第 12—55 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/49_group_shared/main.cpp](main.cpp#L136)，第 136—172 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
-```hlsl
-[numthreads(64, 1, 1)] void ComputeMain(uint3 global : SV_DispatchThreadID,
-                                        uint3 local : SV_GroupThreadID,
-                                        uint3 group : SV_GroupID) {
-    uint i = global.x, lane = local.x;
-    if (mode == 2) {
-        partial[lane] = i < count ? i + 1 : 0;
-        GroupMemoryBarrierWithGroupSync();
-        for (uint stride = 32; stride > 0; stride >>= 1) {
-            if (lane < stride)
-                partial[lane] += partial[lane + stride];
-            GroupMemoryBarrierWithGroupSync();
+```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 30);
+    DxDevice c(options.warp);
+    {
+        ComputeKernel kernel(c, options);
+        uint32_t mode = (2);
+        uint32_t count = (257);
+        for (uint32_t slot = 0; slot < ((1u)); ++slot) {
+            uint32_t factor = (3), bias = (7);
+            kernel.execute(mode, count, factor, bias, slot);
+            auto result = readBuffer(kernel.readback.Get(), mode == 2 ? (count + 63) / 64 : count);
+            if (mode == 2) {
+                auto sum = std::accumulate(result.begin(), result.end(), 0u);
+                require(sum == count * (count + 1) / 2, "Shared reduction result mismatch");
+            } else {
+                if (mode == 1) {
+                    factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                    bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                }
+                for (uint32_t i = 0; i < count; ++i)
+                    require(result[i] == i * factor + bias, "Compute/root-binding mismatch");
+            }
         }
-        if (lane == 0)
-            values[group.x] = partial[0];
-    } else if (i < count) {
-        values[i] = i * (mode == 1 ? parameters.x : factor) + (mode == 1 ? parameters.y : bias);
+        std::cout << "Verified experiment " << 30 << ", items=" << count
+                  << ", constant stride=256\n";
     }
-} struct Vertex {
-    float3 position;
-    float3 normal;
-    float2 uv;
-};
-RWStructuredBuffer<Vertex> vertices : register(u1);
-cbuffer Tick : register(b2) {
-    float time;
-    uint particleCount;
-};
-[numthreads(64, 1, 1)] void ParticleMain(uint3 id : SV_DispatchThreadID) {
-    uint i = id.x;
-    if (i >= particleCount * 3)
-        return;
-    uint particle = i / 3, corner = i % 3;
-    float phase = particle * 2.39996323 + time * .35;
-    float radius = .1 + .75 * sqrt((float)particle / particleCount);
-    float2 center = float2(cos(phase), sin(phase)) * radius;
-    float a = corner * 2.0943951;
-    Vertex v;
-    v.position = float3(center + float2(cos(a), sin(a)) * .028, 0);
-    v.normal = float3(.25 + .7 * (particle % 7) / 6, .65, .95);
-    v.uv = 0;
-    vertices[i] = v;
-} Texture2D<float4> mipSource : register(t0);
-RWTexture2D<float4> mipOutput : register(u2);
-[numthreads(8, 8, 1)] void MipMain(uint3 id : SV_DispatchThreadID) {
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

@@ -1,5 +1,17 @@
 # vk08_compute_readback · Compute、屏障与 GPU 读回
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [上一课](../vk07_depth_instancing/README.md) · [下一课](../vk09_pbr/README.md)
 
 ## 构建和运行
@@ -52,19 +64,34 @@ storage buffer 收集 256 项，dispatch 后声明 compute-write 到 host-read�
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/shaders/square.comp](../../../common/shaders/square.comp#L2)，第 2—12 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk08_compute_readback/main.cpp](main.cpp#L9)，第 9—34 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
-```glsl
-layout(local_size_x = 64) in;
-layout(binding = 0) buffer Values {
-    uint values[];
-};
+```cpp
+int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
 
-// 每工作组 64 个线程；host dispatch 4 组，结果通过 storage buffer 读回。
-void main() {
-    uint i = gl_GlobalInvocationID.x;
-    if (i < 256)
-        values[i] = i * i + 1;
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    {
+        NativeDevice d(nullptr);
+        {
+            computeSquares(d.c, nativeShaders);
+        }
+        return validationErrors ? 1 : 0;
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
 }
 ```
 

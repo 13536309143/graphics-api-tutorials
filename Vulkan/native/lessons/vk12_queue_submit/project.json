@@ -1,0 +1,7 @@
+{
+  "target": "vk12_queue_submit",
+  "api": "vk",
+  "experiment": 12,
+  "chapter": null,
+  "independent": true
+}

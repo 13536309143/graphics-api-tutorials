@@ -34,6 +34,18 @@ RenderTarget::update 负责尺寸相关分配，之后 ImTexture 更新 view。�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,36 @@ RenderTarget::update 负责尺寸相关分配，之后 ImTexture 更新 view。�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk20_msaa_resolve --parallel 4
-.\Vulkan\native\build\bin\Debug\vk20_msaa_resolve.exe
-ctest --preset vulkan-native-debug -R "^vk20_msaa_resolve$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk17_ch_targets --parallel 4
+.\Vulkan\native\build\bin\Debug\vk17_ch_targets.exe
+ctest --preset vulkan-native-debug -R "^vk17_ch_targets$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L412)，第 412—455 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/17_targets/main.cpp](main.cpp#L40)，第 40—54 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-            VkRenderingAttachmentInfo color{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-            color.imageView =
-                options.samples == VK_SAMPLE_COUNT_1_BIT ? targetView : swap.multisample.view;
-            if (options.samples != VK_SAMPLE_COUNT_1_BIT) {
-                color.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
-                color.resolveImageView = targetView;
-                color.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            }
-            color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            color.clearValue.color = {{.035f, .055f, .09f, 1}};
-            VkRenderingAttachmentInfo depth{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-            depth.imageView = swap.depth.view;
-            depth.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-            depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            depth.clearValue.depthStencil = {1, 0};
-            VkRenderingInfo render{VK_STRUCTURE_TYPE_RENDERING_INFO};
-            render.renderArea = {{0, 0}, swap.extent};
-            render.layerCount = 1;
-            render.colorAttachmentCount = 1;
-            render.pColorAttachments = &color;
-            render.pDepthAttachment = &depth;
-            vkCmdBeginRendering(cmd, &render);
-            if (swap.scene) {
-                float time = smoke ? 1.f : float(glfwGetTime());
-                if (options.update)
-                    options.update(*swap.scene, time);
-                swap.scene->render(cmd, swap.extent, time);
-            }
-            vkCmdEndRendering(cmd);
-            if (mode == 10) {
-                barrier(cmd,
-                        target,
-                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        VK_PIPELINE_STAGE_2_BLIT_BIT,
-                        VK_ACCESS_2_TRANSFER_READ_BIT);
-                barrier(cmd,
-                        swap.images[imageIndex],
-                        VK_IMAGE_LAYOUT_UNDEFINED,
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 20);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +118,4 @@ ctest --preset vulkan-native-debug -R "^vk20_msaa_resolve$" --output-on-failure
 
 ## 固定输入的实际 GPU 读回
 
-![vk20_msaa_resolve](../../../../docs/previews/vk20_msaa_resolve.png)
+![vk17_ch_targets](../../../../docs/previews/vk20_msaa_resolve.png)

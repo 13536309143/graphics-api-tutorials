@@ -32,19 +32,23 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="02_triangle" href="../../OpenGL/lessons/02_triangle/README.html">02_triangle</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk03_triangle" href="../../Vulkan/native/lessons/vk03_triangle/README.html">vk03_triangle</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv03_triangle" href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx03_triangle" href="../../DirectX12/lessons/dx03_triangle/README.html">dx03_triangle</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>OpenGL 02 使用实际 VBO，和另两条程序生成顶点的路径有范围差别。</p>
-<p><a href="../../OpenGL/lessons/02_triangle/main.cpp#L5">OpenGL/lessons/02_triangle/main.cpp</a>，第 5—22 行：</p>
+<p><a data-course-target="02_triangle" href="../../OpenGL/lessons/02_triangle/main.cpp#L7">OpenGL/lessons/02_triangle/main.cpp</a>，第 7—28 行：</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;02_triangle - OpenGL Course&quot;);
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, &quot;basic.vert&quot;, &quot;color.frag&quot;);
+    // CPU 顶点数据上传后，由 VAO 保存属性布局；布局必须匹配顶点 shader。
     Mesh mesh(
         {-.7f, -.5f, 0, 1, 0, 0, 0, 0, .7f, -.5f, 0, 0, 1, 0, 1, 0, 0, .6f, 0, 0, 0, 1, .5f, 1});
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         app.clear();
         shader.use();
@@ -60,7 +64,7 @@
 }</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>动态渲染仍要求 pipeline 声明附件格式；还要设置 viewport/scissor。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L391">Vulkan/common/scene_vk.hpp</a>，第 391—422 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk03_triangle/support/scene_vk.hpp#L394">Vulkan/native/lessons/vk03_triangle/support/scene_vk.hpp</a>，第 394—425 行：</p>
 <pre><code>        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
         gp.pNext = &amp;rendering;
         gp.stageCount = 2;
@@ -95,7 +99,7 @@
         vkCmdSetScissor(cmd, 0, 1, &amp;scissor);</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>场景写入离屏 RenderTarget，最后才被 ImGui 采样。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L130">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 130—171 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp#L130">Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp</a>，第 130—171 行：</p>
 <pre><code>    void onRender(VkCommandBuffer cmd) override {
         // 每次更新前等待队列，保证共用 UBO 和离屏目标不会与前一帧并发读写。
         vkCheck(vkQueueWaitIdle(c.queue));

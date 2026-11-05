@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 binding 描述 stride 与每顶点/每实例速率，attribute 描述 location、format、offset。本例位置/颜色/UV 偏移 0/12/24。输入 location 不是 descriptor binding，二者服务不同路径。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,24 @@ cmake --build --preset vulkan-native-debug --target vk53_vertex_layout --paralle
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L343)，第 343—386 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk53_vertex_layout/main.cpp](main.cpp#L46)，第 46—60 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        VkVertexInputBindingDescription bind{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX};
-        VkVertexInputAttributeDescription attributes[3] = {{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
-                                                           {1, 0, VK_FORMAT_R32G32B32_SFLOAT, 12},
-                                                           {2, 0, VK_FORMAT_R32G32_SFLOAT, 24}};
-        VkPipelineVertexInputStateCreateInfo vi{
-            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-        if (mode >= 4) {
-            vi.vertexBindingDescriptionCount = 1;
-            vi.pVertexBindingDescriptions = &bind;
-            vi.vertexAttributeDescriptionCount = 3;
-            vi.pVertexAttributeDescriptions = attributes;
-        }
-        VkPipelineInputAssemblyStateCreateInfo ia{
-            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
-        ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        VkPipelineViewportStateCreateInfo viewport{
-            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
-        viewport.viewportCount = viewport.scissorCount = 1;
-        VkPipelineRasterizationStateCreateInfo raster{
-            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
-        raster.polygonMode = VK_POLYGON_MODE_FILL;
-        raster.cullMode = cull;
-        raster.lineWidth = 1;
-        VkPipelineMultisampleStateCreateInfo ms{
-            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
-        ms.rasterizationSamples = samples;
-        VkPipelineDepthStencilStateCreateInfo depth{
-            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-        depth.depthTestEnable = depth.depthWriteEnable = mode >= 5;
-        depth.depthCompareOp = VK_COMPARE_OP_LESS;
-        VkPipelineColorBlendAttachmentState attachment{};
-        attachment.colorWriteMask =
-            redOnly ? VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_A_BIT : 15;
-        VkPipelineColorBlendStateCreateInfo blend{
-            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
-        blend.attachmentCount = 1;
-        blend.pAttachments = &attachment;
-        VkDynamicState ds[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-        VkPipelineDynamicStateCreateInfo dynamic{
-            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-        dynamic.dynamicStateCount = 2;
-        dynamic.pDynamicStates = ds;
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 53);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
 
-        // 动态渲染不创建 render pass，但管线仍需声明颜色和深度附件格式。
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

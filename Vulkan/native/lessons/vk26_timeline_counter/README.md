@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 设备额外查询并启用 timelineSemaphore。第一次提交 signal=1，第二次 wait=1/signal=2，host 等到 2 并读取 counter。使用 submit2 的阶段范围明确，不把 timeline semaphore 当作交换链 binary semaphore 的直接替代。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,31 @@ cmake --build --preset vulkan-native-debug --target vk26_timeline_counter --para
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L253)，第 253—296 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk26_timeline_counter/main.cpp](main.cpp#L51)，第 51—72 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void timelineCounter(const VkContextRef& c) {
-    VkSemaphoreTypeCreateInfo type{VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO};
-    type.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-    VkSemaphoreCreateInfo info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    info.pNext = &type;
-    VkSemaphore semaphore{};
-    vkCheck(vkCreateSemaphore(c.device, &info, nullptr, &semaphore));
-    VkSemaphoreSubmitInfo signal{VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO};
-    signal.semaphore = semaphore;
-    signal.value = 1;
-    signal.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    VkSubmitInfo2 first{VK_STRUCTURE_TYPE_SUBMIT_INFO_2};
-    first.signalSemaphoreInfoCount = 1;
-    first.pSignalSemaphoreInfos = &signal;
-    vkCheck(vkQueueSubmit2(c.queue, 1, &first, VK_NULL_HANDLE));
-    VkSemaphoreSubmitInfo wait = signal;
-    signal.value = 2;
-    VkSubmitInfo2 second{VK_STRUCTURE_TYPE_SUBMIT_INFO_2};
-    second.waitSemaphoreInfoCount = 1;
-    second.pWaitSemaphoreInfos = &wait;
-    second.signalSemaphoreInfoCount = 1;
-    second.pSignalSemaphoreInfos = &signal;
-    vkCheck(vkQueueSubmit2(c.queue, 1, &second, VK_NULL_HANDLE));
-    uint64_t target = 2;
-    VkSemaphoreWaitInfo cpu{VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO};
-    cpu.semaphoreCount = 1;
-    cpu.pSemaphores = &semaphore;
-    cpu.pValues = &target;
-    vkCheck(vkWaitSemaphores(c.device, &cpu, UINT64_MAX));
-    uint64_t counter{};
-    vkCheck(vkGetSemaphoreCounterValue(c.device, semaphore, &counter));
-    require(counter >= 2, "Timeline did not advance");
-    vkCheck(vkQueueWaitIdle(c.queue));
-    vkDestroySemaphore(c.device, semaphore, nullptr);
-    std::cout << "Verified timeline producer 1 -> consumer 2, counter=" << counter << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 26);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, true);
+        const auto& c = owner.c;
+        {
+            timelineCounter(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
 }
-// timestampValidBits 和 timestampPeriod 决定 tick 的解释，不把单次实验当 API 性能排名。
-void timestamps(const VkContextRef& c) {
-    uint32_t count{};
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &count, nullptr);
-    std::vector<VkQueueFamilyProperties> families(count);
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &count, families.data());
-    require(families[c.family].timestampValidBits != 0,
-            "Selected queue does not support timestamps");
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

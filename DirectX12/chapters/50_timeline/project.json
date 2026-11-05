@@ -1,0 +1,7 @@
+{
+  "target": "dx50_ch_timeline",
+  "api": "dx",
+  "experiment": 26,
+  "chapter": "50_timeline",
+  "independent": true
+}

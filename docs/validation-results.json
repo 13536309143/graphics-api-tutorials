@@ -3,24 +3,36 @@
     "track": "opengl",
     "passed": 34,
     "failed": 0,
-    "configuration": "Debug"
+    "configuration": "Debug",
+    "experiment_targets": 34,
+    "chapter_targets": 0,
+    "seconds": 26.01
   },
   {
     "track": "vulkan-native",
-    "passed": 54,
+    "passed": 108,
     "failed": 0,
-    "configuration": "Debug"
+    "configuration": "Debug",
+    "experiment_targets": 54,
+    "chapter_targets": 54,
+    "seconds": 150.37
   },
   {
     "track": "vulkan-nvpro",
     "passed": 6,
     "failed": 0,
-    "configuration": "Debug"
+    "configuration": "Debug",
+    "experiment_targets": 6,
+    "chapter_targets": 0,
+    "seconds": 5.48
   },
   {
     "track": "dx12",
-    "passed": 54,
+    "passed": 108,
     "failed": 0,
-    "configuration": "Debug"
+    "configuration": "Debug",
+    "experiment_targets": 54,
+    "chapter_targets": 54,
+    "seconds": 80.13
   }
 ]

@@ -1,0 +1,7 @@
+{
+  "target": "vk26_timeline_counter",
+  "api": "vk",
+  "experiment": 26,
+  "chapter": null,
+  "independent": true
+}

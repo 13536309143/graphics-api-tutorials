@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 RSSetViewports 与 RSSetScissorRects 负责动态矩形，RasterizerState.CullMode 和 RenderTargetWriteMask 在 PSO 内。缩窄 viewport 会改变映射比例；缩窄 scissor 则只遮住原画面的一部分。 本例使用 FrontCounterClockwise=TRUE 识别模型外表面；FALSE 会把本应可见的外面剔除，看到立方体内部。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,23 @@ cmake --build --preset dx12-debug --target dx49_viewport_mapping --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L600)，第 600—643 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx49_viewport_mapping/main.cpp](main.cpp#L38)，第 38—51 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        auto color = rtv(options.samples > 1 ? 3
-                         : mode == 10        ? 2
-                                             : swap->GetCurrentBackBufferIndex()),
-             ds = dsvHeap->GetCPUDescriptorHandleForHeapStart();
-        float clear[] = {.035f, .055f, .09f, 1};
-        c.cmd->ClearRenderTargetView(color, clear, 0, nullptr);
-        c.cmd->ClearDepthStencilView(ds, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
-        c.cmd->OMSetRenderTargets(1, &color, FALSE, &ds);
-        D3D12_VIEWPORT viewport{
-            0, 0, float(width) / (scene && scene->halfViewport ? 2 : 1), float(height), 0, 1};
-        D3D12_RECT scissor{0, 0, scene && scene->halfScissor ? width / 2 : width, height};
-        c.cmd->RSSetViewports(1, &viewport);
-        c.cmd->RSSetScissorRects(1, &scissor);
-        if (scene) {
-            if (options.update)
-                options.update(*scene, time);
-            scene->render(width, height, time);
-        }
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 49);
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
 
-        // 离屏课先画独立纹理，再把它作为 COPY_SOURCE 拷贝到交换链图像。
-        if (mode == 10) {
-            D3D12_RESOURCE_BARRIER b[] = {transition(offscreen.Get(),
-                                                     D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                                     D3D12_RESOURCE_STATE_COPY_SOURCE),
-                                          transition(back.Get(),
-                                                     D3D12_RESOURCE_STATE_PRESENT,
-                                                     D3D12_RESOURCE_STATE_COPY_DEST)};
-            c.cmd->ResourceBarrier(2, b);
-            c.cmd->CopyResource(back.Get(), offscreen.Get());
-            auto restore = transition(offscreen.Get(),
-                                      D3D12_RESOURCE_STATE_COPY_SOURCE,
-                                      D3D12_RESOURCE_STATE_RENDER_TARGET);
-            c.cmd->ResourceBarrier(1, &restore);
-        }
-        auto old = mode == 10 ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_RENDER_TARGET;
-        if (options.samples > 1) {
-            D3D12_RESOURCE_BARRIER barriers[] = {transition(multisample.Get(),
-                                                            D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                                            D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
-                                                 transition(back.Get(),
-                                                            D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                                            D3D12_RESOURCE_STATE_RESOLVE_DEST)};
-            c.cmd->ResourceBarrier(2, barriers);
-            c.cmd->ResolveSubresource(
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

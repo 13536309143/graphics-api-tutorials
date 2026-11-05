@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 同一 DEFAULT resource 允许 UAV，计算后转 VERTEX_AND_CONSTANT_BUFFER，VBV 直接引用其地址。计算提交在窗口 renderer 重置 allocator 前完成，当前路径显式等待，未宣称已做异步 compute 重叠。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,23 @@ cmake --build --preset dx12-debug --target dx29_gpu_particles --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L449)，第 449—492 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx29_gpu_particles/main.cpp](main.cpp#L132)，第 132—145 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-struct ParticleKernel {
-    DxDevice& c;
-    ComPtr<ID3D12Resource> vertices;
-    ComPtr<ID3D12RootSignature> signature;
-    ComPtr<ID3D12PipelineState> pipeline;
-    D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    ParticleKernel(DxDevice& context, const LabOptions& options) : c(context) {
-        vertices = c.buffer(96 * 3 * sizeof(Vertex),
-                            D3D12_HEAP_TYPE_DEFAULT,
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-        D3D12_ROOT_PARAMETER params[2]{};
-        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
-        params[0].Descriptor.ShaderRegister = 1;
-        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        params[1].Constants = {2, 0, 2};
-        D3D12_ROOT_SIGNATURE_DESC desc{};
-        desc.NumParameters = 2;
-        desc.pParameters = params;
-        signature = rootSignature(c, desc);
-        auto shader = labShader(options, "ParticleMain");
-        D3D12_COMPUTE_PIPELINE_STATE_DESC info{};
-        info.pRootSignature = signature.Get();
-        info.CS = {shader->GetBufferPointer(), shader->GetBufferSize()};
-        dxCheck(c.device->CreateComputePipelineState(&info, IID_PPV_ARGS(&pipeline)));
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 29);
+    {
+        return graphicsLab(argc, argv, options);
     }
-    void execute(float time) {
-        struct Tick {
-            float time;
-            uint32_t count;
-        } tick{time, 96};
-        c.begin();
-        if (state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
-            auto b = transition(vertices.Get(), state, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-            c.cmd->ResourceBarrier(1, &b);
-        }
-        c.cmd->SetComputeRootSignature(signature.Get());
-        c.cmd->SetPipelineState(pipeline.Get());
-        c.cmd->SetComputeRootUnorderedAccessView(0, vertices->GetGPUVirtualAddress());
-        c.cmd->SetComputeRoot32BitConstants(1, 2, &tick, 0);
-        c.cmd->Dispatch(5, 1, 1);
-        auto b = transition(vertices.Get(),
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

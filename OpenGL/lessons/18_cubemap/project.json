@@ -1,0 +1,5 @@
+{
+  "target": "18_cubemap",
+  "api": "gl",
+  "independent": true
+}

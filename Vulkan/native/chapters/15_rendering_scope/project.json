@@ -1,0 +1,7 @@
+{
+  "target": "vk15_ch_rendering_scope",
+  "api": "vk",
+  "experiment": 10,
+  "chapter": "15_rendering_scope",
+  "independent": true
+}

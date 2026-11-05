@@ -36,6 +36,18 @@
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,43 @@
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk24_frame_ring --parallel 4
-.\Vulkan\native\build\bin\Debug\vk24_frame_ring.exe
-ctest --preset vulkan-native-debug -R "^vk24_frame_ring$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk21_ch_frames_in_flight --parallel 4
+.\Vulkan\native\build\bin\Debug\vk21_ch_frames_in_flight.exe
+ctest --preset vulkan-native-debug -R "^vk21_ch_frames_in_flight$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L200)，第 200—243 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/21_frames_in_flight/main.cpp](main.cpp#L212)，第 212—233 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-void frameRing(const VkContextRef& c) {
-    // Two independent storage buffers and command buffers remain in flight.
-    // This isolates frame-slot lifetime; windowed renderers still use the simple serialized path.
-    ComputeKernel kernels[2] = {ComputeKernel(c), ComputeKernel(c)};
-    VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-    pi.queueFamilyIndex = c.family;
-    pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    VkCommandPool pool{};
-    vkCheck(vkCreateCommandPool(c.device, &pi, nullptr, &pool));
-    VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-    ai.commandPool = pool;
-    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    ai.commandBufferCount = 2;
-    VkCommandBuffer commands[2]{};
-    vkCheck(vkAllocateCommandBuffers(c.device, &ai, commands));
-    VkFence fences[2]{};
-    VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-    fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    for (auto& fence : fences)
-        vkCheck(vkCreateFence(c.device, &fi, nullptr, &fence));
-    int previous[2] = {-1, -1};
-    for (uint32_t frameNumber = 0; frameNumber < 8; ++frameNumber) {
-        uint32_t slot = frameNumber % 2;
-        vkCheck(vkWaitForFences(c.device, 1, &fences[slot], VK_TRUE, UINT64_MAX));
-        if (previous[slot] >= 0) {
-            auto result = readWords(kernels[slot].output, 257);
-            for (uint32_t i = 0; i < 257; ++i)
-                require(result[i] == i * 3 + uint32_t(previous[slot]),
-                        "In-flight slot overwritten");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 24);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            frameRing(c);
         }
-        vkCheck(vkResetFences(c.device, 1, &fences[slot]));
-        vkCheck(vkResetCommandBuffer(commands[slot], 0));
-        VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-        vkCheck(vkBeginCommandBuffer(commands[slot], &bi));
-        kernels[slot].record(commands[slot], 0, 257, 3, frameNumber);
-        vkCheck(vkEndCommandBuffer(commands[slot]));
-        VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-        submit.commandBufferCount = 1;
-        submit.pCommandBuffers = &commands[slot];
-        vkCheck(vkQueueSubmit(c.queue, 1, &submit, fences[slot]));
-        previous[slot] = int(frameNumber);
     }
-    vkCheck(vkWaitForFences(c.device, 2, fences, VK_TRUE, UINT64_MAX));
-    for (uint32_t slot = 0; slot < 2; ++slot) {
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

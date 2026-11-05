@@ -2,13 +2,19 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 GetResourceAllocationInfo 解释实际分配大小/对齐，UPLOAD/DEFAULT/READBACK 表达常见用途。GetCustomHeapProperties 可以帮助理解架构映射，但不能随意绕过 heap/resource 规则。CBV 的 256 字节地址对齐与普通 buffer 分配对齐也不是同一要求。
 
 HLSL column_major 与 mul(M,v) 配合 GLM。root CBV 的 GPU 地址需要 256 字节对齐，实际帧矩阵仍只有 64 字节；根常量按 DWORD 更新。不要把所有 C++ struct 都假定与 cbuffer 打包自动一致。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -25,53 +31,46 @@ cmake --build --preset dx12-debug --target dx14_constant_alignment --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L56)，第 56—99 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx14_constant_alignment/main.cpp](main.cpp#L136)，第 136—172 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-struct ComputeKernel {
-    DxDevice& c;
-    ComPtr<ID3D12Resource> output, readback, parameters;
-    ComPtr<ID3D12RootSignature> signature;
-    ComPtr<ID3D12PipelineState> pipeline;
-    ComPtr<ID3DBlob> compiledShader;
-    D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    ComputeKernel(DxDevice& context,
-                  const LabOptions& options,
-                  ID3DBlob* cache = nullptr,
-                  ID3DBlob* exactShader = nullptr)
-        : c(context) {
-        output = c.buffer(4096,
-                          D3D12_HEAP_TYPE_DEFAULT,
-                          D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                          D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-        readback = c.buffer(4096, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-        parameters = c.buffer(3 * 256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-        std::vector<uint8_t> bytes(3 * 256);
-        uint32_t values[3][4] = {{2, 3, 0, 0}, {5, 11, 0, 0}, {7, 13, 0, 0}};
-        for (uint32_t i = 0; i < 3; ++i)
-            std::memcpy(bytes.data() + i * 256, values[i], 16);
-        writeBuffer(parameters.Get(), bytes.data(), bytes.size());
-        D3D12_ROOT_PARAMETER params[3]{};
-        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        params[0].Constants = {0, 0, 4};
-        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
-        params[1].Descriptor.ShaderRegister = 0;
-        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        params[2].Descriptor.ShaderRegister = 1;
-        D3D12_ROOT_SIGNATURE_DESC desc{};
-        desc.NumParameters = 3;
-        desc.pParameters = params;
-        signature = rootSignature(c, desc);
-        compiledShader =
-            exactShader ? ComPtr<ID3DBlob>(exactShader) : labShader(options, "ComputeMain");
-        auto shader = compiledShader;
-        D3D12_COMPUTE_PIPELINE_STATE_DESC info{};
-        info.pRootSignature = signature.Get();
-        info.CS = {shader->GetBufferPointer(), shader->GetBufferSize()};
-        if (cache)
-            info.CachedPSO = {cache->GetBufferPointer(), cache->GetBufferSize()};
-        dxCheck(c.device->CreateComputePipelineState(&info, IID_PPV_ARGS(&pipeline)));
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 14);
+    DxDevice c(options.warp);
+    {
+        ComputeKernel kernel(c, options);
+        uint32_t mode = ((1));
+        uint32_t count = (128);
+        for (uint32_t slot = 0; slot < ((1u)); ++slot) {
+            uint32_t factor = (3), bias = (7);
+            kernel.execute(mode, count, factor, bias, slot);
+            auto result = readBuffer(kernel.readback.Get(), mode == 2 ? (count + 63) / 64 : count);
+            if (mode == 2) {
+                auto sum = std::accumulate(result.begin(), result.end(), 0u);
+                require(sum == count * (count + 1) / 2, "Shared reduction result mismatch");
+            } else {
+                if (mode == 1) {
+                    factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                    bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                }
+                for (uint32_t i = 0; i < count; ++i)
+                    require(result[i] == i * factor + bias, "Compute/root-binding mismatch");
+            }
+        }
+        std::cout << "Verified experiment " << 14 << ", items=" << count
+                  << ", constant stride=256\n";
     }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

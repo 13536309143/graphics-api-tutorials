@@ -1,0 +1,7 @@
+{
+  "target": "vk35_ch_image_dependencies",
+  "api": "vk",
+  "experiment": 13,
+  "chapter": "35_image_dependencies",
+  "independent": true
+}

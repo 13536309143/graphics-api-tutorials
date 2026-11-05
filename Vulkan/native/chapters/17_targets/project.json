@@ -1,0 +1,7 @@
+{
+  "target": "vk17_ch_targets",
+  "api": "vk",
+  "experiment": 20,
+  "chapter": "17_targets",
+  "independent": true
+}

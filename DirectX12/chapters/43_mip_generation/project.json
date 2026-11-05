@@ -1,0 +1,7 @@
+{
+  "target": "dx43_ch_mip_generation",
+  "api": "dx",
+  "experiment": 18,
+  "chapter": "43_mip_generation",
+  "independent": true
+}

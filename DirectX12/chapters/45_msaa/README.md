@@ -34,6 +34,18 @@ RenderTarget 的样本管理需与自定义 pipeline 和最终 UI 可采样目�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,35 @@ RenderTarget 的样本管理需与自定义 pipeline 和最终 UI 可采样目�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx20_msaa_resolve --parallel 4
-.\DirectX12\build\bin\Debug\dx20_msaa_resolve.exe
-ctest --preset dx12-debug -R "^dx20_msaa_resolve$" --output-on-failure
+cmake --build --preset dx12-debug --target dx45_ch_msaa --parallel 4
+.\DirectX12\build\bin\Debug\dx45_ch_msaa.exe
+ctest --preset dx12-debug -R "^dx45_ch_msaa$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L643)，第 643—686 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/45_msaa/main.cpp](main.cpp#L47)，第 47—60 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-            c.cmd->ResolveSubresource(
-                back.Get(), 0, multisample.Get(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
-            auto restore = transition(multisample.Get(),
-                                      D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
-                                      D3D12_RESOURCE_STATE_RENDER_TARGET);
-            c.cmd->ResourceBarrier(1, &restore);
-            old = D3D12_RESOURCE_STATE_RESOLVE_DEST;
-        }
-        ComPtr<ID3D12Resource> readback;
-        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
-        if (capturePath) {
-            auto b = transition(back.Get(), old, D3D12_RESOURCE_STATE_COPY_SOURCE);
-            c.cmd->ResourceBarrier(1, &b);
-            auto desc = back->GetDesc();
-            UINT rows;
-            UINT64 bytes, total;
-            c.device->GetCopyableFootprints(&desc, 0, 1, 0, &footprint, &rows, &bytes, &total);
-            readback = c.buffer(total, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-            D3D12_TEXTURE_COPY_LOCATION src{}, dst{};
-            src.pResource = back.Get();
-            src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-            dst.pResource = readback.Get();
-            dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-            dst.PlacedFootprint = footprint;
-            c.cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-            old = D3D12_RESOURCE_STATE_COPY_SOURCE;
-        }
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 20);
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
 
-        // 呈现前把 back buffer 恢复到 PRESENT；CPU 读回则在 GPU 拷贝及 fence 完成后进行。
-        auto present = transition(back.Get(), old, D3D12_RESOURCE_STATE_PRESENT);
-        c.cmd->ResourceBarrier(1, &present);
-        c.submit();
-        dxCheck(swap->Present(1, 0));
-        c.wait();
-        if (capturePath) {
-            void* p;
-            D3D12_RANGE range{0, SIZE_T(readback->GetDesc().Width)};
-            dxCheck(readback->Map(0, &range, &p));
-            std::vector<uint8_t> packed(size_t(width) * height * 4);
-            for (int y = 0; y < height; ++y)
-                std::memcpy(packed.data() + size_t(y) * width * 4,
-                            static_cast<uint8_t*>(p) + footprint.Offset +
-                                size_t(y) * footprint.Footprint.RowPitch,
-                            size_t(width) * 4);
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +117,4 @@ MSAA 主要改善几何覆盖边缘；纹理缩小和 shader 高频还需要 mip
 
 ## 固定输入的实际 GPU 读回
 
-![dx20_msaa_resolve](../../../docs/previews/dx20_msaa_resolve.png)
+![dx45_ch_msaa](../../../docs/previews/dx20_msaa_resolve.png)

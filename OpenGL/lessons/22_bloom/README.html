@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 22 课：Bloom 与高斯模糊</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 22 课：Bloom 与高斯模糊</h1>
-<p><a href="../../README.html">课程首页</a> · <a href="../21_hdr/README.html">上一课</a> · <a href="../23_pbr/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 22 课：Bloom 与高斯模糊</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="22_bloom"><h1>第 22 课：Bloom 与高斯模糊</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="22_bloom" href="main.cpp">main.cpp</a> · <a data-course-target="22_bloom" href="support/">本地辅助实现</a> · <a data-course-target="22_bloom" href="shaders/">本课着色器</a> · <a data-course-target="22_bloom" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">课程首页</a> · <a data-course-target="21_hdr" href="../21_hdr/README.html">上一课</a> · <a data-course-target="23_pbr" href="../23_pbr/README.html">下一课</a></p>
 <h2>目标与运行</h2>
 <pre><code>cmake --preset opengl
 cmake --build --preset opengl-debug --target 22_bloom --parallel 4
@@ -8,7 +14,7 @@ cmake --build --preset opengl-debug --target 22_bloom --parallel 4
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
 <p>hdr_scene.frag 的 bright 输出 → ping/pong → blur.frag → tone.frag</p>
-<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<p>从本课 <a data-course-target="22_bloom" href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
 <h2>原理与实现</h2>
 <p>Bloom 模拟强亮区域对周围像素的扩散。场景 pass 用 MRT 同时写正常 HDR 颜色和亮度阈值图，阈值依据线性亮度 dot(rgb,weights)&gt;1，不能先把 HDR 压到 [0,1] 再筛高亮。</p>
 <p>二维高斯滤波可分离为横向与纵向。本例使用中心加左右四个采样的对称核，交替执行八次。ping 与 pong 两个 FBO 交替读写，每次输出纹理都不同于输入纹理，避免同一纹理反馈。重复多次会增大有效模糊半径。</p>
@@ -30,10 +36,12 @@ cmake --build --preset opengl-debug --target 22_bloom --parallel 4
 <p>高亮提取、水平/垂直模糊和合成各读写不同目标，ping-pong 避免同一遍采样自己正在写的图。合成应在线性 HDR 空间，最后才显示编码。</p>
 <p>配套精讲：<a href="../../../docs/compare/13_multipass_effects.html">三 API 对照 · 阴影、SSAO 与后处理</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="main.cpp#L5">OpenGL/lessons/22_bloom/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<p>来自 <a data-course-target="22_bloom" href="main.cpp#L7">OpenGL/lessons/22_bloom/main.cpp</a>，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;22_bloom - OpenGL Course&quot;);
     RenderTarget scene(2), ping, pong;
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, &quot;advanced.vert&quot;, &quot;hdr_scene.frag&quot;), tone(app, &quot;screen.vert&quot;, &quot;tone.frag&quot;),
         blur(app, &quot;screen.vert&quot;, &quot;blur.frag&quot;);
     Mesh ball(sphere()), plane(quad(), quadIndices());
@@ -43,6 +51,7 @@ cmake --build --preset opengl-debug --target 22_bloom --parallel 4
     float exposure = 1;
 
     // 每帧依次完成 HDR 场景、高亮提取、交替模糊与最终合成。
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width &lt; 1 || app.height &lt; 1) {
             app.end();
@@ -53,15 +62,12 @@ cmake --build --preset opengl-debug --target 22_bloom --parallel 4
             exposure += app.dt;
         if (glfwGetKey(app.window, GLFW_KEY_DOWN) == GLFW_PRESS)
             exposure = std::max(.05f, exposure - app.dt);
-        scene.resize(app.width, app.height);
-        ping.resize(app.width, app.height);
-        pong.resize(app.width, app.height);
-        scene.bind();</code></pre>
+        scene.resize(app.width, app.height);</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="README.html">22_bloom</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="22_bloom" href="README.html">22_bloom</a></td></tr>
 <tr><td>Vulkan 原生</td><td>迁移设计：vk10 已有离屏/blit；完整 Bloom/SSAO 仍需资源、采样管线及逐遍依赖。</td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td>迁移设计：RenderTarget 与 ImGui 仅是接入点；新增多遍效果仍要自己描述写后读。</td></tr>
 <tr><td>DirectX 12</td><td>迁移设计：dx10 是 CopyResource，迁移后处理需新增可采样目标和全屏像素管线。</td></tr>

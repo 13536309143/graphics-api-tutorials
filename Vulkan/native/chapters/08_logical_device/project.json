@@ -1,0 +1,7 @@
+{
+  "target": "vk08_ch_logical_device",
+  "api": "vk",
+  "experiment": 1,
+  "chapter": "08_logical_device",
+  "independent": true
+}

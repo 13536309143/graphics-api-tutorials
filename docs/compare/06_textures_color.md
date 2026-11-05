@@ -57,81 +57,71 @@ OpenGL 纹理调用 glGenerateMipmap 并使用相应 min filter。基础 06 保�
 
 sRGB 用于颜色，normal/roughness 等数据应保持线性。
 
-[OpenGL/common/advanced.hpp](../../OpenGL/common/advanced.hpp#L35)，第 35—54 行：
+[OpenGL/lessons/05_texture/main.cpp](../../OpenGL/lessons/05_texture/main.cpp#L7)，第 7—29 行：
 
 ```cpp
-    void upload(int w, int h, const unsigned char* bytes, bool srgb) {
-        if (!id)
-            glGenTextures(1, &id);
-        glBindTexture(GL_TEXTURE_2D, id);
-        glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8,
-                     w,
-                     h,
-                     0,
-                     GL_RGBA,
-                     GL_UNSIGNED_BYTE,
-                     bytes);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glGenerateMipmap(GL_TEXTURE_2D);
+int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
+    App app(argc, argv, "05_texture - OpenGL Course");
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
+    Shader shader(app, "basic.vert", "texture.frag");
+    // CPU 顶点数据上传后，由 VAO 保存属性布局；布局必须匹配顶点 shader。
+    Mesh mesh(quad(), quadIndices());
+    Texture texture;
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
+    while (app.begin()) {
+        app.clear();
+        shader.use();
+        glm::mat4 mvp(1.f);
+        shader.set("mvp", mvp);
+        texture.bind();
+        shader.set("tex", 0);
+        mesh.draw();
+        app.end();
     }
-    ~ImageTexture() {
+    return 0;
+} catch (const std::exception& e) {
+    return failure(e);
+}
 ```
 
 ### Vulkan 原生 · 已实现
 
 实际生成多级图像并逐 texel 读回验证；详见 54 课主线纹理章节。
 
-[Vulkan/native/common/advanced_labs.cpp](../../Vulkan/native/common/advanced_labs.cpp#L354)，第 354—389 行：
+[Vulkan/native/lessons/vk18_mip_chain/main.cpp](../../Vulkan/native/lessons/vk18_mip_chain/main.cpp#L244)，第 244—266 行：
 
 ```cpp
-struct GpuTexture {
-    VkContextRef c;
-    VkImageResource image;
-    VkSampler sampler{};
-    VkImageView selectedView{};
-    VkFormat format{};
-    std::vector<Pixels> reference;
-    explicit GpuTexture(
-        VkContextRef context, Pixels pixels, bool mips, bool srgb = false, bool clamp = false)
-        : c(context) {
-        reference = mips ? mipReference(pixels, srgb) : std::vector<Pixels>{pixels};
-        uint32_t levels = uint32_t(reference.size());
-        format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
-        if (mips) {
-            VkFormatProperties properties{};
-            vkGetPhysicalDeviceFormatProperties(c.physical, format, &properties);
-            VkFormatFeatureFlags required = VK_FORMAT_FEATURE_BLIT_SRC_BIT |
-                                            VK_FORMAT_FEATURE_BLIT_DST_BIT |
-                                            VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
-            require((properties.optimalTilingFeatures & required) == required,
-                    "Format cannot generate linear-blit mip chain");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 18);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            GpuTexture texture(c, Pixels{64, 64, checker()}, true);
+            texture.verify();
         }
-        image.init(c,
-                   {pixels.width, pixels.height},
-                   format,
-                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                       VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                   VK_IMAGE_ASPECT_COLOR_BIT,
-                   levels);
-        VkBufferResource upload;
-        upload.init(c, pixels.rgba.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-        upload.upload(pixels.rgba.data(), pixels.rgba.size());
-        immediate(c, [&](VkCommandBuffer cmd) {
-            for (uint32_t i = 0; i < levels; ++i)
-                imageDependency(cmd,
-                                image.image,
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### Vulkan / nvpro_core2 · 已实现
 
 框架层负责分配目标和顶点上传；纹理细节沿 SceneVk 展开。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L61)，第 61—94 行：
+[Vulkan/nvpro/lessons/nv04_vma_staging_texture/support/nvapp_course.hpp](../../Vulkan/nvpro/lessons/nv04_vma_staging_texture/support/nvapp_course.hpp#L61)，第 61—94 行：
 
 ```cpp
     void onAttach(nvapp::Application* application) override {
@@ -174,43 +164,25 @@ struct GpuTexture {
 
 实际生成多级图像并逐 texel 读回验证；详见 54 课主线纹理章节。
 
-[DirectX12/common/advanced_labs.cpp](../../DirectX12/common/advanced_labs.cpp#L237)，第 237—272 行：
+[DirectX12/lessons/dx18_mip_chain/main.cpp](../../DirectX12/lessons/dx18_mip_chain/main.cpp#L265)，第 265—282 行：
 
 ```cpp
-struct GpuTexture {
-    DxDevice& c;
-    ComPtr<ID3D12Resource> texture;
-    std::vector<Pixels> reference;
-    DXGI_FORMAT viewFormat;
-    GpuTexture(
-        DxDevice& context, const LabOptions& options, Pixels pixels, bool mips, bool srgb = false)
-        : c(context) {
-        reference = mips ? mipReference(pixels, srgb) : std::vector<Pixels>{pixels};
-        const UINT levels = UINT(reference.size());
-        const bool gpuMips = mips && !srgb;
-        viewFormat = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
-        D3D12_RESOURCE_DESC desc{};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        desc.Width = pixels.width;
-        desc.Height = pixels.height;
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = UINT16(levels);
-        desc.Format = srgb ? DXGI_FORMAT_R8G8B8A8_TYPELESS : DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count = 1;
-        if (gpuMips)
-            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        D3D12_HEAP_PROPERTIES hp{};
-        hp.Type = D3D12_HEAP_TYPE_DEFAULT;
-        dxCheck(c.device->CreateCommittedResource(&hp,
-                                                  D3D12_HEAP_FLAG_NONE,
-                                                  &desc,
-                                                  D3D12_RESOURCE_STATE_COPY_DEST,
-                                                  nullptr,
-                                                  IID_PPV_ARGS(&texture)));
-        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels);
-        std::vector<UINT> rows(levels);
-        std::vector<UINT64> rowBytes(levels);
-        UINT64 total{};
-        c.device->GetCopyableFootprints(
-            &desc, 0, levels, 0, footprints.data(), rows.data(), rowBytes.data(), &total);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 18);
+    DxDevice c(options.warp);
+    {
+        GpuTexture texture(c, options, Pixels{64, 64, checker()}, true);
+        texture.verify();
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```

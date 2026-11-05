@@ -1,14 +1,19 @@
-#include "multisample.hpp"
+// 29_msaa
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/multisample.hpp"
 
 // 离屏 MSAA 与 Resolve，先阅读本目录 README.md。
 // 本课重点：绘制到多重采样附件，再 resolve 到单采样目标后显示。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "29_msaa - OpenGL Course");
     Multisample msaa;
     RenderTarget resolved(1, false);
     Mesh box(cube()), plane(quad(), quadIndices());
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, "advanced.vert", "solid.frag"), screen(app, "screen.vert", "screen.frag");
     Camera camera;
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width < 1 || app.height < 1) {
             app.end();

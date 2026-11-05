@@ -1,0 +1,7 @@
+{
+  "target": "dx22_ch_swapchain_recreation",
+  "api": "dx",
+  "experiment": 2,
+  "chapter": "22_swapchain_recreation",
+  "independent": true
+}

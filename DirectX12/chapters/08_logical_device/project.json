@@ -1,0 +1,7 @@
+{
+  "target": "dx08_ch_logical_device",
+  "api": "dx",
+  "experiment": 1,
+  "chapter": "08_logical_device",
+  "independent": true
+}

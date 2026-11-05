@@ -1,0 +1,7 @@
+{
+  "target": "dx32_ch_per_draw_constants",
+  "api": "dx",
+  "experiment": 16,
+  "chapter": "32_per_draw_constants",
+  "independent": true
+}

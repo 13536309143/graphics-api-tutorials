@@ -1,0 +1,7 @@
+{
+  "target": "dx08_compute_uav",
+  "api": "dx",
+  "experiment": 8,
+  "chapter": null,
+  "independent": true
+}

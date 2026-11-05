@@ -1,0 +1,7 @@
+{
+  "target": "dx28_compute_tail",
+  "api": "dx",
+  "experiment": 28,
+  "chapter": null,
+  "independent": true
+}

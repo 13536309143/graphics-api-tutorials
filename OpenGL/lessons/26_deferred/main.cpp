@@ -1,8 +1,11 @@
-#include "advanced.hpp"
+// 26_deferred
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/advanced.hpp"
 
 // 延迟渲染与 G-buffer，先阅读本目录 README.md。
 // 本课重点：几何遍写入 G-buffer，光照遍按屏幕像素读取材质和位置。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "26_deferred - OpenGL Course");
     RenderTarget gbuffer(3), occlusion, filtered;
     Shader geometry(app, "advanced.vert", "gbuffer.frag"),
@@ -33,6 +36,7 @@ int main(int argc, char** argv) try {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width < 1 || app.height < 1) {
             app.end();

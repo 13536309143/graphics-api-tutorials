@@ -1,0 +1,7 @@
+{
+  "target": "dx35_ch_image_dependencies",
+  "api": "dx",
+  "experiment": 13,
+  "chapter": "35_image_dependencies",
+  "independent": true
+}

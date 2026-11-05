@@ -1,0 +1,7 @@
+{
+  "target": "vk43_ch_mip_generation",
+  "api": "vk",
+  "experiment": 18,
+  "chapter": "43_mip_generation",
+  "independent": true
+}

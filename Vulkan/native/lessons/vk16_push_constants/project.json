@@ -1,0 +1,7 @@
+{
+  "target": "vk16_push_constants",
+  "api": "vk",
+  "experiment": 16,
+  "chapter": null,
+  "independent": true
+}

@@ -1,8 +1,11 @@
-#include "advanced.hpp"
+// 27_ssao
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/advanced.hpp"
 
 // SSAO 与降噪，先阅读本目录 README.md。
 // 本课重点：读取 G-buffer 估算邻域遮挡，经降噪后只调制环境光。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "27_ssao - OpenGL Course");
     RenderTarget gbuffer(3), occlusion, filtered;
     Shader geometry(app, "advanced.vert", "gbuffer.frag"),
@@ -35,6 +38,7 @@ int main(int argc, char** argv) try {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width < 1 || app.height < 1) {
             app.end();

@@ -56,7 +56,7 @@ DX12 的 `DxDevice` 先尝试开启调试层，再创建 factory、选择 adapte
 
 先 current context，再加载 GL 入口；GPU 对象先于 context 销毁。
 
-[OpenGL/common/app.hpp](../../OpenGL/common/app.hpp#L25)，第 25—77 行：
+[OpenGL/lessons/01_window/support/app.hpp](../../OpenGL/lessons/01_window/support/app.hpp#L25)，第 25—77 行：
 
 ```cpp
     App(int argc, char** argv, const char* title) {
@@ -66,7 +66,7 @@ DX12 的 `DxDevice` 先尝试开启调试层，再创建 factory、选择 adapte
             variant |= std::string(argv[i]) == "--variant";
         }
         expectGeometry = std::string(title).find("01_window") != 0;
-        assets = std::filesystem::absolute(argv[0]).parent_path() / "shaders";
+        assets = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
         glfwSetErrorCallback([](int c, const char* s) {
             std::cerr << "GLFW " << c << ": " << s << '\n';
         });
@@ -118,7 +118,7 @@ DX12 的 `DxDevice` 先尝试开启调试层，再创建 factory、选择 adapte
 
 扩展属于实例或设备，队列族还要检查实际呈现支持。
 
-[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L29)，第 29—70 行：
+[Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp](../../Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp#L29)，第 29—70 行：
 
 ```cpp
     NativeDevice(GLFWwindow* window, bool timeline = false) {
@@ -169,7 +169,7 @@ DX12 的 `DxDevice` 先尝试开启调试层，再创建 factory、选择 adapte
 
 Context 减少创建代码，需求选择与失败处理仍由应用负责。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L245)，第 245—276 行：
+[Vulkan/nvpro/lessons/nv01_context/main.cpp](../../Vulkan/nvpro/lessons/nv01_context/main.cpp#L15)，第 15—46 行：
 
 ```cpp
     nvvk::ContextInitInfo setup{};
@@ -178,10 +178,6 @@ Context 减少创建代码，需求选择与失败处理仍由应用负责。
     setup.enableValidationLayers = true;
     setup.verbose = false;
     setup.applicationName = "nvpro_core2 Course";
-    if (!smoke && chapter != 1 && chapter != 5) {
-        nvvk::addSurfaceExtensions(setup.instanceExtensions);
-        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
-    }
     vkCheck(context.init(setup));
     VkDebugUtilsMessengerCreateInfoEXT debug{
         VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
@@ -197,20 +193,24 @@ Context 减少创建代码，需求选择与失败处理仍由应用负责。
                        context.getDevice(),
                        q.queue,
                        q.familyIndex};
-        if (chapter == 1) {
+        {
             VkPhysicalDeviceProperties p;
             vkGetPhysicalDeviceProperties(c.physical, &p);
             std::cout << "nvpro_core2 context: " << p.deviceName << '\n';
-        } else if (chapter == 5)
-            computeSquares(c, nvShaders);
-        else {
+        }
+    }
+    std::cout << "Validation errors: " << nvValidationErrors << "\n";
+    return nvValidationErrors ? 1 : 0;
+}
+} // namespace course
+
 ```
 
 ### DirectX 12 · 已实现
 
 在设备创建前启用调试层；WARP 是软件参考路径。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L71)，第 71—112 行：
+[DirectX12/lessons/dx01_device/support/dx12_course.hpp](../../DirectX12/lessons/dx01_device/support/dx12_course.hpp#L74)，第 74—115 行：
 
 ```cpp
     explicit DxDevice(bool warp = false) {

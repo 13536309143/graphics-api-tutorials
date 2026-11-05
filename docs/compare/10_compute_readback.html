@@ -26,29 +26,44 @@
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
 <tr><td>OpenGL</td><td>基线外</td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv05_compute_readback/README.html">nv05_compute_readback</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk08_compute_readback" href="../../Vulkan/native/lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv05_compute_readback" href="../../Vulkan/nvpro/lessons/nv05_compute_readback/README.html">nv05_compute_readback</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx08_compute_uav" href="../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
 </table></div>
 <h3>OpenGL · 基线外</h3>
 <p>当前 OpenGL 3.3 路线没有 compute 实现；粒子实例化不能作为 compute 对照。</p>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>全局调用索引覆盖 256 项，host 逐项核对，不仅检查第一个值。</p>
-<p><a href="../../Vulkan/common/shaders/square.comp#L2">Vulkan/common/shaders/square.comp</a>，第 2—12 行：</p>
-<pre><code>layout(local_size_x = 64) in;
-layout(binding = 0) buffer Values {
-    uint values[];
-};
+<p><a data-course-target="vk08_compute_readback" href="../../Vulkan/native/lessons/vk08_compute_readback/main.cpp#L9">Vulkan/native/lessons/vk08_compute_readback/main.cpp</a>，第 9—34 行：</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
 
-// 每工作组 64 个线程；host dispatch 4 组，结果通过 storage buffer 读回。
-void main() {
-    uint i = gl_GlobalInvocationID.x;
-    if (i &lt; 256)
-        values[i] = i * i + 1;
+    bool smoke = false;
+    for (int i = 1; i &lt; argc; ++i)
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / &quot;shaders&quot;;
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    {
+        NativeDevice d(nullptr);
+        {
+            computeSquares(d.c, nativeShaders);
+        }
+        return validationErrors ? 1 : 0;
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
 }</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>Context 提供队列和设备；计算管线与资源依赖仍是 Vulkan。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L466">Vulkan/common/scene_vk.hpp</a>，第 466—502 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv05_compute_readback/support/scene_vk.hpp#L470">Vulkan/nvpro/lessons/nv05_compute_readback/support/scene_vk.hpp</a>，第 470—506 行：</p>
 <pre><code>inline void computeSquares(const VkContextRef&amp; c, const std::filesystem::path&amp; shaders) {
     VkBufferResource storage;
     storage.init(c, 256 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
@@ -88,7 +103,7 @@ void main() {
     VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>DEFAULT UAV 结果拷贝到 READBACK，经 fence 后 Map。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L197">DirectX12/common/dx12_course.hpp</a>，第 197—244 行：</p>
+<p><a href="../../DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp#L202">DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp</a>，第 202—249 行：</p>
 <pre><code>inline void dxCompute(DxDevice&amp; c) {
     auto storage = c.buffer(1024,
                             D3D12_HEAP_TYPE_DEFAULT,
@@ -107,14 +122,17 @@ void main() {
     pso.pRootSignature = signature.Get();
     pso.CS = {cs-&gt;GetBufferPointer(), cs-&gt;GetBufferSize()};
     ComPtr&lt;ID3D12PipelineState&gt; pipeline;
+    // 计算 PSO 与根签名配套；后续 Dispatch 使用这里选择的入口。
     dxCheck(c.device-&gt;CreateComputePipelineState(&amp;pso, IID_PPV_ARGS(&amp;pipeline)));
     c.begin();
     c.cmd-&gt;SetComputeRootSignature(signature.Get());
     c.cmd-&gt;SetPipelineState(pipeline.Get());
     c.cmd-&gt;SetComputeRootUnorderedAccessView(0, storage-&gt;GetGPUVirtualAddress());
+    // Dispatch 的单位是工作组，线程组尺寸由 HLSL numthreads 声明。
     c.cmd-&gt;Dispatch(4, 1, 1);
     auto b = transition(
         storage.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    // 状态迁移描述资源下一步的真实用途；不能用 CPU 等待替代所需的状态。
     c.cmd-&gt;ResourceBarrier(1, &amp;b);
     c.cmd-&gt;CopyBufferRegion(readback.Get(), 0, storage.Get(), 0, 1024);
     c.submit();
@@ -133,7 +151,4 @@ class DxScene {
 public:
     DxDevice&amp; c;
     int mode;
-    Geometry mesh;
-    ComPtr&lt;ID3D12Resource&gt; vertices, indices, uniform, texture;
-    ComPtr&lt;ID3D12DescriptorHeap&gt; srvHeap;
-    ComPtr&lt;ID3D12RootSignature&gt; signature;</code></pre></main></html>
+    Geometry mesh;</code></pre></main></html>

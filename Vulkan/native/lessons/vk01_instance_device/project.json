@@ -1,0 +1,7 @@
+{
+  "target": "vk01_instance_device",
+  "api": "vk",
+  "experiment": 1,
+  "chapter": null,
+  "independent": true
+}

@@ -34,6 +34,18 @@ D3D12_DRAW_ARGUMENTS 配合 command signature 的 DRAW 类型与 ByteStride，�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,36 @@ D3D12_DRAW_ARGUMENTS 配合 command signature 的 DRAW 类型与 ByteStride，�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk27_indirect_draw --parallel 4
-.\Vulkan\native\build\bin\Debug\vk27_indirect_draw.exe
-ctest --preset vulkan-native-debug -R "^vk27_indirect_draw$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk51_ch_indirect --parallel 4
+.\Vulkan\native\build\bin\Debug\vk51_ch_indirect.exe
+ctest --preset vulkan-native-debug -R "^vk51_ch_indirect$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L434)，第 434—477 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/51_indirect/main.cpp](main.cpp#L42)，第 42—56 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-            d.settings.z = std::clamp(d.settings.z * roughnessScale, .045f, 1.f);
-            vkCmdPushConstants(cmd,
-                               pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                               0,
-                               sizeof(d),
-                               &d);
-            if (indirectArguments)
-                vkCmdDrawIndirect(cmd, indirectArguments, 0, 1, sizeof(VkDrawIndirectCommand));
-            else if (mode == 3)
-                vkCmdDraw(cmd, 3, 1, 0, 0);
-            else if (mode == 4)
-                vkCmdDraw(cmd, uint32_t(mesh.vertices.size()), 1, 0, 0);
-            else
-                vkCmdDrawIndexed(cmd, uint32_t(mesh.indices.size()), mode == 7 ? 25 : 1, 0, 0, 0);
-        }
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 27);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
     }
-    ~SceneVk() {
-        if (pipeline)
-            vkDestroyPipeline(c.device, pipeline, nullptr);
-        if (pipelineLayout)
-            vkDestroyPipelineLayout(c.device, pipelineLayout, nullptr);
-        if (descriptorPool)
-            vkDestroyDescriptorPool(c.device, descriptorPool, nullptr);
-        if (setLayout)
-            vkDestroyDescriptorSetLayout(c.device, setLayout, nullptr);
-        if (sampler)
-            vkDestroySampler(c.device, sampler, nullptr);
-    }
-};
+}
+} // namespace course
 
-// 计算课通过 storage buffer 写入 256 个结果，再在 CPU 上逐项核对。
-inline void computeSquares(const VkContextRef& c, const std::filesystem::path& shaders) {
-    VkBufferResource storage;
-    storage.init(c, 256 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    VkDescriptorSetLayoutBinding binding{
-        0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
-    VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    li.bindingCount = 1;
-    li.pBindings = &binding;
-    VkDescriptorSetLayout layout;
-    vkCheck(vkCreateDescriptorSetLayout(c.device, &li, nullptr, &layout));
-    VkPipelineLayoutCreateInfo pl{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    pl.setLayoutCount = 1;
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +118,4 @@ inline void computeSquares(const VkContextRef& c, const std::filesystem::path& s
 
 ## 固定输入的实际 GPU 读回
 
-![vk27_indirect_draw](../../../../docs/previews/vk27_indirect_draw.png)
+![vk51_ch_indirect](../../../../docs/previews/vk27_indirect_draw.png)

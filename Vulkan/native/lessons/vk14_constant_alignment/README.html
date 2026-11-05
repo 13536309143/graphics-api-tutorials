@@ -1,69 +1,71 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk14_constant_alignment · 常量缓冲对齐</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk14_constant_alignment · 常量缓冲对齐</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk14_constant_alignment · 常量缓冲对齐</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="vk14_constant_alignment"><h1>vk14_constant_alignment · 常量缓冲对齐</h1>
 <p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="vk14_constant_alignment" href="main.cpp">main.cpp</a> · <a data-course-target="vk14_constant_alignment" href="support/">本地辅助实现</a> · <a data-course-target="vk14_constant_alignment" href="shaders/">本课着色器</a> · <a data-course-target="vk14_constant_alignment" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 <code>cmake -S . -B build -A x64</code> 配置、<code>cmake --build build --config Debug</code> 构建；不需要其他章节源码。</p>
 <h2>目的与实际执行</h2>
 <p>memoryTypeBits 是资源允许的类型集合，propertyFlags 是内存属性。实验为 257 字节缓冲查询实际 size/alignment/type bits，再在允许集合中选择所需属性。non-coherent 的 flush/invalidate 还需符合原子尺寸对齐。</p>
 <p>GLSL mat4 与 GLM 列主序配合，UBO 的布局必须与 C++ 实际偏移一致。动态偏移按 minUniformBufferOffsetAlignment 对齐，range 仍应覆盖具体内容且不越界。实验用 uvec4 参数让 GPU 数值验证解码。</p>
-<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<p>本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
 <h2>构建和运行</h2>
 <pre><code>cmake --preset vulkan-native
 cmake --build --preset vulkan-native-debug --target vk14_constant_alignment --parallel 4
 .\Vulkan\native\build\bin\Debug\vk14_constant_alignment.exe</code></pre>
 <h2>深入学习：数据、接口与执行</h2>
 <ul>
-<li><a href="../../chapters/25_memory/README.html">第 25 课：内存类型、Heap 与分配要求</a></li>
-<li><a href="../../chapters/28_uniform_layout/README.html">第 28 课：常量结构、矩阵存储与对齐</a></li>
+<li><a data-course-target="vk25_ch_memory" href="../../chapters/25_memory/README.html">第 25 课：内存类型、Heap 与分配要求</a></li>
+<li><a data-course-target="vk28_ch_uniform_layout" href="../../chapters/28_uniform_layout/README.html">第 28 课：常量结构、矩阵存储与对齐</a></li>
 </ul>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/advanced_labs.cpp#L38">Vulkan/native/common/advanced_labs.cpp</a>，第 38—81 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>struct ComputeKernel {
-    VkContextRef c;
-    VkBufferResource output, parameters;
-    VkDescriptorSetLayout layout{};
-    VkDescriptorPool pool{};
-    VkDescriptorSet set{};
-    VkPipelineLayout pipelineLayout{};
-    VkPipeline pipeline{};
-    uint32_t stride{};
-    explicit ComputeKernel(VkContextRef context, VkPipelineCache cache = {}) : c(context) {
-        VkPhysicalDeviceProperties props{};
-        vkGetPhysicalDeviceProperties(c.physical, &amp;props);
-        stride = uint32_t(alignUp(16, props.limits.minUniformBufferOffsetAlignment));
-        output.init(c, 1024 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-        parameters.init(c, stride * 3, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        std::vector&lt;uint8_t&gt; bytes(stride * 3);
-        const uint32_t pairs[3][4] = {{2, 3, 0, 0}, {5, 11, 0, 0}, {7, 13, 0, 0}};
-        for (uint32_t i = 0; i &lt; 3; ++i)
-            std::memcpy(bytes.data() + stride * i, pairs[i], 16);
-        parameters.upload(bytes.data(), bytes.size());
-        VkDescriptorSetLayoutBinding bindings[2] = {
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1,
-             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-             1,
-             VK_SHADER_STAGE_COMPUTE_BIT,
-             nullptr}};
-        VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-        li.bindingCount = 2;
-        li.pBindings = bindings;
-        vkCheck(vkCreateDescriptorSetLayout(c.device, &amp;li, nullptr, &amp;layout));
-        VkDescriptorPoolSize sizes[2] = {{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
-                                         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1}};
-        VkDescriptorPoolCreateInfo pi{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-        pi.maxSets = 1;
-        pi.poolSizeCount = 2;
-        pi.pPoolSizes = sizes;
-        vkCheck(vkCreateDescriptorPool(c.device, &amp;pi, nullptr, &amp;pool));
-        VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-        ai.descriptorPool = pool;
-        ai.descriptorSetCount = 1;
-        ai.pSetLayouts = &amp;layout;
-        vkCheck(vkAllocateDescriptorSets(c.device, &amp;ai, &amp;set));
-        VkDescriptorBufferInfo infos[2] = {{output.buffer, 0, output.size},</code></pre>
+<p>来自 <a data-course-target="vk14_constant_alignment" href="main.cpp#L157">Vulkan/native/lessons/vk14_constant_alignment/main.cpp</a>，第 157—199 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 14);
+    nativeShaders = options.directory / &quot;shaders&quot;;
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto&amp; c = owner.c;
+        {
+            ComputeKernel kernel(c);
+            uint32_t mode = ((1));
+            uint32_t count = (128);
+            for (uint32_t slot = 0; slot &lt; ((1u)); ++slot) {
+                uint32_t factor = (3), bias = (7);
+                kernel.execute(mode, count, factor, bias, slot);
+                auto result = readWords(kernel.output, mode == 2 ? (count + 63) / 64 : count);
+                if (mode == 2) {
+                    uint32_t total = std::accumulate(result.begin(), result.end(), 0u);
+                    require(total == count * (count + 1) / 2, &quot;Shared-memory reduction mismatch&quot;);
+                } else {
+                    if (mode == 1) {
+                        factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                        bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                    }
+                    for (uint32_t i = 0; i &lt; count; ++i)
+                        require(result[i] == i * factor + bias,
+                                &quot;Compute/dynamic-binding result mismatch&quot;);
+                }
+            }
+            std::cout &lt;&lt; &quot;Verified experiment &quot; &lt;&lt; 14 &lt;&lt; &quot;, items=&quot; &lt;&lt; count
+                      &lt;&lt; &quot;, uniform stride=&quot; &lt;&lt; kernel.stride &lt;&lt; &#x27;\n&#x27;;
+        }
+    }
+    std::cout &lt;&lt; &quot;Validation errors: &quot; &lt;&lt; validationErrors &lt;&lt; &#x27;\n&#x27;;
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>程序</td></tr>
-<tr><td>Vulkan 原生</td><td><a href="README.html">vk14_constant_alignment</a></td></tr>
-<tr><td>对照后端</td><td><a href="../../../../DirectX12/lessons/dx14_constant_alignment/README.html">dx14_constant_alignment</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk14_constant_alignment" href="README.html">vk14_constant_alignment</a></td></tr>
+<tr><td>对照后端</td><td><a data-course-target="dx14_constant_alignment" href="../../../../DirectX12/lessons/dx14_constant_alignment/README.html">dx14_constant_alignment</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>比较请求 257 字节、返回的 allocation size、常量槽 stride 三者，解释不同来源。</p>

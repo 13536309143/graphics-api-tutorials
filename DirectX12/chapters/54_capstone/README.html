@@ -1,5 +1,5 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 54 课 · 综合场景、验收与工程化边界 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 54 课 · 综合场景、验收与工程化边界 · DirectX 12</h1>
-<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/15_framework_architecture.html">对照精讲</a> · <a href="../53_measure_cache/README.html">上一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 54 课 · 综合场景、验收与工程化边界 · DirectX 12</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx54_ch_capstone"><h1>第 54 课 · 综合场景、验收与工程化边界 · DirectX 12</h1>
+<p><a href="../../COURSE.html">54 课目录</a> · <a href="../../../docs/compare/15_framework_architecture.html">对照精讲</a> · <a data-course-target="dx53_ch_measure_cache" href="../53_measure_cache/README.html">上一课</a></p>
 <h2>本课目标与先修</h2>
 <p>学习目标：解释“综合场景、验收与工程化边界”解决的问题，找到实际对象和参数，运行对应实验并用数据/画面证明。先完成前一课，并能说明它交付的对象与完成条件；本课在该依赖上增加新契约。</p>
 <h2>为什么需要这一层</h2>
@@ -19,67 +19,43 @@
 <h2>nvpro_core2 框架对照</h2>
 <p>作为逐课框架对照，给出 Context/Allocator/Application/RenderTarget 接入责任；六个 nvpro 例仍独立可用。本轮没有将原生 54 个实验重新包装成另一套已完成框架程序。</p>
 <p>这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。</p>
+<h2>本章独立工程与关键注释</h2>
+<p><a data-course-target="dx54_ch_capstone" href="main.cpp">main.cpp</a> · <a data-course-target="dx54_ch_capstone" href="support/">本地辅助实现</a> · <a data-course-target="dx54_ch_capstone" href="shaders/">本章着色器</a> · <a data-course-target="dx54_ch_capstone" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
 <h2>运行与实际检查</h2>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>实际实验</td></tr>
-<tr><td>DirectX 12</td><td><a href="../../lessons/dx36_integration/README.html">dx36_integration</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../lessons/dx54_acceptance_suite/README.html">dx54_acceptance_suite</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk36_integration/README.html">vk36_integration</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk54_acceptance_suite/README.html">vk54_acceptance_suite</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx36_integration" href="../../lessons/dx36_integration/README.html">dx36_integration</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx54_acceptance_suite" href="../../lessons/dx54_acceptance_suite/README.html">dx54_acceptance_suite</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk36_integration" href="../../../Vulkan/native/lessons/vk36_integration/README.html">vk36_integration</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk54_acceptance_suite" href="../../../Vulkan/native/lessons/vk54_acceptance_suite/README.html">vk54_acceptance_suite</a></td></tr>
 </table></div>
 <p>从合集根目录执行；普通图形程序 Esc 退出，设备/计算/诊断程序输出结果后结束。从“开始学习.cmd”进入本页时，表格可直接点击运行。</p>
 <pre><code>cmake --preset dx12
-cmake --build --preset dx12-debug --target dx36_integration --parallel 4
-.\DirectX12\build\bin\Debug\dx36_integration.exe
-ctest --preset dx12-debug -R &quot;^dx36_integration$&quot; --output-on-failure</code></pre>
+cmake --build --preset dx12-debug --target dx54_ch_capstone --parallel 4
+.\DirectX12\build\bin\Debug\dx54_ch_capstone.exe
+ctest --preset dx12-debug -R &quot;^dx54_ch_capstone$&quot; --output-on-failure</code></pre>
 <p>检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。</p>
 <h2>关键实现：从当前源码定位</h2>
-<p>来自 <a href="../../common/advanced_labs.cpp#L502">DirectX12/common/advanced_labs.cpp</a>，第 502—545 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
-<pre><code>int graphicsLab(int argc, char** argv, const LabOptions&amp; options) {
-    int id = options.id, mode = id == 27 ? 3 : id == 29 || id == 53 ? 4 : 6;
-    Geometry mesh;
-    if (id == 21)
-        mesh = staticAsset(options.directory / &quot;assets/models/vase.obj&quot;);
-    if (id == 22 || id == 36)
-        mesh = staticAsset(options.directory / &quot;assets/models/robot.gltf&quot;);
-    if (id == 29)
-        mesh = particleGeometry();
-    if (id == 52 || id == 53) {
-        mesh = geometry(4);
-        for (auto&amp; vertex : mesh.vertices) {
-            vertex.normal =
-                id == 53 ? glm::vec3(1 - vertex.uv.x, vertex.uv.y, 1) : glm::vec3(0, 0, 1);
-            vertex.uv *= 4.f;
-        }
-        if (id == 52)
-            for (uint32_t i = 0; i &lt; mesh.vertices.size(); ++i)
-                mesh.indices.push_back(i);
+<p>来自 <a data-course-target="dx54_ch_capstone" href="main.cpp#L319">DirectX12/chapters/54_capstone/main.cpp</a>，第 319—332 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 36);
+    {
+        return graphicsLab(argc, argv, options);
     }
-    DxRenderOptions render;
-    render.captureStem = &quot;dx_lab_&quot; + std::to_string(id);
-    render.redOnly = id == 43;
-    render.cull = id == 50 ? D3D12_CULL_MODE_BACK : D3D12_CULL_MODE_NONE;
-    render.clampSampler = id == 52;
-    if (!mesh.vertices.empty())
-        render.mesh = &amp;mesh;
-    if (id == 20 || id == 36)
-        render.samples = 4;
-    render.setup = [=](DxScene&amp; scene) {
-        auto state = std::make_shared&lt;RenderState&gt;();
-        scene.extension = state;
-        if (id == 17 || id == 19 || id == 35 || id == 36 || id == 41 || id == 52) {
-            auto pixels = imageFile(options.directory / &quot;assets/textures/albedo.png&quot;);
-            state-&gt;texture = std::make_unique&lt;GpuTexture&gt;(scene.c,
-                                                          options,
-                                                          std::move(pixels),
-                                                          id == 19 || id == 36 || id == 41,
-                                                          id == 35 || id == 36);
-            state-&gt;texture-&gt;attach(scene, id == 41);
-        }
-        if (id == 20 || id == 36) {
-            for (auto format : {DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT}) {
-                D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS q{};</code></pre>
-<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。</p>
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
+<p>阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。</p>
 <h2>受控修改实验</h2>
 <p>选择阴影、IBL 或骨骼动画之一，先写资源表、pass 依赖图、中间调试视图和验收条件，再实现。</p>
 <p>先记录预测，再只改一个因素；保留基线与修改后的输出。不要同时改变 shader、资源范围和同步，这样即使结果变好也无法归因。</p>
@@ -95,4 +71,4 @@ ctest --preset dx12-debug -R &quot;^dx36_integration$&quot; --output-on-failure<
 <p><a href="https://docs.vulkan.net.cn/tutorial/latest/11_Compute_Shader.html">指定 Vulkan 教程对应位置</a>。DX12 路线按同一概念顺序建立映射，其对象与约束以 Microsoft 文档和本后端代码为准。49—54 课包含在基础/compute 之后加入的工程扩展。</p>
 <p><a href="../../../docs/REFERENCES.html">版本与资料说明</a> · <a href="../../../docs/DEBUGGING.html">调试</a> · <a href="../../../docs/FEATURE_MATRIX.html">功能完成度</a></p>
 <h2>固定输入的实际 GPU 读回</h2>
-<p><img alt="dx36_integration" src="../../../docs/previews/dx36_integration.png"></p></main></html>
+<p><img alt="dx54_ch_capstone" src="../../../docs/previews/dx36_integration.png"></p></main></html>

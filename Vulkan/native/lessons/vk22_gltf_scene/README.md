@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 本实验递归 parent*local，变换每个节点引用的网格并合并索引，实际绘制 robot.gltf。normal 使用逆转置，随后 bbox 归一化。本实现展平静态姿态，不是完整材质/skin/动画系统。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,24 @@ cmake --build --preset vulkan-native-debug --target vk22_gltf_scene --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [shared/advanced.hpp](../../../../shared/advanced.hpp#L92)，第 92—135 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk22_gltf_scene/main.cpp](main.cpp#L31)，第 31—45 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-inline Geometry staticAsset(const std::filesystem::path& path) {
-    Assimp::Importer importer;
-    const auto* scene =
-        importer.ReadFile(path.string(),
-                          aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                              aiProcess_JoinIdenticalVertices | aiProcess_ValidateDataStructure);
-    require(scene && scene->mRootNode, "Assimp could not load course model");
-    Geometry result;
-    unsigned nodes = 0;
-    std::function<void(const aiNode*, glm::mat4)> visit = [&](const aiNode* node,
-                                                              glm::mat4 parent) {
-        ++nodes;
-        glm::mat4 transform = parent * assimpMatrix(node->mTransformation);
-        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
-        for (unsigned m = 0; m < node->mNumMeshes; ++m) {
-            const auto* mesh = scene->mMeshes[node->mMeshes[m]];
-            uint32_t base = uint32_t(result.vertices.size());
-            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
-                const auto& p = mesh->mVertices[i];
-                auto n = mesh->HasNormals() ? mesh->mNormals[i] : aiVector3D(0, 1, 0);
-                auto uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : aiVector3D();
-                result.vertices.push_back({glm::vec3(transform * glm::vec4(p.x, p.y, p.z, 1)),
-                                           glm::normalize(normalMatrix * glm::vec3(n.x, n.y, n.z)),
-                                           {uv.x, uv.y}});
-            }
-            for (unsigned f = 0; f < mesh->mNumFaces; ++f) {
-                require(mesh->mFaces[f].mNumIndices == 3, "Non-triangle after triangulation");
-                for (unsigned k = 0; k < 3; ++k)
-                    result.indices.push_back(base + mesh->mFaces[f].mIndices[k]);
-            }
-        }
-        for (unsigned i = 0; i < node->mNumChildren; ++i)
-            visit(node->mChildren[i], transform);
-    };
-    visit(scene->mRootNode, glm::mat4(1));
-    require(!result.vertices.empty() && !result.indices.empty(), "Empty imported model");
-    glm::vec3 lo(std::numeric_limits<float>::max()), hi(-std::numeric_limits<float>::max());
-    for (const auto& v : result.vertices) {
-        lo = glm::min(lo, v.position);
-        hi = glm::max(hi, v.position);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 22);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
     }
-    auto extent = hi - lo;
-    float scale = 2.f / std::max({extent.x, extent.y, extent.z, .0001f});
-    for (auto& v : result.vertices)
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

@@ -34,6 +34,18 @@ VMA 管理资源内存，不管理所有自定义 descriptor 更新。即使 hel
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,38 @@ VMA 管理资源内存，不管理所有自定义 descriptor 更新。即使 hel
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx45_descriptor_update --parallel 4
-.\DirectX12\build\bin\Debug\dx45_descriptor_update.exe
-ctest --preset dx12-debug -R "^dx45_descriptor_update$" --output-on-failure
+cmake --build --preset dx12-debug --target dx30_ch_descriptor_instances --parallel 4
+.\DirectX12\build\bin\Debug\dx30_ch_descriptor_instances.exe
+ctest --preset dx12-debug -R "^dx30_ch_descriptor_instances$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L685)，第 685—728 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/30_descriptor_instances/main.cpp](main.cpp#L167)，第 167—183 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        c.cmd->Dispatch(2, 1, 1);
-        auto b = transition(
-            second.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-        c.cmd->ResourceBarrier(1, &b);
-        c.cmd->CopyBufferRegion(readback.Get(), 0, second.Get(), 0, 4096);
-        c.submit();
-        auto result = readBuffer(readback.Get(), 128);
-        for (uint32_t i = 0; i < 128; ++i)
-            require(result[i] == i * 5 + 11, "Root UAV replacement mismatch");
-        require(readBuffer(kernel.readback.Get(), 128) == first,
-                "Prior output was unexpectedly changed");
-        std::cout << "Verified root descriptor replacement after prior GPU use completed\n";
-    } else if (id == 46) {
-        for (auto format :
-             {DXGI_FORMAT_D32_FLOAT, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_D16_UNORM}) {
-            D3D12_FEATURE_DATA_FORMAT_SUPPORT q{format};
-            dxCheck(c.device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &q, sizeof(q)));
-            std::cout << "depth format=" << format << ", support1=" << q.Support1 << '\n';
-        }
-    } else if (id == 47) {
-        D3D12_RESOURCE_DESC desc{};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        desc.Width = 257;
-        desc.Height = 1;
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = 1;
-        desc.SampleDesc.Count = 1;
-        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        auto allocation = c.device->GetResourceAllocationInfo(0, 1, &desc);
-        require(allocation.SizeInBytes >= 257, "Allocation too small");
-        auto upload = c.device->GetCustomHeapProperties(0, D3D12_HEAP_TYPE_UPLOAD);
-        std::cout << "requested=257, allocation=" << allocation.SizeInBytes
-                  << ", alignment=" << allocation.Alignment
-                  << ", CPUPageProperty=" << upload.CPUPageProperty << '\n';
-    } else if (id == 48) {
-        auto initial = c.fence->GetCompletedValue();
-        dxCheck(c.queue->Signal(c.fence.Get(), ++c.value));
-        waitValue(c, c.value);
-        require(c.fence->GetCompletedValue() > initial, "Fence counter failed to advance");
-        dxCheck(c.queue->Signal(c.fence.Get(), ++c.value));
-        waitValue(c, c.value);
-        std::cout << "Verified monotonic fence reuse; DX12 fence is not reset like a binary Vulkan "
-                     "fence\n";
-    } else if (id == 51) {
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 45);
+    DxDevice c(options.warp);
+    {
+        inspection(c, options);
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

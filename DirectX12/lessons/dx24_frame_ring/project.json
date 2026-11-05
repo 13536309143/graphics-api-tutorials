@@ -1,0 +1,7 @@
+{
+  "target": "dx24_frame_ring",
+  "api": "dx",
+  "experiment": 24,
+  "chapter": null,
+  "independent": true
+}

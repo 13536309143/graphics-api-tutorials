@@ -205,774 +205,686 @@
   },
   {
     "guide": "Vulkan/native/lessons/vk01_instance_device/README.md",
-    "file": "Vulkan/native/common/native_app.hpp",
-    "anchor": "NativeDevice(GLFWwindow",
-    "count": 30
+    "file": "Vulkan/native/lessons/vk01_instance_device/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk02_swapchain/README.md",
-    "file": "Vulkan/native/common/native_app.hpp",
-    "anchor": "vkCheck(vkWaitForFences",
-    "count": 30
+    "file": "Vulkan/native/lessons/vk02_swapchain/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk03_triangle/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "VkGraphicsPipelineCreateInfo gp",
-    "count": 30
+    "file": "Vulkan/native/lessons/vk03_triangle/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk04_vertex_buffer/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "struct VkBufferResource",
-    "count": 30
+    "file": "Vulkan/native/lessons/vk04_vertex_buffer/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk05_indexed_uniform/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "VkDescriptorSetLayoutBinding bindings",
-    "count": 30
+    "file": "Vulkan/native/lessons/vk05_indexed_uniform/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk06_texture_descriptor/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "auto data = checker",
-    "count": 30
+    "file": "Vulkan/native/lessons/vk06_texture_descriptor/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk07_depth_instancing/README.md",
-    "file": "Vulkan/native/common/native_app.hpp",
-    "anchor": "VkRenderingAttachmentInfo color",
-    "count": 30
+    "file": "Vulkan/native/lessons/vk07_depth_instancing/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk08_compute_readback/README.md",
-    "file": "Vulkan/common/shaders/square.comp",
-    "anchor": "layout(local_size_x",
-    "count": 18
+    "file": "Vulkan/native/lessons/vk08_compute_readback/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk09_pbr/README.md",
-    "file": "Vulkan/common/shaders/scene.frag",
-    "anchor": "vec3 pbr",
-    "count": 26
+    "file": "Vulkan/native/lessons/vk09_pbr/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk10_offscreen/README.md",
     "file": "Vulkan/native/lessons/vk10_offscreen/main.cpp",
-    "anchor": "int main",
-    "count": 26
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/nvpro/lessons/nv01_context/README.md",
-    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
-    "anchor": "nvvk::ContextInitInfo setup",
-    "count": 30
+    "file": "Vulkan/nvpro/lessons/nv01_context/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/nvpro/lessons/nv02_application/README.md",
-    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
-    "anchor": "void onResize",
-    "count": 8
+    "file": "Vulkan/nvpro/lessons/nv02_application/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/nvpro/lessons/nv03_triangle/README.md",
-    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
-    "anchor": "void onRender",
-    "count": 30
+    "file": "Vulkan/nvpro/lessons/nv03_triangle/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/nvpro/lessons/nv04_vma_staging_texture/README.md",
-    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
-    "anchor": "if (mode == 6)",
-    "count": 20
+    "file": "Vulkan/nvpro/lessons/nv04_vma_staging_texture/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/nvpro/lessons/nv05_compute_readback/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "inline void computeSquares",
-    "count": 30
+    "file": "Vulkan/nvpro/lessons/nv05_compute_readback/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/nvpro/lessons/nv06_pbr_viewport/README.md",
-    "file": "Vulkan/nvpro/common/nvapp_course.hpp",
-    "anchor": "void onUIRender",
-    "count": 22
+    "file": "Vulkan/nvpro/lessons/nv06_pbr_viewport/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx01_device/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "explicit DxDevice",
-    "count": 30
+    "file": "DirectX12/lessons/dx01_device/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx02_swapchain/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "void begin()",
-    "count": 26
+    "file": "DirectX12/lessons/dx02_swapchain/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx03_triangle/README.md",
-    "file": "DirectX12/shaders/scene.hlsl",
-    "anchor": "Pixel TriangleMain",
-    "count": 17
+    "file": "DirectX12/lessons/dx03_triangle/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx04_vertex_buffer/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "DxScene(DxDevice",
-    "count": 30
+    "file": "DirectX12/lessons/dx04_vertex_buffer/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx05_indexed_cbv/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "D3D12_ROOT_PARAMETER params",
-    "count": 30
+    "file": "DirectX12/lessons/dx05_indexed_cbv/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx06_texture_srv/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint",
-    "count": 30
+    "file": "DirectX12/lessons/dx06_texture_srv/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx07_depth_instancing/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "void resize(int",
-    "count": 30
+    "file": "DirectX12/lessons/dx07_depth_instancing/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx08_compute_uav/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "inline void dxCompute",
-    "count": 30
+    "file": "DirectX12/lessons/dx08_compute_uav/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx09_pbr/README.md",
-    "file": "DirectX12/shaders/scene.hlsl",
-    "anchor": "float3 PBR",
-    "count": 28
+    "file": "DirectX12/lessons/dx09_pbr/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx10_offscreen/README.md",
     "file": "DirectX12/lessons/dx10_offscreen/main.cpp",
-    "anchor": "int main",
-    "count": 26
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk11_capabilities/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "capabilities",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk11_capabilities/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk12_queue_submit/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "int nativeLabMain",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk12_queue_submit/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk13_staging_copy/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void stagingCopy",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk13_staging_copy/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk14_constant_alignment/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "struct ComputeKernel",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk14_constant_alignment/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk15_dynamic_binding/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void record(",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk15_dynamic_binding/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk16_push_constants/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void record(",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk16_push_constants/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk17_image_file/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "struct GpuTexture",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk17_image_file/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk18_mip_chain/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "vkCmdBlitImage",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk18_mip_chain/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk19_texture_lod/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "VkSamplerCreateInfo si",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk19_texture_lod/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk20_msaa_resolve/README.md",
-    "file": "Vulkan/native/common/native_app.hpp",
-    "anchor": "VkRenderingAttachmentInfo color",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk20_msaa_resolve/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk21_obj_model/README.md",
-    "file": "shared/advanced.hpp",
-    "anchor": "inline Geometry staticAsset",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk21_obj_model/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk22_gltf_scene/README.md",
-    "file": "shared/advanced.hpp",
-    "anchor": "inline Geometry staticAsset",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk22_gltf_scene/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk23_orbit_camera/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "scene.frameProvider",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk23_orbit_camera/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk24_frame_ring/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void frameRing",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk24_frame_ring/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk25_timestamps/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void timestamps",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk25_timestamps/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk26_timeline_counter/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void timelineCounter",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk26_timeline_counter/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk27_indirect_draw/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "vkCmdDrawIndirect",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk27_indirect_draw/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk28_compute_tail/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void record(",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk28_compute_tail/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk29_gpu_particles/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "struct ParticleKernel",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk29_gpu_particles/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk30_shared_reduce/README.md",
-    "file": "Vulkan/common/shaders/lab.comp",
-    "anchor": "void main()",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk30_shared_reduce/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk31_retire_resources/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void stagingCopy",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk31_retire_resources/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk32_pipeline_cache/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "VkPipelineCacheCreateInfo info",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk32_pipeline_cache/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk33_debug_labels/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "vkCmdBeginDebugUtilsLabelEXT",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk33_debug_labels/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk34_dynamic_scissor/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "halfScissor",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk34_dynamic_scissor/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk35_srgb_view/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "struct GpuTexture",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk35_srgb_view/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk36_integration/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "int graphicsLab",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk36_integration/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk37_instance_extensions/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void inspection",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk37_instance_extensions/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk38_diagnostic_delivery/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void inspection",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk38_diagnostic_delivery/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk39_queue_properties/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "vkGetPhysicalDeviceQueueFamilyProperties",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk39_queue_properties/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk40_surface_support/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void surfaceInspection",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk40_surface_support/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk41_subresource_view/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void attach(",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk41_subresource_view/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk42_shader_inspection/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "Wrong SPIR-V magic",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk42_shader_inspection/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk43_color_write_mask/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "attachment.colorWriteMask",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk43_color_write_mask/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk44_command_reuse/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "void commandReuse",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk44_command_reuse/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk45_descriptor_update/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "Updated descriptor points",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk45_descriptor_update/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk46_depth_formats/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "depth format=",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk46_depth_formats/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk47_allocation_requirements/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "vkGetBufferMemoryRequirements",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk47_allocation_requirements/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk48_fence_lifecycle/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "Initial fence not signaled",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk48_fence_lifecycle/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk49_viewport_mapping/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "VkViewport viewport",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk49_viewport_mapping/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk50_backface_culling/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "raster.cullMode",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk50_backface_culling/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk51_uniform_layout/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "Frame=64",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk51_uniform_layout/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk52_sampler_addressing/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "addressModeU",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk52_sampler_addressing/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk53_vertex_layout/README.md",
-    "file": "Vulkan/common/scene_vk.hpp",
-    "anchor": "VkVertexInputBindingDescription bind",
-    "count": 44,
-    "lead": 0
+    "file": "Vulkan/native/lessons/vk53_vertex_layout/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "Vulkan/native/lessons/vk54_acceptance_suite/README.md",
-    "file": "Vulkan/native/common/advanced_labs.cpp",
-    "anchor": "Completed resource/texture/frame-slot",
-    "count": 44,
-    "lead": 8
+    "file": "Vulkan/native/lessons/vk54_acceptance_suite/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx11_capabilities/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "capabilities",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx11_capabilities/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx12_queue_submit/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "int dxLabMain",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx12_queue_submit/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx13_staging_copy/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void stagingCopy",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx13_staging_copy/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx14_constant_alignment/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "struct ComputeKernel",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx14_constant_alignment/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx15_dynamic_binding/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void record(",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx15_dynamic_binding/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx16_push_constants/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void record(",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx16_push_constants/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx17_image_file/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "struct GpuTexture",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx17_image_file/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx18_mip_chain/README.md",
-    "file": "DirectX12/shaders/lab.hlsl",
-    "anchor": "void MipMain",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx18_mip_chain/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx19_texture_lod/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void attach(",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx19_texture_lod/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx20_msaa_resolve/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "ResolveSubresource",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx20_msaa_resolve/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx21_obj_model/README.md",
-    "file": "shared/advanced.hpp",
-    "anchor": "inline Geometry staticAsset",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx21_obj_model/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx22_gltf_scene/README.md",
-    "file": "shared/advanced.hpp",
-    "anchor": "inline Geometry staticAsset",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx22_gltf_scene/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx23_orbit_camera/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "scene.frameProvider",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx23_orbit_camera/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx24_frame_ring/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void frameRing",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx24_frame_ring/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx25_timestamps/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void timestamps",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx25_timestamps/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx26_timeline_counter/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "Verified queue producer",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx26_timeline_counter/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx27_indirect_draw/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "ExecuteIndirect",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx27_indirect_draw/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx28_compute_tail/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void record(",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx28_compute_tail/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx29_gpu_particles/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "struct ParticleKernel",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx29_gpu_particles/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx30_shared_reduce/README.md",
-    "file": "DirectX12/shaders/lab.hlsl",
-    "anchor": "void ComputeMain",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx30_shared_reduce/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx31_retire_resources/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void stagingCopy",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx31_retire_resources/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx32_pipeline_cache/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "Verified cached PSO",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx32_pipeline_cache/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx33_debug_labels/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "SetName(L\"Course Graphics Queue\"",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx33_debug_labels/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx34_dynamic_scissor/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "RSSetScissorRects",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx34_dynamic_scissor/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx35_srgb_view/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "struct GpuTexture",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx35_srgb_view/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx36_integration/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "int graphicsLab",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx36_integration/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx37_instance_extensions/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void inspection",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx37_instance_extensions/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx38_diagnostic_delivery/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void inspection",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx38_diagnostic_delivery/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx39_queue_properties/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "GetDesc();",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx39_queue_properties/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx40_surface_support/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void surfaceInspection",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx40_surface_support/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx41_subresource_view/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "void attach(",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx41_subresource_view/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx42_shader_inspection/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "D3DReflect",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx42_shader_inspection/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx43_color_write_mask/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "RenderTargetWriteMask",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx43_color_write_mask/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx44_command_reuse/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "allocator/list generations",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx44_command_reuse/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx45_descriptor_update/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "Root UAV replacement",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx45_descriptor_update/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx46_depth_formats/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "depth format=",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx46_depth_formats/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx47_allocation_requirements/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "GetResourceAllocationInfo",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx47_allocation_requirements/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx48_fence_lifecycle/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "monotonic fence reuse",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx48_fence_lifecycle/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx49_viewport_mapping/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "D3D12_VIEWPORT viewport",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx49_viewport_mapping/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx50_backface_culling/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "RasterizerState.CullMode",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx50_backface_culling/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx51_uniform_layout/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "Frame=64",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx51_uniform_layout/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx52_sampler_addressing/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "sampler.AddressU",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx52_sampler_addressing/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx53_vertex_layout/README.md",
-    "file": "DirectX12/common/dx12_course.hpp",
-    "anchor": "D3D12_INPUT_ELEMENT_DESC elements",
-    "count": 44,
-    "lead": 0
+    "file": "DirectX12/lessons/dx53_vertex_layout/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   },
   {
     "guide": "DirectX12/lessons/dx54_acceptance_suite/README.md",
-    "file": "DirectX12/common/advanced_labs.cpp",
-    "anchor": "Completed buffer/texture/frame-slot",
-    "count": 44,
-    "lead": 8
+    "file": "DirectX12/lessons/dx54_acceptance_suite/main.cpp",
+    "anchor": "int runChapter",
+    "count": 56
   }
 ]

@@ -1,0 +1,7 @@
+{
+  "target": "vk28_ch_uniform_layout",
+  "api": "vk",
+  "experiment": 51,
+  "chapter": "28_uniform_layout",
+  "independent": true
+}

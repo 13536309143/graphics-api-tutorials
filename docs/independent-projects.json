@@ -1,0 +1,1538 @@
+[
+  {
+    "target": "01_window",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/01_window",
+    "kind": "lesson"
+  },
+  {
+    "target": "02_triangle",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/02_triangle",
+    "kind": "lesson"
+  },
+  {
+    "target": "03_indexed",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/03_indexed",
+    "kind": "lesson"
+  },
+  {
+    "target": "04_uniform",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/04_uniform",
+    "kind": "lesson"
+  },
+  {
+    "target": "05_texture",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/05_texture",
+    "kind": "lesson"
+  },
+  {
+    "target": "06_transform",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/06_transform",
+    "kind": "lesson"
+  },
+  {
+    "target": "07_cube",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/07_cube",
+    "kind": "lesson"
+  },
+  {
+    "target": "08_camera",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/08_camera",
+    "kind": "lesson"
+  },
+  {
+    "target": "09_lighting",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/09_lighting",
+    "kind": "lesson"
+  },
+  {
+    "target": "10_materials",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/10_materials",
+    "kind": "lesson"
+  },
+  {
+    "target": "11_framebuffer",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/11_framebuffer",
+    "kind": "lesson"
+  },
+  {
+    "target": "12_instancing",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/12_instancing",
+    "kind": "lesson"
+  },
+  {
+    "target": "13_shadows",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/13_shadows",
+    "kind": "lesson"
+  },
+  {
+    "target": "14_model_obj",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/14_model_obj",
+    "kind": "lesson"
+  },
+  {
+    "target": "15_model_gltf",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/15_model_gltf",
+    "kind": "lesson"
+  },
+  {
+    "target": "16_blending",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/16_blending",
+    "kind": "lesson"
+  },
+  {
+    "target": "17_stencil",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/17_stencil",
+    "kind": "lesson"
+  },
+  {
+    "target": "18_cubemap",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/18_cubemap",
+    "kind": "lesson"
+  },
+  {
+    "target": "19_normal_mapping",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/19_normal_mapping",
+    "kind": "lesson"
+  },
+  {
+    "target": "20_parallax",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/20_parallax",
+    "kind": "lesson"
+  },
+  {
+    "target": "21_hdr",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/21_hdr",
+    "kind": "lesson"
+  },
+  {
+    "target": "22_bloom",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/22_bloom",
+    "kind": "lesson"
+  },
+  {
+    "target": "23_pbr",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/23_pbr",
+    "kind": "lesson"
+  },
+  {
+    "target": "24_pbr_textures",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/24_pbr_textures",
+    "kind": "lesson"
+  },
+  {
+    "target": "25_ibl",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/25_ibl",
+    "kind": "lesson"
+  },
+  {
+    "target": "26_deferred",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/26_deferred",
+    "kind": "lesson"
+  },
+  {
+    "target": "27_ssao",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/27_ssao",
+    "kind": "lesson"
+  },
+  {
+    "target": "28_ubo",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/28_ubo",
+    "kind": "lesson"
+  },
+  {
+    "target": "29_msaa",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/29_msaa",
+    "kind": "lesson"
+  },
+  {
+    "target": "30_geometry",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/30_geometry",
+    "kind": "lesson"
+  },
+  {
+    "target": "31_skeletal",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/31_skeletal",
+    "kind": "lesson"
+  },
+  {
+    "target": "32_particles",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/32_particles",
+    "kind": "lesson"
+  },
+  {
+    "target": "33_point_shadows",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/33_point_shadows",
+    "kind": "lesson"
+  },
+  {
+    "target": "34_gallery",
+    "folder": "OpenGL",
+    "path": "OpenGL/lessons/34_gallery",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk01_instance_device",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk01_instance_device",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk02_swapchain",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk02_swapchain",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk03_triangle",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk03_triangle",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk04_vertex_buffer",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk04_vertex_buffer",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk05_indexed_uniform",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk05_indexed_uniform",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk06_texture_descriptor",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk06_texture_descriptor",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk07_depth_instancing",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk07_depth_instancing",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk08_compute_readback",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk08_compute_readback",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk09_pbr",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk09_pbr",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk10_offscreen",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk10_offscreen",
+    "kind": "lesson"
+  },
+  {
+    "target": "nv01_context",
+    "folder": "Vulkan/nvpro",
+    "path": "Vulkan/nvpro/lessons/nv01_context",
+    "kind": "lesson"
+  },
+  {
+    "target": "nv02_application",
+    "folder": "Vulkan/nvpro",
+    "path": "Vulkan/nvpro/lessons/nv02_application",
+    "kind": "lesson"
+  },
+  {
+    "target": "nv03_triangle",
+    "folder": "Vulkan/nvpro",
+    "path": "Vulkan/nvpro/lessons/nv03_triangle",
+    "kind": "lesson"
+  },
+  {
+    "target": "nv04_vma_staging_texture",
+    "folder": "Vulkan/nvpro",
+    "path": "Vulkan/nvpro/lessons/nv04_vma_staging_texture",
+    "kind": "lesson"
+  },
+  {
+    "target": "nv05_compute_readback",
+    "folder": "Vulkan/nvpro",
+    "path": "Vulkan/nvpro/lessons/nv05_compute_readback",
+    "kind": "lesson"
+  },
+  {
+    "target": "nv06_pbr_viewport",
+    "folder": "Vulkan/nvpro",
+    "path": "Vulkan/nvpro/lessons/nv06_pbr_viewport",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx01_device",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx01_device",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx02_swapchain",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx02_swapchain",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx03_triangle",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx03_triangle",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx04_vertex_buffer",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx04_vertex_buffer",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx05_indexed_cbv",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx05_indexed_cbv",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx06_texture_srv",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx06_texture_srv",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx07_depth_instancing",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx07_depth_instancing",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx08_compute_uav",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx08_compute_uav",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx09_pbr",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx09_pbr",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx10_offscreen",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx10_offscreen",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk11_capabilities",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk11_capabilities",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk12_queue_submit",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk12_queue_submit",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk13_staging_copy",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk13_staging_copy",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk14_constant_alignment",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk14_constant_alignment",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk15_dynamic_binding",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk15_dynamic_binding",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk16_push_constants",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk16_push_constants",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk17_image_file",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk17_image_file",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk18_mip_chain",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk18_mip_chain",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk19_texture_lod",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk19_texture_lod",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk20_msaa_resolve",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk20_msaa_resolve",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk21_obj_model",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk21_obj_model",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk22_gltf_scene",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk22_gltf_scene",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk23_orbit_camera",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk23_orbit_camera",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk24_frame_ring",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk24_frame_ring",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk25_timestamps",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk25_timestamps",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk26_timeline_counter",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk26_timeline_counter",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk27_indirect_draw",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk27_indirect_draw",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk28_compute_tail",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk28_compute_tail",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk29_gpu_particles",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk29_gpu_particles",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk30_shared_reduce",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk30_shared_reduce",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk31_retire_resources",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk31_retire_resources",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk32_pipeline_cache",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk32_pipeline_cache",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk33_debug_labels",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk33_debug_labels",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk34_dynamic_scissor",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk34_dynamic_scissor",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk35_srgb_view",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk35_srgb_view",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk36_integration",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk36_integration",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx11_capabilities",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx11_capabilities",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx12_queue_submit",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx12_queue_submit",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx13_staging_copy",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx13_staging_copy",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx14_constant_alignment",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx14_constant_alignment",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx15_dynamic_binding",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx15_dynamic_binding",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx16_push_constants",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx16_push_constants",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx17_image_file",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx17_image_file",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx18_mip_chain",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx18_mip_chain",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx19_texture_lod",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx19_texture_lod",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx20_msaa_resolve",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx20_msaa_resolve",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx21_obj_model",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx21_obj_model",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx22_gltf_scene",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx22_gltf_scene",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx23_orbit_camera",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx23_orbit_camera",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx24_frame_ring",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx24_frame_ring",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx25_timestamps",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx25_timestamps",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx26_timeline_counter",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx26_timeline_counter",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx27_indirect_draw",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx27_indirect_draw",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx28_compute_tail",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx28_compute_tail",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx29_gpu_particles",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx29_gpu_particles",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx30_shared_reduce",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx30_shared_reduce",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx31_retire_resources",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx31_retire_resources",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx32_pipeline_cache",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx32_pipeline_cache",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx33_debug_labels",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx33_debug_labels",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx34_dynamic_scissor",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx34_dynamic_scissor",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx35_srgb_view",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx35_srgb_view",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx36_integration",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx36_integration",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk37_instance_extensions",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk37_instance_extensions",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk38_diagnostic_delivery",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk38_diagnostic_delivery",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk39_queue_properties",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk39_queue_properties",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk40_surface_support",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk40_surface_support",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk41_subresource_view",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk41_subresource_view",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk42_shader_inspection",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk42_shader_inspection",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk43_color_write_mask",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk43_color_write_mask",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk44_command_reuse",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk44_command_reuse",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk45_descriptor_update",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk45_descriptor_update",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk46_depth_formats",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk46_depth_formats",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk47_allocation_requirements",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk47_allocation_requirements",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk48_fence_lifecycle",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk48_fence_lifecycle",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk49_viewport_mapping",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk49_viewport_mapping",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk50_backface_culling",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk50_backface_culling",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk51_uniform_layout",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk51_uniform_layout",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk52_sampler_addressing",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk52_sampler_addressing",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk53_vertex_layout",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk53_vertex_layout",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk54_acceptance_suite",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/lessons/vk54_acceptance_suite",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx37_instance_extensions",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx37_instance_extensions",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx38_diagnostic_delivery",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx38_diagnostic_delivery",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx39_queue_properties",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx39_queue_properties",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx40_surface_support",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx40_surface_support",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx41_subresource_view",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx41_subresource_view",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx42_shader_inspection",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx42_shader_inspection",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx43_color_write_mask",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx43_color_write_mask",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx44_command_reuse",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx44_command_reuse",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx45_descriptor_update",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx45_descriptor_update",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx46_depth_formats",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx46_depth_formats",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx47_allocation_requirements",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx47_allocation_requirements",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx48_fence_lifecycle",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx48_fence_lifecycle",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx49_viewport_mapping",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx49_viewport_mapping",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx50_backface_culling",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx50_backface_culling",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx51_uniform_layout",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx51_uniform_layout",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx52_sampler_addressing",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx52_sampler_addressing",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx53_vertex_layout",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx53_vertex_layout",
+    "kind": "lesson"
+  },
+  {
+    "target": "dx54_acceptance_suite",
+    "folder": "DirectX12",
+    "path": "DirectX12/lessons/dx54_acceptance_suite",
+    "kind": "lesson"
+  },
+  {
+    "target": "vk01_ch_architecture",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/01_architecture",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk02_ch_environment",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/02_environment",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk03_ch_lifetime",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/03_lifetime",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk04_ch_instance_factory",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/04_instance_factory",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk05_ch_validation",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/05_validation",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk06_ch_physical_device",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/06_physical_device",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk07_ch_queues",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/07_queues",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk08_ch_logical_device",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/08_logical_device",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk09_ch_surface",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/09_surface",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk10_ch_swapchain",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/10_swapchain",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk11_ch_image_views",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/11_image_views",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk12_ch_pipeline_overview",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/12_pipeline_overview",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk13_ch_shader_modules",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/13_shader_modules",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk14_ch_fixed_function",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/14_fixed_function",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk15_ch_rendering_scope",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/15_rendering_scope",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk16_ch_pipeline_interface",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/16_pipeline_interface",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk17_ch_targets",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/17_targets",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk18_ch_command_storage",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/18_command_storage",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk19_ch_record_submit",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/19_record_submit",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk20_ch_present_sync",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/20_present_sync",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk21_ch_frames_in_flight",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/21_frames_in_flight",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk22_ch_swapchain_recreation",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/22_swapchain_recreation",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk23_ch_vertex_input",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/23_vertex_input",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk24_ch_vertex_buffer",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/24_vertex_buffer",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk25_ch_memory",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/25_memory",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk26_ch_staging",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/26_staging",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk27_ch_indices",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/27_indices",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk28_ch_uniform_layout",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/28_uniform_layout",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk29_ch_descriptor_layout",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/29_descriptor_layout",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk30_ch_descriptor_instances",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/30_descriptor_instances",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk31_ch_dynamic_offsets",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/31_dynamic_offsets",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk32_ch_per_draw_constants",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/32_per_draw_constants",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk33_ch_image_decode",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/33_image_decode",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk34_ch_image_upload",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/34_image_upload",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk35_ch_image_dependencies",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/35_image_dependencies",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk36_ch_samplers",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/36_samplers",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk37_ch_texture_binding",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/37_texture_binding",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk38_ch_color_space",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/38_color_space",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk39_ch_depth_formats",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/39_depth_formats",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk40_ch_depth_test",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/40_depth_test",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk41_ch_obj_models",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/41_obj_models",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk42_ch_gltf_nodes",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/42_gltf_nodes",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk43_ch_mip_generation",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/43_mip_generation",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk44_ch_mip_sampling",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/44_mip_sampling",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk45_ch_msaa",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/45_msaa",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk46_ch_compute",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/46_compute",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk47_ch_storage_tail",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/47_storage_tail",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk48_ch_compute_graphics",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/48_compute_graphics",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk49_ch_group_shared",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/49_group_shared",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk50_ch_timeline",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/50_timeline",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk51_ch_indirect",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/51_indirect",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk52_ch_camera_material",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/52_camera_material",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk53_ch_measure_cache",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/53_measure_cache",
+    "kind": "chapter"
+  },
+  {
+    "target": "vk54_ch_capstone",
+    "folder": "Vulkan/native",
+    "path": "Vulkan/native/chapters/54_capstone",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx01_ch_architecture",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/01_architecture",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx02_ch_environment",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/02_environment",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx03_ch_lifetime",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/03_lifetime",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx04_ch_instance_factory",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/04_instance_factory",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx05_ch_validation",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/05_validation",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx06_ch_physical_device",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/06_physical_device",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx07_ch_queues",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/07_queues",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx08_ch_logical_device",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/08_logical_device",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx09_ch_surface",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/09_surface",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx10_ch_swapchain",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/10_swapchain",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx11_ch_image_views",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/11_image_views",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx12_ch_pipeline_overview",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/12_pipeline_overview",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx13_ch_shader_modules",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/13_shader_modules",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx14_ch_fixed_function",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/14_fixed_function",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx15_ch_rendering_scope",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/15_rendering_scope",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx16_ch_pipeline_interface",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/16_pipeline_interface",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx17_ch_targets",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/17_targets",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx18_ch_command_storage",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/18_command_storage",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx19_ch_record_submit",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/19_record_submit",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx20_ch_present_sync",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/20_present_sync",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx21_ch_frames_in_flight",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/21_frames_in_flight",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx22_ch_swapchain_recreation",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/22_swapchain_recreation",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx23_ch_vertex_input",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/23_vertex_input",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx24_ch_vertex_buffer",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/24_vertex_buffer",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx25_ch_memory",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/25_memory",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx26_ch_staging",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/26_staging",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx27_ch_indices",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/27_indices",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx28_ch_uniform_layout",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/28_uniform_layout",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx29_ch_descriptor_layout",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/29_descriptor_layout",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx30_ch_descriptor_instances",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/30_descriptor_instances",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx31_ch_dynamic_offsets",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/31_dynamic_offsets",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx32_ch_per_draw_constants",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/32_per_draw_constants",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx33_ch_image_decode",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/33_image_decode",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx34_ch_image_upload",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/34_image_upload",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx35_ch_image_dependencies",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/35_image_dependencies",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx36_ch_samplers",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/36_samplers",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx37_ch_texture_binding",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/37_texture_binding",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx38_ch_color_space",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/38_color_space",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx39_ch_depth_formats",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/39_depth_formats",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx40_ch_depth_test",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/40_depth_test",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx41_ch_obj_models",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/41_obj_models",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx42_ch_gltf_nodes",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/42_gltf_nodes",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx43_ch_mip_generation",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/43_mip_generation",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx44_ch_mip_sampling",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/44_mip_sampling",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx45_ch_msaa",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/45_msaa",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx46_ch_compute",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/46_compute",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx47_ch_storage_tail",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/47_storage_tail",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx48_ch_compute_graphics",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/48_compute_graphics",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx49_ch_group_shared",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/49_group_shared",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx50_ch_timeline",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/50_timeline",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx51_ch_indirect",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/51_indirect",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx52_ch_camera_material",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/52_camera_material",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx53_ch_measure_cache",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/53_measure_cache",
+    "kind": "chapter"
+  },
+  {
+    "target": "dx54_ch_capstone",
+    "folder": "DirectX12",
+    "path": "DirectX12/chapters/54_capstone",
+    "kind": "chapter"
+  }
+]

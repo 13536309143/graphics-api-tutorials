@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 debug layer 要在 Device 创建前启用，InfoQueue 检查 ERROR/CORRUPTION。实验通过 AddApplicationMessage 验证信息通道并为 queue/list/allocator SetName。原始 BeginEvent 是工具层诊断接口；课程不直接伪造 PIX 事件载荷，嵌套 PIX 标记需接入其正式 helper。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,9 +28,13 @@ cmake --build --preset dx12-debug --target dx33_debug_labels --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L809)，第 809—842 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx33_debug_labels/main.cpp](main.cpp#L14)，第 14—36 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 33);
+    DxDevice c(options.warp);
+    {
         dxCheck(c.queue->SetName(L"Course Graphics Queue"));
         dxCheck(c.cmd->SetName(L"Course Upload Commands"));
         dxCheck(c.allocator->SetName(L"Course Upload Allocator"));
@@ -32,33 +42,18 @@ cmake --build --preset dx12-debug --target dx33_debug_labels --parallel 4
         c.submit();
         std::cout << "Named queue, command list and allocator for GPU debugging; event regions "
                      "require PIX helpers\n";
-    } else {
-        ComputeKernel kernel(c, options);
-        uint32_t mode = id == 30 ? 2 : id == 14 || id == 15 ? 1 : 0;
-        uint32_t count = id == 28 || id == 30 ? 257 : 128;
-        for (uint32_t slot = 0; slot < (id == 15 ? 3u : 1u); ++slot) {
-            uint32_t factor = id == 16 ? 9 : 3, bias = id == 16 ? 17 : 7;
-            kernel.execute(mode, count, factor, bias, slot);
-            auto result = readBuffer(kernel.readback.Get(), mode == 2 ? (count + 63) / 64 : count);
-            if (mode == 2) {
-                auto sum = std::accumulate(result.begin(), result.end(), 0u);
-                require(sum == count * (count + 1) / 2, "Shared reduction result mismatch");
-            } else {
-                if (mode == 1) {
-                    factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
-                    bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
-                }
-                for (uint32_t i = 0; i < count; ++i)
-                    require(result[i] == i * factor + bias, "Compute/root-binding mismatch");
-            }
-        }
-        std::cout << "Verified experiment " << id << ", items=" << count
-                  << ", constant stride=256\n";
     }
     c.checkMessages();
     return 0;
 }
 } // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

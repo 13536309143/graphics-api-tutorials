@@ -1,0 +1,7 @@
+{
+  "target": "vk24_frame_ring",
+  "api": "vk",
+  "experiment": 24,
+  "chapter": null,
+  "independent": true
+}

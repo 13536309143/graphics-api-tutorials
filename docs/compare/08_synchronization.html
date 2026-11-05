@@ -27,14 +27,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/11_framebuffer/README.html">11_framebuffer</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk06_texture_descriptor/README.html">vk06_texture_descriptor</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="11_framebuffer" href="../../OpenGL/lessons/11_framebuffer/README.html">11_framebuffer</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk06_texture_descriptor" href="../../Vulkan/native/lessons/vk06_texture_descriptor/README.html">vk06_texture_descriptor</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv03_triangle" href="../../Vulkan/nvpro/lessons/nv03_triangle/README.html">nv03_triangle</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx08_compute_uav" href="../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>常规有序 FBO→采样由 GL 规则协调；不能推导成所有 GPU 写后读都自动安全。</p>
-<p><a href="../../OpenGL/lessons/11_framebuffer/main.cpp#L12">OpenGL/lessons/11_framebuffer/main.cpp</a>，第 12—43 行：</p>
+<p><a data-course-target="11_framebuffer" href="../../OpenGL/lessons/11_framebuffer/main.cpp#L16">OpenGL/lessons/11_framebuffer/main.cpp</a>，第 16—47 行：</p>
 <pre><code>    while (app.begin()) {
         if (app.width == 0 || app.height == 0) {
             app.end();
@@ -69,7 +69,7 @@
     return failure(e);</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>屏障声明前后阶段、访问及布局；并非只修改一个枚举。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L133">Vulkan/common/scene_vk.hpp</a>，第 133—167 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk06_texture_descriptor/support/scene_vk.hpp#L133">Vulkan/native/lessons/vk06_texture_descriptor/support/scene_vk.hpp</a>，第 133—167 行：</p>
 <pre><code>inline void barrier(VkCommandBuffer cmd,
                     VkImage image,
                     VkImageLayout before,
@@ -93,6 +93,7 @@
     VkDependencyInfo dependency{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
     dependency.imageMemoryBarrierCount = 1;
     dependency.pImageMemoryBarriers = &amp;b;
+    // 可见性依赖：源阶段/访问描述生产者，目标阶段/访问描述接下来的消费者。
     vkCmdPipelineBarrier2(cmd, &amp;dependency);
 }
 
@@ -103,11 +104,10 @@ inline void immediate(const VkContextRef&amp; c, const std::function&lt;void(VkC
     pi.queueFamilyIndex = c.family;
     vkCheck(vkCreateCommandPool(c.device, &amp;pi, nullptr, &amp;pool));
     VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-    ai.commandPool = pool;
-    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;</code></pre>
+    ai.commandPool = pool;</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>GENERAL→GENERAL 仍声明颜色写入与后续采样依赖。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L130">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 130—177 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp#L130">Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp</a>，第 130—177 行：</p>
 <pre><code>    void onRender(VkCommandBuffer cmd) override {
         // 每次更新前等待队列，保证共用 UBO 和离屏目标不会与前一帧并发读写。
         vkCheck(vkQueueWaitIdle(c.queue));
@@ -158,7 +158,7 @@ inline void immediate(const VkContextRef&amp; c, const std::function&lt;void(VkC
         readback.init(</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>CPU 等 fence 只解决完成条件；资源状态还要与实际访问一致。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L134">DirectX12/common/dx12_course.hpp</a>，第 134—147 行：</p>
+<p><a href="../../DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp#L138">DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp</a>，第 138—151 行：</p>
 <pre><code>    void wait() {
         dxCheck(queue-&gt;Signal(fence.Get(), ++value));
         if (fence-&gt;GetCompletedValue() &lt; value) {

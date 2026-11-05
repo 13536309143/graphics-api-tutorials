@@ -1,10 +1,14 @@
-#include "advanced.hpp"
+// 21_hdr
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#include "support/advanced.hpp"
 
 // 线性颜色与 HDR，先阅读本目录 README.md。
 // 本课重点：先在浮点目标累积光照，最后用曝光和 tone mapping 映射显示。
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "21_hdr - OpenGL Course");
     RenderTarget scene(2), ping, pong;
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, "advanced.vert", "hdr_scene.frag"), tone(app, "screen.vert", "tone.frag"),
         blur(app, "screen.vert", "blur.frag");
     Mesh ball(sphere()), plane(quad(), quadIndices());
@@ -12,6 +16,7 @@ int main(int argc, char** argv) try {
     camera.pos = {0, 0, 8};
     camera.pitch = 0;
     float exposure = 1;
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width < 1 || app.height < 1) {
             app.end();

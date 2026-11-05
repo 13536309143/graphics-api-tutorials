@@ -1,5 +1,17 @@
 # dx04_vertex_buffer · 顶点缓冲与 VBV
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [上一课](../dx03_triangle/README.md) · [下一课](../dx05_indexed_cbv/README.md)
 
 ## 构建和运行
@@ -63,39 +75,63 @@ VBV 的 BufferLocation 是 CPU 地址吗？
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L256)，第 256—285 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx04_vertex_buffer/main.cpp](main.cpp#L9)，第 9—62 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-    DxScene(DxDevice& context,
-            int lesson,
-            const Geometry* replacement = nullptr,
-            UINT samples = 1,
-            D3D12_CULL_MODE cull = D3D12_CULL_MODE_NONE,
-            bool clampSampler = false,
-            bool redOnly = false)
-        : c(context), mode(lesson), mesh(replacement ? *replacement : geometry(mode)) {
-        if (mode >= 4) {
-            UINT size = UINT(mesh.vertices.size() * sizeof(Vertex));
-            vertices = c.buffer(size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-            void* mapped;
-            D3D12_RANGE empty{0, 0};
-            dxCheck(vertices->Map(0, &empty, &mapped));
-            std::memcpy(mapped, mesh.vertices.data(), size);
-            vertices->Unmap(0, nullptr);
-            vb = {vertices->GetGPUVirtualAddress(), size, sizeof(Vertex)};
-            if (!mesh.indices.empty()) {
-                UINT bytes = UINT(mesh.indices.size() * 4);
-                indices =
-                    c.buffer(bytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-                dxCheck(indices->Map(0, &empty, &mapped));
-                std::memcpy(mapped, mesh.indices.data(), bytes);
-                indices->Unmap(0, nullptr);
-                ib = {indices->GetGPUVirtualAddress(), bytes, DXGI_FORMAT_R32_UINT};
-            }
-        }
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
 
-        // CBV GPU 地址要求 256 字节对齐，因此给 64 字节的帧矩阵预留 256 字节。
-        uniform = c.buffer(256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error("GLFW failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "DirectX 12 Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        DxWindow app(window, 4, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? "dx12_" + std::to_string(4) + ".ppm"
+                                                   : options.captureStem + ".ppm");
+        while (!glfwWindowShouldClose(window) && (!smoke || frame < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene && options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke && frame == 3 ? &output : nullptr);
+            ++frame;
+        }
+    }
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

@@ -1,10 +1,48 @@
-#include "advanced_labs.hpp"
-#include <exception>
-#include <iostream>
+// 关联教材：OBJ 导入、索引与几何归一化。
+// 关键约束：静态导入；文件解析与 GPU 上传分开。
+// 关键约束：合并索引；避免第二 mesh 错连。
+// 关键约束：尺度处理；记录变更，不能无声改变工程单位。
+// dx21_obj_model
+// 本目录拥有完整课程源码；只共享第三方依赖，不链接其他章节的课程实现。
+#define STB_IMAGE_IMPLEMENTATION
+#include "support/advanced.hpp"
+#include "support/dx12_course.hpp"
+#include <numeric>
+#include <d3d11shader.h>
 
-// OBJ 静态模型：实验实现集中于 common/advanced_labs.cpp，避免复制资源所有权代码。
+namespace course {
+
+int graphicsLab(int argc, char** argv, const LabOptions& options) {
+    int mode = ((6));
+    Geometry mesh;
+    {
+        mesh = staticAsset(options.directory / "assets/models/vase.obj");
+    }
+    DxRenderOptions render;
+    render.captureStem = "dx_lab_" + std::to_string(21);
+    render.redOnly = false;
+    render.cull = (D3D12_CULL_MODE_NONE);
+    render.clampSampler = false;
+    if (!mesh.vertices.empty())
+        render.mesh = &mesh;
+
+    // 计算先独立提交完成，再开始图形命令录制，避免在同一 allocator 正录制时把它重置。
+    render.beforeFrame = [](DxScene& scene, float time) {
+        // The compute submission must finish before DxWindow resets its allocator to record graphics.
+    };
+    return dxMain(argc, argv, mode, render);
+}
+
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 21);
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
+
 int main(int argc, char** argv) try {
-    return course::dxLabMain(argc, argv, 21);
+    return course::runChapter(argc, argv);
 } catch (const std::exception& error) {
     std::cerr << "ERROR: " << error.what() << '\n';
     return 1;

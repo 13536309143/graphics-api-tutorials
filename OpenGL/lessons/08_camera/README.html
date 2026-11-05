@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 08 课：自由相机</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 08 课：自由相机</h1>
-<p><a href="../../README.html">课程首页</a> · <a href="../07_cube/README.html">上一课</a> · <a href="../09_lighting/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 08 课：自由相机</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="08_camera"><h1>第 08 课：自由相机</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="08_camera" href="main.cpp">main.cpp</a> · <a data-course-target="08_camera" href="support/">本地辅助实现</a> · <a data-course-target="08_camera" href="shaders/">本课着色器</a> · <a data-course-target="08_camera" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">课程首页</a> · <a data-course-target="07_cube" href="../07_cube/README.html">上一课</a> · <a data-course-target="09_lighting" href="../09_lighting/README.html">下一课</a></p>
 <h2>学完你应该能够</h2>
 <p>说明“把输入变成相机运动”，运行并修改本课示例。</p>
 <h2>运行与观察</h2>
@@ -13,7 +19,7 @@ cmake --build --preset opengl-debug --target 08_camera --parallel 4
 <p>鼠标的像素位移乘灵敏度改变角度。第一次捕获鼠标只记录位置，不计算大幅跳变；松开右键恢复指针。键盘移动距离是 speed*dt，不应每帧移动固定距离。此课 dt 上限为 0.05 秒，防止调试暂停后突然飞远；这会在极低帧率时牺牲真实时间一致性。</p>
 <p>W/S 前后，A/D 横移，Q/E 升降，按住右键转向。W/S 沿 front 移动，所以看向上方时会同时升高；如果想做贴地角色，应将 front 的 y 清零后归一化。此教学相机不包含碰撞，能穿过物体。</p>
 <p>阅读 Camera::update/view/projection，再看第 08 课使用同一个 VP 绘制 10 个不同 model 的对象。相机并不移动 GPU 内部的某个实体；改变 view 矩阵即可改变观察方式。</p>
-<p>首先阅读 <a href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
+<p>首先阅读 <a data-course-target="08_camera" href="main.cpp">main.cpp</a>，再追踪其中调用的 <a href="../../common/app.hpp">common/app.hpp</a> 和 <a href="../../shaders">GLSL 文件</a>。不要一次通读所有公共工具：先弄清本课调用路径，再展开对应实现。</p>
 <h2>动手练习</h2>
 <p>加入 Shift 加速；改为地面移动；实现按 R 复位相机。</p>
 <p>每次修改 C++ 或 GLSL 后，从根目录执行 <code>cmake --build --preset opengl-debug --target 08_camera --parallel 4</code>。运行同一示例对比修改前后；尝试先预测画面，再修改代码。</p>
@@ -26,14 +32,18 @@ cmake --build --preset opengl-debug --target 08_camera --parallel 4
 <p>相机移动实际改变 view，即相机世界变换的逆。鼠标更新 yaw/pitch，键盘沿 front/right 移动，速度乘 dt。右键捕获鼠标与渲染状态无关，是输入交互策略。</p>
 <p>配套精讲：<a href="../../../docs/compare/04_transforms_camera.html">三 API 对照 · 矩阵、相机与坐标</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="main.cpp#L5">OpenGL/lessons/08_camera/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<p>来自 <a data-course-target="08_camera" href="main.cpp#L7">OpenGL/lessons/08_camera/main.cpp</a>，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;08_camera - OpenGL Course&quot;);
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, &quot;basic.vert&quot;, &quot;texture.frag&quot;);
+    // CPU 顶点数据上传后，由 VAO 保存属性布局；布局必须匹配顶点 shader。
     Mesh mesh(cube());
     Texture texture;
     Camera camera;
     glEnable(GL_DEPTH_TEST);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         app.clear();
         shader.use();
@@ -48,19 +58,15 @@ cmake --build --preset opengl-debug --target 08_camera --parallel 4
             shader.set(&quot;mvp&quot;, vp * model);
             mesh.draw();
         }
-        app.end();
-    }
-    return 0;
-} catch (const std::exception&amp; e) {
-    return failure(e);</code></pre>
+        app.end();</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="README.html">08_camera</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="08_camera" href="README.html">08_camera</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk05_indexed_uniform" href="../../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv06_pbr_viewport" href="../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx05_indexed_cbv" href="../../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>把 dt 移除后，以不同帧率运行会发生什么？</p>

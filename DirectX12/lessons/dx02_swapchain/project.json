@@ -1,0 +1,7 @@
+{
+  "target": "dx02_swapchain",
+  "api": "dx",
+  "experiment": 2,
+  "chapter": null,
+  "independent": true
+}

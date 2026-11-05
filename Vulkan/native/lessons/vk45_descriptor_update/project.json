@@ -1,0 +1,7 @@
+{
+  "target": "vk45_descriptor_update",
+  "api": "vk",
+  "experiment": 45,
+  "chapter": null,
+  "independent": true
+}

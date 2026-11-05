@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 queue family 具有 flags、queueCount 和 timestampValidBits。graphics/compute family 隐含支持传输，但 present support 需要对实际 surface 查询。跨 family 使用 EXCLUSIVE 资源还涉及所有权转移，不能只添加 semaphore。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,31 @@ cmake --build --preset vulkan-native-debug --target vk39_queue_properties --para
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L284)，第 284—327 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk39_queue_properties/main.cpp](main.cpp#L26)，第 26—47 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-    require(counter >= 2, "Timeline did not advance");
-    vkCheck(vkQueueWaitIdle(c.queue));
-    vkDestroySemaphore(c.device, semaphore, nullptr);
-    std::cout << "Verified timeline producer 1 -> consumer 2, counter=" << counter << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 39);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            inspection(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
 }
-// timestampValidBits 和 timestampPeriod 决定 tick 的解释，不把单次实验当 API 性能排名。
-void timestamps(const VkContextRef& c) {
-    uint32_t count{};
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &count, nullptr);
-    std::vector<VkQueueFamilyProperties> families(count);
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &count, families.data());
-    require(families[c.family].timestampValidBits != 0,
-            "Selected queue does not support timestamps");
-    VkQueryPoolCreateInfo info{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
-    info.queryType = VK_QUERY_TYPE_TIMESTAMP;
-    info.queryCount = 2;
-    VkQueryPool pool{};
-    vkCheck(vkCreateQueryPool(c.device, &info, nullptr, &pool));
-    VkBufferResource buffer;
-    buffer.init(
-        c, 1024 * 1024, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    immediate(c, [&](VkCommandBuffer cmd) {
-        vkCmdResetQueryPool(cmd, pool, 0, 2);
-        vkCmdWriteTimestamp2(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, pool, 0);
-        vkCmdFillBuffer(cmd, buffer.buffer, 0, VK_WHOLE_SIZE, 0x12345678);
-        vkCmdWriteTimestamp2(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, pool, 1);
-    });
-    uint64_t ticks[2]{};
-    vkCheck(vkGetQueryPoolResults(c.device,
-                                  pool,
-                                  0,
-                                  2,
-                                  sizeof(ticks),
-                                  ticks,
-                                  8,
-                                  VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT));
-    VkPhysicalDeviceProperties p{};
-    vkGetPhysicalDeviceProperties(c.physical, &p);
-    auto bits = families[c.family].timestampValidBits;
-    uint64_t mask = bits == 64 ? UINT64_MAX : ((uint64_t(1) << bits) - 1);
-    std::cout << "GPU fill measurement="
-              << ((ticks[1] - ticks[0]) & mask) * p.limits.timestampPeriod / 1e6
-              << " ms (single operation, not an API benchmark)\n";
-    vkDestroyQueryPool(c.device, pool, nullptr);
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

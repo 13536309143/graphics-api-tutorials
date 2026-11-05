@@ -1,67 +1,48 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk25_timestamps · GPU 时间戳</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk25_timestamps · GPU 时间戳</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk25_timestamps · GPU 时间戳</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="vk25_timestamps"><h1>vk25_timestamps · GPU 时间戳</h1>
 <p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="vk25_timestamps" href="main.cpp">main.cpp</a> · <a data-course-target="vk25_timestamps" href="support/">本地辅助实现</a> · <a data-course-target="vk25_timestamps" href="shaders/">本课着色器</a> · <a data-course-target="vk25_timestamps" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 <code>cmake -S . -B build -A x64</code> 配置、<code>cmake --build build --config Debug</code> 构建；不需要其他章节源码。</p>
 <h2>目的与实际执行</h2>
 <p>timestampValidBits 与 timestampPeriod 决定计时解释；本例记录填充操作前后时间并处理有效位。pipeline cache 在同一设备/驱动条件下保存并重建 compute pipeline，实际执行后再核对数值。</p>
-<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<p>本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
 <h2>构建和运行</h2>
 <pre><code>cmake --preset vulkan-native
 cmake --build --preset vulkan-native-debug --target vk25_timestamps --parallel 4
 .\Vulkan\native\build\bin\Debug\vk25_timestamps.exe</code></pre>
 <h2>深入学习：数据、接口与执行</h2>
 <ul>
-<li><a href="../../chapters/53_measure_cache/README.html">第 53 课：GPU 时间戳、管线缓存与测量边界</a></li>
+<li><a data-course-target="vk53_ch_measure_cache" href="../../chapters/53_measure_cache/README.html">第 53 课：GPU 时间戳、管线缓存与测量边界</a></li>
 </ul>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/advanced_labs.cpp#L290">Vulkan/native/common/advanced_labs.cpp</a>，第 290—333 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>void timestamps(const VkContextRef&amp; c) {
-    uint32_t count{};
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &amp;count, nullptr);
-    std::vector&lt;VkQueueFamilyProperties&gt; families(count);
-    vkGetPhysicalDeviceQueueFamilyProperties(c.physical, &amp;count, families.data());
-    require(families[c.family].timestampValidBits != 0,
-            &quot;Selected queue does not support timestamps&quot;);
-    VkQueryPoolCreateInfo info{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
-    info.queryType = VK_QUERY_TYPE_TIMESTAMP;
-    info.queryCount = 2;
-    VkQueryPool pool{};
-    vkCheck(vkCreateQueryPool(c.device, &amp;info, nullptr, &amp;pool));
-    VkBufferResource buffer;
-    buffer.init(
-        c, 1024 * 1024, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    immediate(c, [&amp;](VkCommandBuffer cmd) {
-        vkCmdResetQueryPool(cmd, pool, 0, 2);
-        vkCmdWriteTimestamp2(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, pool, 0);
-        vkCmdFillBuffer(cmd, buffer.buffer, 0, VK_WHOLE_SIZE, 0x12345678);
-        vkCmdWriteTimestamp2(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, pool, 1);
-    });
-    uint64_t ticks[2]{};
-    vkCheck(vkGetQueryPoolResults(c.device,
-                                  pool,
-                                  0,
-                                  2,
-                                  sizeof(ticks),
-                                  ticks,
-                                  8,
-                                  VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT));
-    VkPhysicalDeviceProperties p{};
-    vkGetPhysicalDeviceProperties(c.physical, &amp;p);
-    auto bits = families[c.family].timestampValidBits;
-    uint64_t mask = bits == 64 ? UINT64_MAX : ((uint64_t(1) &lt;&lt; bits) - 1);
-    std::cout &lt;&lt; &quot;GPU fill measurement=&quot;
-              &lt;&lt; ((ticks[1] - ticks[0]) &amp; mask) * p.limits.timestampPeriod / 1e6
-              &lt;&lt; &quot; ms (single operation, not an API benchmark)\n&quot;;
-    vkDestroyQueryPool(c.device, pool, nullptr);
+<p>来自 <a data-course-target="vk25_timestamps" href="main.cpp#L54">Vulkan/native/lessons/vk25_timestamps/main.cpp</a>，第 54—75 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 25);
+    nativeShaders = options.directory / &quot;shaders&quot;;
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto&amp; c = owner.c;
+        {
+            timestamps(c);
+        }
+    }
+    std::cout &lt;&lt; &quot;Validation errors: &quot; &lt;&lt; validationErrors &lt;&lt; &#x27;\n&#x27;;
+    return validationErrors ? 1 : 0;
 }
-void imageDependency(VkCommandBuffer cmd,
-                     VkImage image,
-                     uint32_t level,
-                     VkImageLayout before,
-                     VkImageLayout after,</code></pre>
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>程序</td></tr>
-<tr><td>Vulkan 原生</td><td><a href="README.html">vk25_timestamps</a></td></tr>
-<tr><td>对照后端</td><td><a href="../../../../DirectX12/lessons/dx25_timestamps/README.html">dx25_timestamps</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk25_timestamps" href="README.html">vk25_timestamps</a></td></tr>
+<tr><td>对照后端</td><td><a data-course-target="dx25_timestamps" href="../../../../DirectX12/lessons/dx25_timestamps/README.html">dx25_timestamps</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>列出一个公平跨 API 性能实验至少需要固定的六项条件。</p>

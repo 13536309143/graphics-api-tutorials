@@ -1,0 +1,7 @@
+{
+  "target": "dx30_shared_reduce",
+  "api": "dx",
+  "experiment": 30,
+  "chapter": null,
+  "independent": true
+}

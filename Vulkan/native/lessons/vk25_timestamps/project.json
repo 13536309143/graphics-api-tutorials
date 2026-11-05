@@ -1,0 +1,7 @@
+{
+  "target": "vk25_timestamps",
+  "api": "vk",
+  "experiment": 25,
+  "chapter": null,
+  "independent": true
+}

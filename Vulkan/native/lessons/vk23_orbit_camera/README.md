@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 共享右手世界与 0..1 深度，正高度 viewport 下投影 Y 翻转。SceneVk 支持按实际尺寸提供相机矩阵。PBR shader 采用 GGX/Schlick 直接光模型；当前显式后端没有完整 IBL 预计算或动画材质系统。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,24 @@ cmake --build --preset vulkan-native-debug --target vk23_orbit_camera --parallel
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L688)，第 688—731 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk23_orbit_camera/main.cpp](main.cpp#L39)，第 39—53 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-            scene.frameProvider = [](float aspect, float time, bool vulkan) {
-                auto projection = glm::perspectiveRH_ZO(glm::radians(48.f), aspect, .1f, 100.f);
-                if (vulkan)
-                    projection[1][1] *= -1;
-                glm::vec3 eye(std::sin(time * .3f) * 4, 1.6f, std::cos(time * .3f) * 4);
-                return Frame{projection * glm::lookAtRH(eye, glm::vec3(0), glm::vec3(0, 1, 0))};
-            };
-        // 这两课直接使用数学裁剪坐标；显式翻转 Y，使正高度 Vulkan viewport 与 DX12 映射一致。
-        if (id == 29 || id == 53)
-            scene.frameProvider = [](float, float, bool vulkan) {
-                Frame result;
-                if (vulkan)
-                    result.viewProjection[1][1] = -1;
-                return result;
-            };
-    };
-    render.update = [id](SceneVk& scene, float time) {
-        if (id == 29)
-            std::static_pointer_cast<RenderState>(scene.extension)->particles->execute(time);
-    };
-    return nativeMain(argc, argv, mode, render);
-}
-void surfaceInspection() {
-    require(glfwInit() != 0, "GLFW init failed");
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    auto* window = glfwCreateWindow(320, 240, "Surface inspection", nullptr, nullptr);
-    require(window != nullptr, "Window failed");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 23);
+    nativeShaders = options.directory / "shaders";
     {
-        NativeDevice owner(window);
-        VkSurfaceCapabilitiesKHR caps{};
-        vkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(owner.c.physical, owner.surface, &caps));
-        uint32_t formats{}, modes{};
-        vkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(
-            owner.c.physical, owner.surface, &formats, nullptr));
-        vkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(
-            owner.c.physical, owner.surface, &modes, nullptr));
-        require(formats > 0 && modes > 0, "Surface has no formats/present modes");
-        std::cout << "Surface minImages=" << caps.minImageCount
-                  << ", maxImages=" << caps.maxImageCount << ", formats=" << formats
-                  << ", presentModes=" << modes << '\n';
+        return graphicsLab(argc, argv, options);
     }
-    glfwDestroyWindow(window);
-    glfwTerminate();
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

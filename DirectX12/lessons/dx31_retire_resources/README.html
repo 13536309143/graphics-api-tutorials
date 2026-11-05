@@ -1,67 +1,45 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx31_retire_resources · 完成后回收资源</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx31_retire_resources · 完成后回收资源</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx31_retire_resources · 完成后回收资源</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx31_retire_resources"><h1>dx31_retire_resources · 完成后回收资源</h1>
 <p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="dx31_retire_resources" href="main.cpp">main.cpp</a> · <a data-course-target="dx31_retire_resources" href="support/">本地辅助实现</a> · <a data-course-target="dx31_retire_resources" href="shaders/">本课着色器</a> · <a data-course-target="dx31_retire_resources" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 <code>cmake -S . -B build -A x64</code> 配置、<code>cmake --build build --config Debug</code> 构建；不需要其他章节源码。</p>
 <h2>目的与实际执行</h2>
 <p>ComPtr 只控制 COM 引用计数；最后一个引用释放时若 GPU 还在用资源，仍然错误。UPLOAD 的 CPU 字节也不能在 copy 未完成时覆盖。fence 完成值同时保护 resource、descriptor 范围和 command allocator 的回收。</p>
-<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<p>本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
 <h2>构建和运行</h2>
 <pre><code>cmake --preset dx12
 cmake --build --preset dx12-debug --target dx31_retire_resources --parallel 4
 .\DirectX12\build\bin\Debug\dx31_retire_resources.exe</code></pre>
 <h2>深入学习：数据、接口与执行</h2>
 <ul>
-<li><a href="../../chapters/03_lifetime/README.html">第 03 课：应用结构、RAII 与 GPU 使用期</a></li>
+<li><a data-course-target="dx03_ch_lifetime" href="../../chapters/03_lifetime/README.html">第 03 课：应用结构、RAII 与 GPU 使用期</a></li>
 </ul>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/advanced_labs.cpp#L148">DirectX12/common/advanced_labs.cpp</a>，第 148—191 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>void stagingCopy(DxDevice&amp; c) {
-    std::vector&lt;uint32_t&gt; original(257);
-    for (uint32_t i = 0; i &lt; 257; ++i)
-        original[i] = i * 17 + 9;
-    auto upload = c.buffer(257 * 4, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-    auto gpu = c.buffer(257 * 4, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST);
-    auto readback = c.buffer(257 * 4, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    writeBuffer(upload.Get(), original.data(), original.size() * 4);
-    c.begin();
-    c.cmd-&gt;CopyBufferRegion(gpu.Get(), 0, upload.Get(), 0, 257 * 4);
-    auto b =
-        transition(gpu.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    c.cmd-&gt;ResourceBarrier(1, &amp;b);
-    c.cmd-&gt;CopyBufferRegion(readback.Get(), 0, gpu.Get(), 0, 257 * 4);
-    c.submit();
-    require(readBuffer(readback.Get(), 257) == original, &quot;DEFAULT staging-copy result mismatch&quot;);
-    std::cout &lt;&lt; &quot;Verified 257 DEFAULT round-trip words\n&quot;;
-}
-// 两组 allocator/list 与可变资源交替提交；等待的是本槽上次使用，不是每次提交后立即全局等待。
-void frameRing(DxDevice&amp; c, const LabOptions&amp; options) {
-    ComputeKernel kernels[2] = {ComputeKernel(c, options), ComputeKernel(c, options)};
-    ComPtr&lt;ID3D12CommandAllocator&gt; allocators[2];
-    ComPtr&lt;ID3D12GraphicsCommandList&gt; commands[2];
-    UINT64 completed[2]{};
-    int previous[2] = {-1, -1};
-    for (uint32_t i = 0; i &lt; 2; ++i) {
-        dxCheck(c.device-&gt;CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                                 IID_PPV_ARGS(&amp;allocators[i])));
-        dxCheck(c.device-&gt;CreateCommandList(0,
-                                            D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                            allocators[i].Get(),
-                                            nullptr,
-                                            IID_PPV_ARGS(&amp;commands[i])));
-        dxCheck(commands[i]-&gt;Close());
+<p>来自 <a data-course-target="dx31_retire_resources" href="main.cpp#L53">DirectX12/lessons/dx31_retire_resources/main.cpp</a>，第 53—71 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 31);
+    DxDevice c(options.warp);
+    {
+        for (int i = 0; i &lt; 4; ++i)
+            stagingCopy(c);
+        std::cout &lt;&lt; &quot;Retired 4 UPLOAD/DEFAULT/READBACK generations after fence completion\n&quot;;
     }
-    for (uint32_t frame = 0; frame &lt; 8; ++frame) {
-        uint32_t slot = frame % 2;
-        waitValue(c, completed[slot]);
-        if (previous[slot] &gt;= 0) {
-            auto result = readBuffer(kernels[slot].readback.Get(), 257);
-            for (uint32_t i = 0; i &lt; 257; ++i)
-                require(result[i] == i * 3 + uint32_t(previous[slot]),
-                        &quot;In-flight slot overwritten&quot;);
-        }</code></pre>
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>程序</td></tr>
-<tr><td>DirectX 12</td><td><a href="README.html">dx31_retire_resources</a></td></tr>
-<tr><td>对照后端</td><td><a href="../../../Vulkan/native/lessons/vk31_retire_resources/README.html">vk31_retire_resources</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx31_retire_resources" href="README.html">dx31_retire_resources</a></td></tr>
+<tr><td>对照后端</td><td><a data-course-target="vk31_retire_resources" href="../../../Vulkan/native/lessons/vk31_retire_resources/README.html">vk31_retire_resources</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>将临时 upload 的回收点标到时间图上；指出“Execute/Submit 返回”之后还缺哪条证据。</p>

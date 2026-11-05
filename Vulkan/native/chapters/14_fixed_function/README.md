@@ -37,6 +37,18 @@ RSSetViewports 与 RSSetScissorRects 负责动态矩形，RasterizerState.CullMo
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -54,65 +66,36 @@ RSSetViewports 与 RSSetScissorRects 负责动态矩形，RasterizerState.CullMo
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk43_color_write_mask --parallel 4
-.\Vulkan\native\build\bin\Debug\vk43_color_write_mask.exe
-ctest --preset vulkan-native-debug -R "^vk43_color_write_mask$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk14_ch_fixed_function --parallel 4
+.\Vulkan\native\build\bin\Debug\vk14_ch_fixed_function.exe
+ctest --preset vulkan-native-debug -R "^vk14_ch_fixed_function$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/common/scene_vk.hpp](../../../common/scene_vk.hpp#L366)，第 366—409 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/14_fixed_function/main.cpp](main.cpp#L29)，第 29—43 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        VkPipelineMultisampleStateCreateInfo ms{
-            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
-        ms.rasterizationSamples = samples;
-        VkPipelineDepthStencilStateCreateInfo depth{
-            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-        depth.depthTestEnable = depth.depthWriteEnable = mode >= 5;
-        depth.depthCompareOp = VK_COMPARE_OP_LESS;
-        VkPipelineColorBlendAttachmentState attachment{};
-        attachment.colorWriteMask =
-            redOnly ? VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_A_BIT : 15;
-        VkPipelineColorBlendStateCreateInfo blend{
-            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
-        blend.attachmentCount = 1;
-        blend.pAttachments = &attachment;
-        VkDynamicState ds[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-        VkPipelineDynamicStateCreateInfo dynamic{
-            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-        dynamic.dynamicStateCount = 2;
-        dynamic.pDynamicStates = ds;
-
-        // 动态渲染不创建 render pass，但管线仍需声明颜色和深度附件格式。
-        VkPipelineRenderingCreateInfo rendering{VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
-        rendering.colorAttachmentCount = 1;
-        rendering.pColorAttachmentFormats = &colorFormat;
-        rendering.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
-        VkGraphicsPipelineCreateInfo gp{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-        gp.pNext = &rendering;
-        gp.stageCount = 2;
-        gp.pStages = stages;
-        gp.pVertexInputState = &vi;
-        gp.pInputAssemblyState = &ia;
-        gp.pViewportState = &viewport;
-        gp.pRasterizationState = &raster;
-        gp.pMultisampleState = &ms;
-        gp.pDepthStencilState = &depth;
-        gp.pColorBlendState = &blend;
-        gp.pDynamicState = &dynamic;
-        gp.layout = pipelineLayout;
-        VkResult result = vkCreateGraphicsPipelines(c.device, cache, 1, &gp, nullptr, &pipeline);
-        vkDestroyShaderModule(c.device, vs, nullptr);
-        vkDestroyShaderModule(c.device, ps, nullptr);
-        vkCheck(result, "Graphics pipeline");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 43);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
     }
+}
+} // namespace course
 
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -144,4 +127,4 @@ ctest --preset vulkan-native-debug -R "^vk43_color_write_mask$" --output-on-fail
 
 ## 固定输入的实际 GPU 读回
 
-![vk43_color_write_mask](../../../../docs/previews/vk43_color_write_mask.png)
+![vk14_ch_fixed_function](../../../../docs/previews/vk43_color_write_mask.png)

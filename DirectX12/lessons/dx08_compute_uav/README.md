@@ -1,5 +1,17 @@
 # dx08_compute_uav · Compute UAV 与 GPU 读回
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [上一课](../dx07_depth_instancing/README.md) · [下一课](../dx09_pbr/README.md)
 
 ## 构建和运行
@@ -56,39 +68,36 @@ HLSL 使用 column_major 与 mul(M,v)，保持与共享 GLM 数据相同的内�
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L197)，第 197—226 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx08_compute_uav/main.cpp](main.cpp#L9)，第 9—35 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-inline void dxCompute(DxDevice& c) {
-    auto storage = c.buffer(1024,
-                            D3D12_HEAP_TYPE_DEFAULT,
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
-         readback = c.buffer(1024, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    D3D12_ROOT_PARAMETER root{};
-    root.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
-    root.Descriptor.ShaderRegister = 0;
-    D3D12_ROOT_SIGNATURE_DESC desc{};
-    desc.NumParameters = 1;
-    desc.pParameters = &root;
-    auto signature = rootSignature(c, desc);
-    auto cs = compileHlsl("ComputeMain", "cs_5_1");
-    D3D12_COMPUTE_PIPELINE_STATE_DESC pso{};
-    pso.pRootSignature = signature.Get();
-    pso.CS = {cs->GetBufferPointer(), cs->GetBufferSize()};
-    ComPtr<ID3D12PipelineState> pipeline;
-    dxCheck(c.device->CreateComputePipelineState(&pso, IID_PPV_ARGS(&pipeline)));
-    c.begin();
-    c.cmd->SetComputeRootSignature(signature.Get());
-    c.cmd->SetPipelineState(pipeline.Get());
-    c.cmd->SetComputeRootUnorderedAccessView(0, storage->GetGPUVirtualAddress());
-    c.cmd->Dispatch(4, 1, 1);
-    auto b = transition(
-        storage.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    c.cmd->ResourceBarrier(1, &b);
-    c.cmd->CopyBufferRegion(readback.Get(), 0, storage.Get(), 0, 1024);
-    c.submit();
-    void* mapped;
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    {
+        DxDevice c(warp);
+        {
+            dxCompute(c);
+        }
+        c.checkMessages();
+        return 0;
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

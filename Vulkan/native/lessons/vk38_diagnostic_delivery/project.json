@@ -1,0 +1,7 @@
+{
+  "target": "vk38_diagnostic_delivery",
+  "api": "vk",
+  "experiment": 38,
+  "chapter": null,
+  "independent": true
+}

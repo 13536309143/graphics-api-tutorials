@@ -54,7 +54,7 @@ OpenGL 相机课在右键按下时更新 yaw/pitch，把俯仰角限制在接近
 
 运动乘 dt；pitch 受限；view 与 projection 分别负责不同空间。
 
-[OpenGL/common/app.hpp](../../OpenGL/common/app.hpp#L333)，第 333—382 行：
+[OpenGL/lessons/08_camera/support/app.hpp](../../OpenGL/lessons/08_camera/support/app.hpp#L334)，第 334—383 行：
 
 ```cpp
 struct Camera {
@@ -113,7 +113,7 @@ inline int failure(const std::exception& e) {
 
 共享右手空间，Vulkan 正 viewport 下额外翻转投影 Y。
 
-[shared/scene.hpp](../../shared/scene.hpp#L86)，第 86—101 行：
+[Vulkan/native/lessons/vk05_indexed_uniform/support/scene.hpp](../../Vulkan/native/lessons/vk05_indexed_uniform/support/scene.hpp#L86)，第 86—101 行：
 
 ```cpp
 inline Frame frame(int mode, float aspect, bool vulkan) {
@@ -138,7 +138,7 @@ inline Frame frame(int mode, float aspect, bool vulkan) {
 
 框架不改变 SceneVk 的数学约定；UI 调整的是材质参数。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L411)，第 411—430 行：
+[Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp](../../Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp#L414)，第 414—433 行：
 
 ```cpp
     void render(VkCommandBuffer cmd, VkExtent2D size, float time, float roughnessScale = 1) {

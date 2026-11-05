@@ -1,5 +1,17 @@
 # 第 27 课：SSAO 与降噪
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [课程首页](../../README.md) · [上一课](../26_deferred/README.md) · [下一课](../28_ubo/README.md)
 
 ## 目标与运行
@@ -64,10 +76,11 @@ SSAO 不知道屏幕外和被遮住的几何，边缘漏光、相机相关变化
 
 ### 本课的真实源码切片
 
-来自 [OpenGL/lessons/27_ssao/main.cpp](main.cpp#L5)，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [OpenGL/lessons/27_ssao/main.cpp](main.cpp#L7)，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "27_ssao - OpenGL Course");
     RenderTarget gbuffer(3), occlusion, filtered;
     Shader geometry(app, "advanced.vert", "gbuffer.frag"),
@@ -92,7 +105,6 @@ int main(int argc, char** argv) try {
     }
     for (int k = 0; k < 16; ++k)
         noise.emplace_back(unit(random) * 2 - 1, unit(random) * 2 - 1, 0);
-    GLuint noiseTexture;
 ```
 
 ### 同主题跨 API 导航

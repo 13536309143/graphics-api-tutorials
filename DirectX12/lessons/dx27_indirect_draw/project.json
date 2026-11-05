@@ -1,0 +1,7 @@
+{
+  "target": "dx27_indirect_draw",
+  "api": "dx",
+  "experiment": 27,
+  "chapter": null,
+  "independent": true
+}

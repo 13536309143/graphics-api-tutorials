@@ -1,0 +1,7 @@
+{
+  "target": "vk04_vertex_buffer",
+  "api": "vk",
+  "experiment": 4,
+  "chapter": null,
+  "independent": true
+}

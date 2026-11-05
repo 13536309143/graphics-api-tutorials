@@ -2,13 +2,19 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 dynamic rendering 不创建 VkFramebuffer，但每帧仍要选择正确 image view。MSAA 例子使用多样本颜色/深度，resolve 到单样本交换链图像；管线 sample count 与附件一致。
 
 多样本颜色和深度为 4x，graphics pipeline sample count 同样 4x；dynamic rendering 的 resolve attachment 写单样本交换链目标。输入与输出的用途和布局均要正确。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -25,53 +31,24 @@ cmake --build --preset vulkan-native-debug --target vk20_msaa_resolve --parallel
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/native_app.hpp](../../common/native_app.hpp#L412)，第 412—455 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk20_msaa_resolve/main.cpp](main.cpp#L40)，第 40—54 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-            VkRenderingAttachmentInfo color{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-            color.imageView =
-                options.samples == VK_SAMPLE_COUNT_1_BIT ? targetView : swap.multisample.view;
-            if (options.samples != VK_SAMPLE_COUNT_1_BIT) {
-                color.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
-                color.resolveImageView = targetView;
-                color.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            }
-            color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            color.clearValue.color = {{.035f, .055f, .09f, 1}};
-            VkRenderingAttachmentInfo depth{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-            depth.imageView = swap.depth.view;
-            depth.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-            depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            depth.clearValue.depthStencil = {1, 0};
-            VkRenderingInfo render{VK_STRUCTURE_TYPE_RENDERING_INFO};
-            render.renderArea = {{0, 0}, swap.extent};
-            render.layerCount = 1;
-            render.colorAttachmentCount = 1;
-            render.pColorAttachments = &color;
-            render.pDepthAttachment = &depth;
-            vkCmdBeginRendering(cmd, &render);
-            if (swap.scene) {
-                float time = smoke ? 1.f : float(glfwGetTime());
-                if (options.update)
-                    options.update(*swap.scene, time);
-                swap.scene->render(cmd, swap.extent, time);
-            }
-            vkCmdEndRendering(cmd);
-            if (mode == 10) {
-                barrier(cmd,
-                        target,
-                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        VK_PIPELINE_STAGE_2_BLIT_BIT,
-                        VK_ACCESS_2_TRANSFER_READ_BIT);
-                barrier(cmd,
-                        swap.images[imageIndex],
-                        VK_IMAGE_LAYOUT_UNDEFINED,
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 20);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

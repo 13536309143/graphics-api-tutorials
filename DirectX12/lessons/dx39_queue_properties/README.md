@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 DIRECT、COMPUTE、COPY 队列有不同可执行操作集合。当前课程以 DIRECT 为基线，输出 queue desc；跨队列需要 Signal/Wait 建立生产消费，resource state 仍要合法。本课的计数同步不冒充独立 copy engine 优化。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,26 @@ cmake --build --preset dx12-debug --target dx39_queue_properties --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L394)，第 394—437 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx39_queue_properties/main.cpp](main.cpp#L22)，第 22—38 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        srv.Texture2D.MostDetailedMip = lastMip ? UINT(reference.size() - 1) : 0;
-        srv.Texture2D.MipLevels = lastMip ? 1 : UINT(reference.size());
-        c.device->CreateShaderResourceView(
-            texture.Get(), &srv, scene.srvHeap->GetCPUDescriptorHandleForHeapStart());
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 39);
+    DxDevice c(options.warp);
+    {
+        inspection(c, options);
     }
-    void verify() {
-        auto desc = texture->GetDesc();
-        UINT levels = UINT(reference.size());
-        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels);
-        UINT64 total{};
-        c.device->GetCopyableFootprints(
-            &desc, 0, levels, 0, footprints.data(), nullptr, nullptr, &total);
-        auto readback = c.buffer(total, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-        c.begin();
-        auto b = transition(texture.Get(),
-                            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-                            D3D12_RESOURCE_STATE_COPY_SOURCE);
-        c.cmd->ResourceBarrier(1, &b);
-        for (UINT level = 0; level < levels; ++level) {
-            D3D12_TEXTURE_COPY_LOCATION src{}, dst{};
-            src.pResource = texture.Get();
-            src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-            src.SubresourceIndex = level;
-            dst.pResource = readback.Get();
-            dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-            dst.PlacedFootprint = footprints[level];
-            c.cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-        }
-        b = transition(texture.Get(),
-                       D3D12_RESOURCE_STATE_COPY_SOURCE,
-                       D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        c.cmd->ResourceBarrier(1, &b);
-        c.submit();
-        void* p{};
-        D3D12_RANGE range{0, SIZE_T(total)};
-        dxCheck(readback->Map(0, &range, &p));
-        for (UINT level = 0; level < levels; ++level)
-            for (UINT y = 0; y < reference[level].height; ++y) {
-                auto* row = static_cast<uint8_t*>(p) + footprints[level].Offset +
-                            size_t(y) * footprints[level].Footprint.RowPitch;
-                for (UINT x = 0; x < reference[level].width * 4; ++x)
-                    require(
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

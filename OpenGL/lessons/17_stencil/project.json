@@ -1,0 +1,5 @@
+{
+  "target": "17_stencil",
+  "api": "gl",
+  "independent": true
+}

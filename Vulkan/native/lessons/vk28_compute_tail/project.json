@@ -1,0 +1,7 @@
+{
+  "target": "vk28_compute_tail",
+  "api": "vk",
+  "experiment": 28,
+  "chapter": null,
+  "independent": true
+}

@@ -1,0 +1,5 @@
+{
+  "target": "04_uniform",
+  "api": "gl",
+  "independent": true
+}

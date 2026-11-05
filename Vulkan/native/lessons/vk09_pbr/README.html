@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk09_pbr · 直接光 PBR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>vk09_pbr · 直接光 PBR</h1>
-<p><a href="../../README.html">路线首页</a> · <a href="../vk08_compute_readback/README.html">上一课</a> · <a href="../vk10_offscreen/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>vk09_pbr · 直接光 PBR</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="vk09_pbr"><h1>vk09_pbr · 直接光 PBR</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="vk09_pbr" href="main.cpp">main.cpp</a> · <a data-course-target="vk09_pbr" href="support/">本地辅助实现</a> · <a data-course-target="vk09_pbr" href="shaders/">本课着色器</a> · <a data-course-target="vk09_pbr" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">路线首页</a> · <a data-course-target="vk08_compute_readback" href="../vk08_compute_readback/README.html">上一课</a> · <a data-course-target="vk10_offscreen" href="../vk10_offscreen/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
 <pre><code>cmake --preset vulkan-native
@@ -9,7 +15,7 @@ cmake --build --preset vulkan-native-debug --target vk09_pbr --parallel 4
 <p>预期结果：5×7 球阵：横向粗糙度，纵向金属度。</p>
 <h2>先读哪些代码</h2>
 <p>shared sphere/draws → scene.frag pbr → push constants 每球参数。</p>
-<p>本目录 <a href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/native_app.hpp 与 ../common/scene_vk.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
+<p>本目录 <a data-course-target="vk09_pbr" href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/native_app.hpp 与 ../common/scene_vk.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
 <h2>原理和实现</h2>
 <p>复用 OpenGL 的微表面思路，采用 GGX D、Schlick 几何近似和 Fresnel，漫反射乘 (1-F)*(1-metallic)。四盏点光按距离平方衰减。roughness 保留最小值，避免除零与过尖分布。这里是直接光 PBR，加了少量环境常量；它没有移植 OpenGL 第 25 课的完整 IBL、模型加载或所有材质扩展。最后在 UNORM 目标输出前做 tone mapping 和简化 Gamma。</p>
 <h2>修改练习</h2>
@@ -27,41 +33,71 @@ cmake --build --preset vulkan-native-debug --target vk09_pbr --parallel 4
 <p>球阵列共用同一网格和 pipeline，每个 Draw 改 metal/roughness。先在 GLSL 输出法线/NoL 隔离输入，再看 D/G/F。当前只有直接光，不含完整环境 IBL。</p>
 <p>配套精讲：<a href="../../../../docs/compare/12_lighting_pbr_ibl.html">三 API 对照 · 直接光 PBR 与 IBL</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../../common/shaders/scene.frag#L17">Vulkan/common/shaders/scene.frag</a>，第 17—42 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>vec3 pbr(vec3 N, vec3 V, vec3 P, float metal, float r) {
-    vec3 albedo = vec3(.8, .25, .07), sum = vec3(.02) * albedo * (1.0 - metal),
-         f0 = mix(vec3(.04), albedo, metal);
-    for (int i = 0; i &lt; 4; ++i) {
-        vec3 lp = vec3(i % 2 == 0 ? -6 : 6, i &lt; 2 ? 6 : -4, 8);
-        vec3 delta = lp - P, L = normalize(delta), H = normalize(V + L);
-        float NoV = max(dot(N, V), .001), NoL = max(dot(N, L), 0), NoH = max(dot(N, H), 0);
-        float a = r * r, a2 = a * a, d = NoH * NoH * (a2 - 1) + 1,
-              D = a2 / max(PI * d * d, .000001);
-        float k = (r + 1) * (r + 1) / 8;
-        float G = NoV / (NoV * (1 - k) + k) * NoL / (NoL * (1 - k) + k);
-        vec3 F = f0 + (1 - f0) * pow(1 - max(dot(V, H), 0), 5);
-        sum += ((1 - F) * (1 - metal) * albedo / PI + D * G * F / max(4 * NoV * NoL, .001)) * 90 /
-               dot(delta, delta) * NoL;
-    }
-    return sum;
-}
+<p>来自 <a data-course-target="vk09_pbr" href="main.cpp#L9">Vulkan/native/lessons/vk09_pbr/main.cpp</a>，第 9—64 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
 
-void main() {
-    int mode = int(draw.settings.x);
-    vec3 N = normalize(normal), c;
-    if (mode &lt;= 4)
-        c = clamp(normal, 0, 1);
-    else if (mode &gt;= 9)
-        c = pbr(
-            N, normalize(vec3(0, 0, 14) - worldPos), worldPos, draw.settings.y, draw.settings.z);</code></pre>
+    bool smoke = false;
+    for (int i = 1; i &lt; argc; ++i)
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / &quot;shaders&quot;;
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    if (!glfwInit())
+        throw std::runtime_error(&quot;GLFW initialization failed&quot;);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, &quot;Native Vulkan Course&quot;, nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error(&quot;Window creation failed&quot;);
+    {
+        NativeDevice d(window);
+        Swapchain swap(d, window, 9, options);
+        VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+        pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pi.queueFamilyIndex = d.c.family;
+        VkCommandPool pool;
+        vkCheck(vkCreateCommandPool(d.c.device, &amp;pi, nullptr, &amp;pool));
+        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        ai.commandPool = pool;
+        ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        ai.commandBufferCount = 1;
+        VkCommandBuffer cmd;
+        vkCheck(vkAllocateCommandBuffers(d.c.device, &amp;ai, &amp;cmd));
+        VkSemaphoreCreateInfo si{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkSemaphore acquired;
+        vkCheck(vkCreateSemaphore(d.c.device, &amp;si, nullptr, &amp;acquired));
+        VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkFence fence;
+        vkCheck(vkCreateFence(d.c.device, &amp;fi, nullptr, &amp;fence));
+        int frames = 0;
+        while (!glfwWindowShouldClose(window) &amp;&amp; (!smoke || frames &lt; 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &amp;w, &amp;h);
+            if (w &lt; 1 || h &lt; 1) {
+                glfwWaitEvents();
+                continue;
+            }
+            if (uint32_t(w) != swap.extent.width || uint32_t(h) != swap.extent.height)
+                swap.recreate();
+            // 先等待上一轮命令完成，再复用命令缓冲和共享 UBO；本课程采用单帧串行同步。
+            vkCheck(vkWaitForFences(d.c.device, 1, &amp;fence, VK_TRUE, UINT64_MAX));
+            uint32_t imageIndex;
+            // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../../../OpenGL/lessons/25_ibl/README.html">25_ibl</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="README.html">vk09_pbr</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="25_ibl" href="../../../../OpenGL/lessons/25_ibl/README.html">25_ibl</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk09_pbr" href="README.html">vk09_pbr</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv06_pbr_viewport" href="../../../nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx09_pbr" href="../../../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>与 OpenGL IBL 球图不同可否直接认定 Vulkan 错了？</p>

@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 27 课：SSAO 与降噪</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 27 课：SSAO 与降噪</h1>
-<p><a href="../../README.html">课程首页</a> · <a href="../26_deferred/README.html">上一课</a> · <a href="../28_ubo/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 27 课：SSAO 与降噪</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="27_ssao"><h1>第 27 课：SSAO 与降噪</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="27_ssao" href="main.cpp">main.cpp</a> · <a data-course-target="27_ssao" href="support/">本地辅助实现</a> · <a data-course-target="27_ssao" href="shaders/">本课着色器</a> · <a data-course-target="27_ssao" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">课程首页</a> · <a data-course-target="26_deferred" href="../26_deferred/README.html">上一课</a> · <a data-course-target="28_ubo" href="../28_ubo/README.html">下一课</a></p>
 <h2>目标与运行</h2>
 <pre><code>cmake --preset opengl
 cmake --build --preset opengl-debug --target 27_ssao --parallel 4
@@ -8,7 +14,7 @@ cmake --build --preset opengl-debug --target 27_ssao --parallel 4
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
 <p>ssao.frag → ao_blur.frag → deferred.frag 的环境项</p>
-<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<p>从本课 <a data-course-target="27_ssao" href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
 <h2>原理与实现</h2>
 <p>SSAO 从屏幕空间近似表面附近的遮挡。对每个观察空间位置，在法线半球取 32 个样本；样本转到观察空间后投影到屏幕，读取附近已渲染的位置深度，判断是否存在更靠近相机的表面阻挡。</p>
 <p>观察空间相机朝 -Z，看得见的表面 z 通常为负；比较方向不能套用普通正距离直觉。此例当 neighbor.z &gt;= samplePos.z+bias 时认为阻挡，并用 range smoothstep 降低深度差太大导致的假遮挡。采样超屏和无几何处跳过。</p>
@@ -30,8 +36,9 @@ cmake --build --preset opengl-debug --target 27_ssao --parallel 4
 <p>先检查 G-buffer 的有效标记和视空间数据，再看半球样本、噪声旋转与几何引导降噪。AO 影响环境项；黑色轮廓也可能来自错误位置或无效背景样本。</p>
 <p>配套精讲：<a href="../../../docs/compare/13_multipass_effects.html">三 API 对照 · 阴影、SSAO 与后处理</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="main.cpp#L5">OpenGL/lessons/27_ssao/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<p>来自 <a data-course-target="27_ssao" href="main.cpp#L7">OpenGL/lessons/27_ssao/main.cpp</a>，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;27_ssao - OpenGL Course&quot;);
     RenderTarget gbuffer(3), occlusion, filtered;
     Shader geometry(app, &quot;advanced.vert&quot;, &quot;gbuffer.frag&quot;),
@@ -55,13 +62,12 @@ cmake --build --preset opengl-debug --target 27_ssao --parallel 4
         kernel.push_back(p);
     }
     for (int k = 0; k &lt; 16; ++k)
-        noise.emplace_back(unit(random) * 2 - 1, unit(random) * 2 - 1, 0);
-    GLuint noiseTexture;</code></pre>
+        noise.emplace_back(unit(random) * 2 - 1, unit(random) * 2 - 1, 0);</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="README.html">27_ssao</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="27_ssao" href="README.html">27_ssao</a></td></tr>
 <tr><td>Vulkan 原生</td><td>迁移设计：vk10 已有离屏/blit；完整 Bloom/SSAO 仍需资源、采样管线及逐遍依赖。</td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td>迁移设计：RenderTarget 与 ImGui 仅是接入点；新增多遍效果仍要自己描述写后读。</td></tr>
 <tr><td>DirectX 12</td><td>迁移设计：dx10 是 CopyResource，迁移后处理需新增可采样目标和全屏像素管线。</td></tr>

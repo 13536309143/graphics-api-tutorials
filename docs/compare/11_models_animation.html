@@ -27,14 +27,14 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/31_skeletal/README.html">31_skeletal</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk22_gltf_scene/README.html">vk22_gltf_scene</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="31_skeletal" href="../../OpenGL/lessons/31_skeletal/README.html">31_skeletal</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk22_gltf_scene" href="../../Vulkan/native/lessons/vk22_gltf_scene/README.html">vk22_gltf_scene</a></td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td>迁移设计</td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx22_gltf_scene/README.html">dx22_gltf_scene</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx22_gltf_scene" href="../../DirectX12/lessons/dx22_gltf_scene/README.html">dx22_gltf_scene</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>按 mesh 节点变换与 inverse bind pose 构造局部蒙皮矩阵。</p>
-<p><a href="../../OpenGL/common/model.hpp#L304">OpenGL/common/model.hpp</a>，第 304—332 行：</p>
+<p><a href="../../OpenGL/lessons/31_skeletal/support/model.hpp#L305">OpenGL/lessons/31_skeletal/support/model.hpp</a>，第 305—333 行：</p>
 <pre><code>    void draw(const Shader&amp; s, const glm::mat4&amp; rootTransform = glm::mat4(1)) const {
         for (const auto&amp; mesh : meshes) {
             auto global = globals.at(mesh-&gt;node);
@@ -66,7 +66,7 @@
 };</code></pre>
 <h3>Vulkan 原生 · 静态模型已实现</h3>
 <p>真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。</p>
-<p><a href="../../shared/advanced.hpp#L92">shared/advanced.hpp</a>，第 92—127 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk22_gltf_scene/support/advanced.hpp#L92">Vulkan/native/lessons/vk22_gltf_scene/support/advanced.hpp</a>，第 92—127 行：</p>
 <pre><code>inline Geometry staticAsset(const std::filesystem::path&amp; path) {
     Assimp::Importer importer;
     const auto* scene =
@@ -107,7 +107,7 @@
 <p>框架有资产相关辅助，但本课程未接入完整 glTF/skin；需要单独实现并验收。</p>
 <h3>DirectX 12 · 静态模型已实现</h3>
 <p>真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。</p>
-<p><a href="../../shared/advanced.hpp#L92">shared/advanced.hpp</a>，第 92—127 行：</p>
+<p><a href="../../DirectX12/lessons/dx22_gltf_scene/support/advanced.hpp#L92">DirectX12/lessons/dx22_gltf_scene/support/advanced.hpp</a>，第 92—127 行：</p>
 <pre><code>inline Geometry staticAsset(const std::filesystem::path&amp; path) {
     Assimp::Importer importer;
     const auto* scene =

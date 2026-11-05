@@ -34,6 +34,18 @@ GraphicsPipelineCreateInfo 组合阶段、顶点输入、装配、viewport、ras
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,75 @@ GraphicsPipelineCreateInfo 组合阶段、顶点输入、装配、viewport、ras
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx03_triangle --parallel 4
-.\DirectX12\build\bin\Debug\dx03_triangle.exe
-ctest --preset dx12-debug -R "^dx03_triangle$" --output-on-failure
+cmake --build --preset dx12-debug --target dx12_ch_pipeline_overview --parallel 4
+.\DirectX12\build\bin\Debug\dx12_ch_pipeline_overview.exe
+ctest --preset dx12-debug -R "^dx12_ch_pipeline_overview$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L397)，第 397—440 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/12_pipeline_overview/main.cpp](main.cpp#L9)，第 9—62 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC pso{};
-        pso.pRootSignature = signature.Get();
-        pso.VS = {vs->GetBufferPointer(), vs->GetBufferSize()};
-        pso.PS = {ps->GetBufferPointer(), ps->GetBufferSize()};
-        pso.BlendState.RenderTarget[0].RenderTargetWriteMask =
-            redOnly ? D3D12_COLOR_WRITE_ENABLE_RED | D3D12_COLOR_WRITE_ENABLE_ALPHA
-                    : D3D12_COLOR_WRITE_ENABLE_ALL;
-        pso.SampleMask = UINT_MAX;
-        pso.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-        pso.RasterizerState.CullMode = cull;
-        // 共用模型按外表面逆时针排列；明确指定正面，避免剔除后只剩内部。
-        pso.RasterizerState.FrontCounterClockwise = TRUE;
-        pso.RasterizerState.DepthClipEnable = TRUE;
-        pso.DepthStencilState.DepthEnable = mode >= 5;
-        pso.DepthStencilState.DepthWriteMask =
-            mode >= 5 ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-        pso.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-        pso.DepthStencilState.StencilReadMask = pso.DepthStencilState.StencilWriteMask = 0xFF;
-        if (mode >= 4)
-            pso.InputLayout = {elements, 3};
-        pso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-        pso.NumRenderTargets = 1;
-        pso.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-        pso.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-        pso.SampleDesc.Count = samples;
-        dxCheck(c.device->CreateGraphicsPipelineState(&pso, IID_PPV_ARGS(&pipeline)));
-    }
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
 
-    // 绑定 PSO、root signature、descriptor heap 和顶点输入，再逐对象更新 root constants。
-    void render(int w, int h, float time) {
-        Frame f = overrideFrame.value_or(frame(mode, float(w) / h, false));
-        if (frameProvider)
-            f = frameProvider(float(w) / h, time, false);
-        void* mapped;
-        D3D12_RANGE empty{0, 0};
-        dxCheck(uniform->Map(0, &empty, &mapped));
-        std::memcpy(mapped, &f, sizeof(f));
-        uniform->Unmap(0, nullptr);
-        auto cmd = c.cmd.Get();
-        cmd->SetPipelineState(pipeline.Get());
-        cmd->SetGraphicsRootSignature(signature.Get());
-        ID3D12DescriptorHeap* heaps[] = {srvHeap.Get()};
-        cmd->SetDescriptorHeaps(1, heaps);
-        cmd->SetGraphicsRootConstantBufferView(0, uniform->GetGPUVirtualAddress());
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error("GLFW failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "DirectX 12 Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        DxWindow app(window, 3, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? "dx12_" + std::to_string(3) + ".ppm"
+                                                   : options.captureStem + ".ppm");
+        while (!glfwWindowShouldClose(window) && (!smoke || frame < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene && options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke && frame == 3 ? &output : nullptr);
+            ++frame;
+        }
+    }
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +157,4 @@ ctest --preset dx12-debug -R "^dx03_triangle$" --output-on-failure
 
 ## 固定输入的实际 GPU 读回
 
-![dx03_triangle](../../../docs/previews/dx03_triangle.png)
+![dx12_ch_pipeline_overview](../../../docs/previews/dx03_triangle.png)

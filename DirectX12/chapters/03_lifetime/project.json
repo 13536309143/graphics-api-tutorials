@@ -1,0 +1,7 @@
+{
+  "target": "dx03_ch_lifetime",
+  "api": "dx",
+  "experiment": 31,
+  "chapter": "03_lifetime",
+  "independent": true
+}

@@ -34,6 +34,18 @@ GPU 计算使用 SRV 指前一级、UAV 指后一级，8×8 工作组平均四�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,44 @@ GPU 计算使用 SRV 指前一级、UAV 指后一级，8×8 工作组平均四�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk18_mip_chain --parallel 4
-.\Vulkan\native\build\bin\Debug\vk18_mip_chain.exe
-ctest --preset vulkan-native-debug -R "^vk18_mip_chain$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk43_ch_mip_generation --parallel 4
+.\Vulkan\native\build\bin\Debug\vk43_ch_mip_generation.exe
+ctest --preset vulkan-native-debug -R "^vk43_ch_mip_generation$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L409)，第 409—452 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/43_mip_generation/main.cpp](main.cpp#L244)，第 244—266 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-                                VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                VK_PIPELINE_STAGE_2_BLIT_BIT,
-                                VK_ACCESS_2_TRANSFER_READ_BIT);
-                VkImageBlit blit{};
-                blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, i - 1, 0, 1};
-                blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, i, 0, 1};
-                blit.srcOffsets[1] = {int(reference[i - 1].width), int(reference[i - 1].height), 1};
-                blit.dstOffsets[1] = {int(reference[i].width), int(reference[i].height), 1};
-                vkCmdBlitImage(cmd,
-                               image.image,
-                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               image.image,
-                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                               1,
-                               &blit,
-                               VK_FILTER_LINEAR);
-            }
-            for (uint32_t i = 0; i < levels; ++i)
-                imageDependency(cmd,
-                                image.image,
-                                i,
-                                i + 1 == levels ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-                                                : VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT,
-                                VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
-        });
-        VkSamplerCreateInfo si{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-        si.magFilter = si.minFilter = VK_FILTER_LINEAR;
-        si.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        si.addressModeU = si.addressModeV = si.addressModeW =
-            clamp ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        si.maxLod = float(levels - 1);
-        vkCheck(vkCreateSampler(c.device, &si, nullptr, &sampler));
-        std::cout << "Uploaded image " << pixels.width << 'x' << pixels.height
-                  << ", mipLevels=" << levels << ", sRGB=" << srgb << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 18);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            GpuTexture texture(c, Pixels{64, 64, checker()}, true);
+            texture.verify();
+        }
     }
-    void attach(SceneVk& scene, bool lastMip = false) {
-        if (lastMip) {
-            VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-            ci.image = image.image;
-            ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

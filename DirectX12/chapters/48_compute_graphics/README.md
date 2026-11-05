@@ -34,6 +34,18 @@
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,35 @@
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx29_gpu_particles --parallel 4
-.\DirectX12\build\bin\Debug\dx29_gpu_particles.exe
-ctest --preset dx12-debug -R "^dx29_gpu_particles$" --output-on-failure
+cmake --build --preset dx12-debug --target dx48_ch_compute_graphics --parallel 4
+.\DirectX12\build\bin\Debug\dx48_ch_compute_graphics.exe
+ctest --preset dx12-debug -R "^dx48_ch_compute_graphics$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L449)，第 449—492 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/48_compute_graphics/main.cpp](main.cpp#L132)，第 132—145 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-struct ParticleKernel {
-    DxDevice& c;
-    ComPtr<ID3D12Resource> vertices;
-    ComPtr<ID3D12RootSignature> signature;
-    ComPtr<ID3D12PipelineState> pipeline;
-    D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    ParticleKernel(DxDevice& context, const LabOptions& options) : c(context) {
-        vertices = c.buffer(96 * 3 * sizeof(Vertex),
-                            D3D12_HEAP_TYPE_DEFAULT,
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-        D3D12_ROOT_PARAMETER params[2]{};
-        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
-        params[0].Descriptor.ShaderRegister = 1;
-        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        params[1].Constants = {2, 0, 2};
-        D3D12_ROOT_SIGNATURE_DESC desc{};
-        desc.NumParameters = 2;
-        desc.pParameters = params;
-        signature = rootSignature(c, desc);
-        auto shader = labShader(options, "ParticleMain");
-        D3D12_COMPUTE_PIPELINE_STATE_DESC info{};
-        info.pRootSignature = signature.Get();
-        info.CS = {shader->GetBufferPointer(), shader->GetBufferSize()};
-        dxCheck(c.device->CreateComputePipelineState(&info, IID_PPV_ARGS(&pipeline)));
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 29);
+    {
+        return graphicsLab(argc, argv, options);
     }
-    void execute(float time) {
-        struct Tick {
-            float time;
-            uint32_t count;
-        } tick{time, 96};
-        c.begin();
-        if (state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
-            auto b = transition(vertices.Get(), state, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-            c.cmd->ResourceBarrier(1, &b);
-        }
-        c.cmd->SetComputeRootSignature(signature.Get());
-        c.cmd->SetPipelineState(pipeline.Get());
-        c.cmd->SetComputeRootUnorderedAccessView(0, vertices->GetGPUVirtualAddress());
-        c.cmd->SetComputeRoot32BitConstants(1, 2, &tick, 0);
-        c.cmd->Dispatch(5, 1, 1);
-        auto b = transition(vertices.Get(),
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +117,4 @@ buffer 转为可绘制用途并不意味着内存布局自动相同；vec3 填�
 
 ## 固定输入的实际 GPU 读回
 
-![dx29_gpu_particles](../../../docs/previews/dx29_gpu_particles.png)
+![dx48_ch_compute_graphics](../../../docs/previews/dx29_gpu_particles.png)

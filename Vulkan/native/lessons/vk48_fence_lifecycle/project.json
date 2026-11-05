@@ -1,0 +1,7 @@
+{
+  "target": "vk48_fence_lifecycle",
+  "api": "vk",
+  "experiment": 48,
+  "chapter": null,
+  "independent": true
+}

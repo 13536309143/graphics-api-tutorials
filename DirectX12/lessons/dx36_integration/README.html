@@ -1,67 +1,40 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx36_integration · 模型纹理 mip MSAA 综合</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx36_integration · 模型纹理 mip MSAA 综合</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx36_integration · 模型纹理 mip MSAA 综合</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx36_integration"><h1>dx36_integration · 模型纹理 mip MSAA 综合</h1>
 <p><a href="../../COURSE.html">54 课目录</a></p>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="dx36_integration" href="main.cpp">main.cpp</a> · <a data-course-target="dx36_integration" href="support/">本地辅助实现</a> · <a data-course-target="dx36_integration" href="shaders/">本课着色器</a> · <a data-course-target="dx36_integration" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 <code>cmake -S . -B build -A x64</code> 配置、<code>cmake --build build --config Debug</code> 构建；不需要其他章节源码。</p>
 <h2>目的与实际执行</h2>
 <p>同样的 CPU 几何进入独立后端，texture view、MSAA resolve 和 CBV/PSO 使用期由 DX12 规则维护。CPU 生成正确 sRGB mip 与线性 GPU compute mip 是两条明确路径，不能混称同一种算法。</p>
-<p>本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
+<p>本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。</p>
 <h2>构建和运行</h2>
 <pre><code>cmake --preset dx12
 cmake --build --preset dx12-debug --target dx36_integration --parallel 4
 .\DirectX12\build\bin\Debug\dx36_integration.exe</code></pre>
 <h2>深入学习：数据、接口与执行</h2>
 <ul>
-<li><a href="../../chapters/54_capstone/README.html">第 54 课：综合场景、验收与工程化边界</a></li>
+<li><a data-course-target="dx54_ch_capstone" href="../../chapters/54_capstone/README.html">第 54 课：综合场景、验收与工程化边界</a></li>
 </ul>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/advanced_labs.cpp#L502">DirectX12/common/advanced_labs.cpp</a>，第 502—545 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>int graphicsLab(int argc, char** argv, const LabOptions&amp; options) {
-    int id = options.id, mode = id == 27 ? 3 : id == 29 || id == 53 ? 4 : 6;
-    Geometry mesh;
-    if (id == 21)
-        mesh = staticAsset(options.directory / &quot;assets/models/vase.obj&quot;);
-    if (id == 22 || id == 36)
-        mesh = staticAsset(options.directory / &quot;assets/models/robot.gltf&quot;);
-    if (id == 29)
-        mesh = particleGeometry();
-    if (id == 52 || id == 53) {
-        mesh = geometry(4);
-        for (auto&amp; vertex : mesh.vertices) {
-            vertex.normal =
-                id == 53 ? glm::vec3(1 - vertex.uv.x, vertex.uv.y, 1) : glm::vec3(0, 0, 1);
-            vertex.uv *= 4.f;
-        }
-        if (id == 52)
-            for (uint32_t i = 0; i &lt; mesh.vertices.size(); ++i)
-                mesh.indices.push_back(i);
+<p>来自 <a data-course-target="dx36_integration" href="main.cpp#L319">DirectX12/lessons/dx36_integration/main.cpp</a>，第 319—332 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 36);
+    {
+        return graphicsLab(argc, argv, options);
     }
-    DxRenderOptions render;
-    render.captureStem = &quot;dx_lab_&quot; + std::to_string(id);
-    render.redOnly = id == 43;
-    render.cull = id == 50 ? D3D12_CULL_MODE_BACK : D3D12_CULL_MODE_NONE;
-    render.clampSampler = id == 52;
-    if (!mesh.vertices.empty())
-        render.mesh = &amp;mesh;
-    if (id == 20 || id == 36)
-        render.samples = 4;
-    render.setup = [=](DxScene&amp; scene) {
-        auto state = std::make_shared&lt;RenderState&gt;();
-        scene.extension = state;
-        if (id == 17 || id == 19 || id == 35 || id == 36 || id == 41 || id == 52) {
-            auto pixels = imageFile(options.directory / &quot;assets/textures/albedo.png&quot;);
-            state-&gt;texture = std::make_unique&lt;GpuTexture&gt;(scene.c,
-                                                          options,
-                                                          std::move(pixels),
-                                                          id == 19 || id == 36 || id == 41,
-                                                          id == 35 || id == 36);
-            state-&gt;texture-&gt;attach(scene, id == 41);
-        }
-        if (id == 20 || id == 36) {
-            for (auto format : {DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT}) {
-                D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS q{};</code></pre>
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>程序</td></tr>
-<tr><td>DirectX 12</td><td><a href="README.html">dx36_integration</a></td></tr>
-<tr><td>对照后端</td><td><a href="../../../Vulkan/native/lessons/vk36_integration/README.html">vk36_integration</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx36_integration" href="README.html">dx36_integration</a></td></tr>
+<tr><td>对照后端</td><td><a data-course-target="vk36_integration" href="../../../Vulkan/native/lessons/vk36_integration/README.html">vk36_integration</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>选择阴影、IBL 或骨骼动画之一，先写资源表、pass 依赖图、中间调试视图和验收条件，再实现。</p>

@@ -34,6 +34,18 @@ RenderTarget::CreateInfo 中 depthFormat 也是明确需求。框架替你分配
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,43 @@ RenderTarget::CreateInfo 中 depthFormat 也是明确需求。框架替你分配
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk46_depth_formats --parallel 4
-.\Vulkan\native\build\bin\Debug\vk46_depth_formats.exe
-ctest --preset vulkan-native-debug -R "^vk46_depth_formats$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk39_ch_depth_formats --parallel 4
+.\Vulkan\native\build\bin\Debug\vk39_ch_depth_formats.exe
+ctest --preset vulkan-native-debug -R "^vk39_ch_depth_formats$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L874)，第 874—917 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/39_depth_formats/main.cpp](main.cpp#L22)，第 22—43 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        for (uint32_t i = 0; i < 128; ++i)
-            require(changed[i] == i * 5 + 11, "Updated descriptor points at wrong storage");
-        std::cout << "Verified descriptor replacement after prior submission completion\n";
-    } else if (id == 46) {
-        for (auto format :
-             {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM}) {
-            VkFormatProperties p{};
-            vkGetPhysicalDeviceFormatProperties(c.physical, format, &p);
-            std::cout << "depth format=" << format
-                      << ", optimal features=" << p.optimalTilingFeatures << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 46);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            inspection(c);
         }
-    } else if (id == 47) {
-        VkBufferResource buffer;
-        buffer.init(c, 257, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-        VkMemoryRequirements r{};
-        vkGetBufferMemoryRequirements(c.device, buffer.buffer, &r);
-        require(r.size >= 257 && r.alignment > 0, "Invalid memory requirements");
-        std::cout << "requested=257, allocation=" << r.size << ", alignment=" << r.alignment
-                  << ", memoryTypeBits=" << r.memoryTypeBits << '\n';
-    } else if (id == 48) {
-        VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-        fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        VkFence fence{};
-        vkCheck(vkCreateFence(c.device, &fi, nullptr, &fence));
-        require(vkGetFenceStatus(c.device, fence) == VK_SUCCESS, "Initial fence not signaled");
-        vkCheck(vkResetFences(c.device, 1, &fence));
-        require(vkGetFenceStatus(c.device, fence) == VK_NOT_READY,
-                "Reset fence signaled unexpectedly");
-        VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-        vkCheck(vkQueueSubmit(c.queue, 1, &submit, fence));
-        vkCheck(vkWaitForFences(c.device, 1, &fence, VK_TRUE, UINT64_MAX));
-        vkDestroyFence(c.device, fence, nullptr);
-        std::cout << "Verified signaled -> reset -> submitted -> complete fence lifecycle\n";
-    } else if (id == 51) {
-        static_assert(sizeof(Frame) == 64 && sizeof(Draw) == 80 && offsetof(Draw, settings) == 64);
-        ComputeKernel kernel(c);
-        kernel.execute(1, 128, 0, 0, 2);
-        auto r = readWords(kernel.output, 128);
-        for (uint32_t i = 0; i < 128; ++i)
-            require(r[i] == i * 7 + 13, "UBO layout mismatch");
-        std::cout
-            << "Verified Frame=64, Draw=80, settings offset=64 and GPU uniform vector decoding\n";
-    } else if (id == 54) {
-        capabilities(c);
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

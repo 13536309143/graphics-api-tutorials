@@ -26,17 +26,19 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="01_window" href="../../OpenGL/lessons/01_window/README.html">01_window</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk01_instance_device" href="../../Vulkan/native/lessons/vk01_instance_device/README.html">vk01_instance_device</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv01_context" href="../../Vulkan/nvpro/lessons/nv01_context/README.html">nv01_context</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx01_device" href="../../DirectX12/lessons/dx01_device/README.html">dx01_device</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>先读最短清屏路径，建立 CPU 帧循环。</p>
-<p><a href="../../OpenGL/lessons/01_window/main.cpp#L5">OpenGL/lessons/01_window/main.cpp</a>，第 5—15 行：</p>
+<p><a data-course-target="01_window" href="../../OpenGL/lessons/01_window/main.cpp#L7">OpenGL/lessons/01_window/main.cpp</a>，第 7—19 行：</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;01_window - OpenGL Course&quot;);
     // 渲染循环 = 处理事件 → 设置视口 → 清屏 → 交换前后缓冲。
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         app.clear();
         app.end();
@@ -47,7 +49,7 @@
 }</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>从 instance、设备筛选和队列看显式初始化。</p>
-<p><a href="../../Vulkan/native/common/native_app.hpp#L25">Vulkan/native/common/native_app.hpp</a>，第 25—56 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp#L25">Vulkan/native/lessons/vk01_instance_device/support/native_app.hpp</a>，第 25—56 行：</p>
 <pre><code>struct NativeDevice {
     VkContextRef c;
     VkDebugUtilsMessengerEXT messenger{};
@@ -82,15 +84,14 @@
                          VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>框架路线仍需声明特性和队列要求。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L234">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 234—265 行：</p>
-<pre><code>inline int nvproMain(int argc, char** argv, int chapter) {
+<p><a data-course-target="nv01_context" href="../../Vulkan/nvpro/lessons/nv01_context/main.cpp#L5">Vulkan/nvpro/lessons/nv01_context/main.cpp</a>，第 5—52 行：</p>
+<pre><code>int runChapter(int argc, char** argv) {
     bool smoke = false;
     for (int i = 1; i &lt; argc; ++i)
         smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
-
     // 课程编号与公共场景模式分别管理：第 4 课看纹理上传，第 6 课看 PBR。
-    int mode = chapter == 4 ? 6 : chapter == 6 ? 9 : chapter;
-    nvShaders = std::filesystem::absolute(argv[0]).parent_path() / &quot;shaders&quot;;
+    int mode = ((1));
+    nvShaders = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / &quot;shaders&quot;;
     NvContextOwner owner;
     auto&amp; context = owner.context;
     nvValidationErrors = 0;
@@ -100,10 +101,6 @@
     setup.enableValidationLayers = true;
     setup.verbose = false;
     setup.applicationName = &quot;nvpro_core2 Course&quot;;
-    if (!smoke &amp;&amp; chapter != 1 &amp;&amp; chapter != 5) {
-        nvvk::addSurfaceExtensions(setup.instanceExtensions);
-        setup.deviceExtensions = {{VK_KHR_SWAPCHAIN_EXTENSION_NAME}};
-    }
     vkCheck(context.init(setup));
     VkDebugUtilsMessengerCreateInfoEXT debug{
         VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
@@ -114,10 +111,31 @@
         vkCreateDebugUtilsMessengerEXT(context.getInstance(), &amp;debug, nullptr, &amp;owner.messenger));
     {
         auto q = context.getQueueInfo(0);
-        VkContextRef c{context.getInstance(),</code></pre>
+        VkContextRef c{context.getInstance(),
+                       context.getPhysicalDevice(),
+                       context.getDevice(),
+                       q.queue,
+                       q.familyIndex};
+        {
+            VkPhysicalDeviceProperties p;
+            vkGetPhysicalDeviceProperties(c.physical, &amp;p);
+            std::cout &lt;&lt; &quot;nvpro_core2 context: &quot; &lt;&lt; p.deviceName &lt;&lt; &#x27;\n&#x27;;
+        }
+    }
+    std::cout &lt;&lt; &quot;Validation errors: &quot; &lt;&lt; nvValidationErrors &lt;&lt; &quot;\n&quot;;
+    return nvValidationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>从 adapter、device、queue 看设备建立。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L61">DirectX12/common/dx12_course.hpp</a>，第 61—92 行：</p>
+<p><a href="../../DirectX12/lessons/dx01_device/support/dx12_course.hpp#L64">DirectX12/lessons/dx01_device/support/dx12_course.hpp</a>，第 64—95 行：</p>
 <pre><code>struct DxDevice {
     ComPtr&lt;IDXGIFactory6&gt; factory;
     ComPtr&lt;ID3D12Device&gt; device;

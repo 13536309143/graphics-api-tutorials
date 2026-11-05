@@ -2,13 +2,19 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 copy-write 到 fragment-sampled-read 需要对应 stage/access 和布局转换。mip 生成逐级把前一级从 transfer-dst 切成 transfer-src，最终各级转 shader-read；不能仅在整个流程结束后随意改一个枚举。
 
 查询格式的 blit/filter 支持，上传 level 0，逐级 transition 和 linear blit，再把所有级别转成 shader-read。每次只读取已经完成的前一级，最后复制每级结果用于校验。数值参考使用线性 UNORM。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -25,53 +31,32 @@ cmake --build --preset vulkan-native-debug --target vk18_mip_chain --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L409)，第 409—452 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk18_mip_chain/main.cpp](main.cpp#L244)，第 244—266 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-                                VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                VK_PIPELINE_STAGE_2_BLIT_BIT,
-                                VK_ACCESS_2_TRANSFER_READ_BIT);
-                VkImageBlit blit{};
-                blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, i - 1, 0, 1};
-                blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, i, 0, 1};
-                blit.srcOffsets[1] = {int(reference[i - 1].width), int(reference[i - 1].height), 1};
-                blit.dstOffsets[1] = {int(reference[i].width), int(reference[i].height), 1};
-                vkCmdBlitImage(cmd,
-                               image.image,
-                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               image.image,
-                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                               1,
-                               &blit,
-                               VK_FILTER_LINEAR);
-            }
-            for (uint32_t i = 0; i < levels; ++i)
-                imageDependency(cmd,
-                                image.image,
-                                i,
-                                i + 1 == levels ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-                                                : VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT,
-                                VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
-        });
-        VkSamplerCreateInfo si{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-        si.magFilter = si.minFilter = VK_FILTER_LINEAR;
-        si.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        si.addressModeU = si.addressModeV = si.addressModeW =
-            clamp ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        si.maxLod = float(levels - 1);
-        vkCheck(vkCreateSampler(c.device, &si, nullptr, &sampler));
-        std::cout << "Uploaded image " << pixels.width << 'x' << pixels.height
-                  << ", mipLevels=" << levels << ", sRGB=" << srgb << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 18);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            GpuTexture texture(c, Pixels{64, 64, checker()}, true);
+            texture.verify();
+        }
     }
-    void attach(SceneVk& scene, bool lastMip = false) {
-        if (lastMip) {
-            VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-            ci.image = image.image;
-            ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

@@ -1,0 +1,7 @@
+{
+  "target": "vk50_ch_timeline",
+  "api": "vk",
+  "experiment": 26,
+  "chapter": "50_timeline",
+  "independent": true
+}

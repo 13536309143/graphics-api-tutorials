@@ -1,5 +1,17 @@
 # dx02_swapchain · 交换链、RTV 与呈现
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [上一课](../dx01_device/README.md) · [下一课](../dx03_triangle/README.md)
 
 ## 构建和运行
@@ -63,35 +75,63 @@ DXGI 当前 back buffer index 决定本帧目标；写入前 PRESENT→RENDER_TA
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L122)，第 122—147 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx02_swapchain/main.cpp](main.cpp#L9)，第 9—62 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-    void begin() {
-        dxCheck(allocator->Reset());
-        dxCheck(cmd->Reset(allocator.Get(), nullptr));
-    }
-    void submit() {
-        dxCheck(cmd->Close());
-        ID3D12CommandList* lists[] = {cmd.Get()};
-        queue->ExecuteCommandLists(1, lists);
-        wait();
-    }
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
 
-    // 队列 signal fence 后，CPU 等事件确认进度；提交返回不等于 GPU 已完成。
-    void wait() {
-        dxCheck(queue->Signal(fence.Get(), ++value));
-        if (fence->GetCompletedValue() < value) {
-            dxCheck(fence->SetEventOnCompletion(value, event));
-            if (WaitForSingleObject(event, 30000) != WAIT_OBJECT_0)
-                throw std::runtime_error("GPU fence timeout");
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error("GLFW failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "DirectX 12 Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        DxWindow app(window, 2, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? "dx12_" + std::to_string(2) + ".ppm"
+                                                   : options.captureStem + ".ppm");
+        while (!glfwWindowShouldClose(window) && (!smoke || frame < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene && options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke && frame == 3 ? &output : nullptr);
+            ++frame;
         }
     }
-    void checkMessages() {
-        if (!messages)
-            return;
-        UINT64 count = messages->GetNumStoredMessagesAllowedByRetrievalFilter();
-        for (UINT64 i = 0; i < count; ++i) {
-            SIZE_T bytes = 0;
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

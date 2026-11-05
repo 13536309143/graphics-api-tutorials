@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 枚举 layer 后创建 debug messenger，并按 severity/type 分类。实验额外注册 INFO 回调，提交应用信息并确认回调收到。外部 loader manifest 诊断与应用 VUID 分别记录。GPU 区域标签通过 debug-utils entry points 录制。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,9 +28,17 @@ cmake --build --preset vulkan-native-debug --target vk33_debug_labels --parallel
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L978)，第 978—1021 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk33_debug_labels/main.cpp](main.cpp#L13)，第 13—46 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 33);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
             auto begin = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(
                 vkGetDeviceProcAddr(c.device, "vkCmdBeginDebugUtilsLabelEXT"));
             auto end = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(
@@ -38,37 +52,19 @@ cmake --build --preset vulkan-native-debug --target vk33_debug_labels --parallel
                 end(cmd);
             });
             std::cout << "Submitted named GPU debug region\n";
-        } else if (id == 32) {
-            VkPipelineCacheCreateInfo info{VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
-            VkPipelineCache first{}, second{};
-            vkCheck(vkCreatePipelineCache(c.device, &info, nullptr, &first));
-            {
-                ComputeKernel k(c, first);
-                k.execute(0, 257, 3, 7);
-                auto r = readWords(k.output, 257);
-                require(r[256] == 775, "Cached compute output mismatch");
-            }
-            size_t bytes{};
-            vkCheck(vkGetPipelineCacheData(c.device, first, &bytes, nullptr));
-            std::vector<uint8_t> data(bytes);
-            vkCheck(vkGetPipelineCacheData(c.device, first, &bytes, data.data()));
-            info.initialDataSize = bytes;
-            info.pInitialData = data.data();
-            vkCheck(vkCreatePipelineCache(c.device, &info, nullptr, &second));
-            {
-                ComputeKernel k(c, second);
-                k.execute(0, 257, 3, 7);
-                require(readWords(k.output, 257)[256] == 775, "Reloaded pipeline cache mismatch");
-            }
-            vkDestroyPipelineCache(c.device, second, nullptr);
-            vkDestroyPipelineCache(c.device, first, nullptr);
-            std::cout << "Verified pipeline-cache serialization and reload, bytes=" << bytes
-                      << '\n';
-        } else {
-            ComputeKernel kernel(c);
-            uint32_t mode = id == 30 ? 2 : id == 14 || id == 15 ? 1 : 0;
-            uint32_t count = id == 28 || id == 30 ? 257 : 128;
-            for (uint32_t slot = 0; slot < (id == 15 ? 3u : 1u); ++slot) {
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

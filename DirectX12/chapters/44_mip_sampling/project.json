@@ -1,0 +1,7 @@
+{
+  "target": "dx44_ch_mip_sampling",
+  "api": "dx",
+  "experiment": 19,
+  "chapter": "44_mip_sampling",
+  "independent": true
+}

@@ -57,7 +57,7 @@ Vulkan 的骨骼数组可由 UBO 或 storage buffer 提供，选择取决于数�
 
 按 mesh 节点变换与 inverse bind pose 构造局部蒙皮矩阵。
 
-[OpenGL/common/model.hpp](../../OpenGL/common/model.hpp#L304)，第 304—332 行：
+[OpenGL/lessons/31_skeletal/support/model.hpp](../../OpenGL/lessons/31_skeletal/support/model.hpp#L305)，第 305—333 行：
 
 ```cpp
     void draw(const Shader& s, const glm::mat4& rootTransform = glm::mat4(1)) const {
@@ -95,7 +95,7 @@ Vulkan 的骨骼数组可由 UBO 或 storage buffer 提供，选择取决于数�
 
 真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。
 
-[shared/advanced.hpp](../../shared/advanced.hpp#L92)，第 92—127 行：
+[Vulkan/native/lessons/vk22_gltf_scene/support/advanced.hpp](../../Vulkan/native/lessons/vk22_gltf_scene/support/advanced.hpp#L92)，第 92—127 行：
 
 ```cpp
 inline Geometry staticAsset(const std::filesystem::path& path) {
@@ -145,7 +145,7 @@ inline Geometry staticAsset(const std::filesystem::path& path) {
 
 真实静态 glTF 节点递归与几何绘制；完整材质、skin/动画仍待迁移。
 
-[shared/advanced.hpp](../../shared/advanced.hpp#L92)，第 92—127 行：
+[DirectX12/lessons/dx22_gltf_scene/support/advanced.hpp](../../DirectX12/lessons/dx22_gltf_scene/support/advanced.hpp#L92)，第 92—127 行：
 
 ```cpp
 inline Geometry staticAsset(const std::filesystem::path& path) {

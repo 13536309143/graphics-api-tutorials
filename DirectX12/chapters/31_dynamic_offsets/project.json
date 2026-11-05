@@ -1,0 +1,7 @@
+{
+  "target": "dx31_ch_dynamic_offsets",
+  "api": "dx",
+  "experiment": 15,
+  "chapter": "31_dynamic_offsets",
+  "independent": true
+}

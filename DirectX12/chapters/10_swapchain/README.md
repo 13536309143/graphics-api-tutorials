@@ -34,6 +34,18 @@ Application 管理交换链，用户 viewport 是另一组离屏目标。比较�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,75 @@ Application 管理交换链，用户 viewport 是另一组离屏目标。比较�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx02_swapchain --parallel 4
-.\DirectX12\build\bin\Debug\dx02_swapchain.exe
-ctest --preset dx12-debug -R "^dx02_swapchain$" --output-on-failure
+cmake --build --preset dx12-debug --target dx10_ch_swapchain --parallel 4
+.\DirectX12\build\bin\Debug\dx10_ch_swapchain.exe
+ctest --preset dx12-debug -R "^dx10_ch_swapchain$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L483)，第 483—526 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/10_swapchain/main.cpp](main.cpp#L9)，第 9—62 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-    DxWindow(GLFWwindow* w, int lesson, bool warp, DxRenderOptions settings = {})
-        : c(warp), window(w), mode(lesson), options(std::move(settings)) {
-        D3D12_DESCRIPTOR_HEAP_DESC heap{};
-        heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        heap.NumDescriptors = 4;
-        dxCheck(c.device->CreateDescriptorHeap(&heap, IID_PPV_ARGS(&rtvHeap)));
-        heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-        heap.NumDescriptors = 1;
-        dxCheck(c.device->CreateDescriptorHeap(&heap, IID_PPV_ARGS(&dsvHeap)));
-        rtvStride = c.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-        DXGI_SWAP_CHAIN_DESC1 desc{};
-        desc.Width = 960;
-        desc.Height = 640;
-        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count = 1;
-        desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        desc.BufferCount = 2;
-        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        ComPtr<IDXGISwapChain1> s;
-        dxCheck(c.factory->CreateSwapChainForHwnd(
-            c.queue.Get(), glfwGetWin32Window(w), &desc, nullptr, nullptr, &s));
-        dxCheck(s.As(&swap));
-        c.factory->MakeWindowAssociation(glfwGetWin32Window(w), DXGI_MWA_NO_ALT_ENTER);
-        resize(960, 640);
-        if (mode >= 3)
-            scene = std::make_unique<DxScene>(c,
-                                              mode,
-                                              options.mesh,
-                                              options.samples,
-                                              options.cull,
-                                              options.clampSampler,
-                                              options.redOnly);
-        if (scene && options.setup)
-            options.setup(*scene);
-    }
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv(UINT index) {
-        auto h = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-        h.ptr += SIZE_T(index) * rtvStride;
-        return h;
-    }
+int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
 
-    // ResizeBuffers 前必须等 GPU，并释放所有旧 back buffer 引用和相关附件。
-    void resize(int w, int h) {
-        if (width == w && height == h)
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   "shaders" / "scene.hlsl";
+    bool smoke = false, warp = false;
+    for (int i = 1; i < argc; ++i) {
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+        warp |= std::strcmp(argv[i], "--warp") == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error("GLFW failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "DirectX 12 Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        DxWindow app(window, 2, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? "dx12_" + std::to_string(2) + ".ppm"
+                                                   : options.captureStem + ".ppm");
+        while (!glfwWindowShouldClose(window) && (!smoke || frame < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene && options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke && frame == 3 ? &output : nullptr);
+            ++frame;
+        }
+    }
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -137,4 +159,4 @@ ctest --preset dx12-debug -R "^dx02_swapchain$" --output-on-failure
 
 ## 固定输入的实际 GPU 读回
 
-![dx02_swapchain](../../../docs/previews/dx02_swapchain.png)
+![dx10_ch_swapchain](../../../docs/previews/dx02_swapchain.png)

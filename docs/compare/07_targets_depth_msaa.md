@@ -57,7 +57,7 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
 
 多样本绘制与 resolve 是两个步骤；MSAA 不消除所有纹理闪烁。
 
-[OpenGL/lessons/29_msaa/main.cpp](../../OpenGL/lessons/29_msaa/main.cpp#L33)，第 33—56 行：
+[OpenGL/lessons/29_msaa/main.cpp](../../OpenGL/lessons/29_msaa/main.cpp#L38)，第 38—61 行：
 
 ```cpp
         glBindFramebuffer(GL_READ_FRAMEBUFFER, msaa.fbo);
@@ -90,7 +90,7 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
 
 4x 颜色/深度与 dynamic rendering resolve，目标与管线样本数一致。
 
-[Vulkan/native/common/native_app.hpp](../../Vulkan/native/common/native_app.hpp#L416)，第 416—451 行：
+[Vulkan/native/lessons/vk20_msaa_resolve/support/native_app.hpp](../../Vulkan/native/lessons/vk20_msaa_resolve/support/native_app.hpp#L417)，第 417—452 行：
 
 ```cpp
                 color.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
@@ -135,7 +135,7 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
 
 尺寸变化重建目标后，也要更新用于 UI 的 image view。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L108)，第 108—115 行：
+[Vulkan/nvpro/lessons/nv02_application/support/nvapp_course.hpp](../../Vulkan/nvpro/lessons/nv02_application/support/nvapp_course.hpp#L108)，第 108—115 行：
 
 ```cpp
     void onResize(VkCommandBuffer cmd, const VkExtent2D& size) override {
@@ -152,7 +152,7 @@ OpenGL 29 已有多样本颜色/深度 renderbuffer 和单样本 resolve 目标�
 
 4x 目标经 ResolveSubresource 到单样本 back buffer。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L643)，第 643—678 行：
+[DirectX12/lessons/dx20_msaa_resolve/support/dx12_course.hpp](../../DirectX12/lessons/dx20_msaa_resolve/support/dx12_course.hpp#L653)，第 653—688 行：
 
 ```cpp
             c.cmd->ResolveSubresource(

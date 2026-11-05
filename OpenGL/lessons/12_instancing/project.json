@@ -1,0 +1,5 @@
+{
+  "target": "12_instancing",
+  "api": "gl",
+  "independent": true
+}

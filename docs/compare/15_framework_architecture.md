@@ -64,10 +64,11 @@ SceneVk 在原生路线和框架路线共享，这有意隔离“初始化与窗
 
 先观察组合效果需要哪些对象，再分离平台、资产与渲染责任。
 
-[OpenGL/lessons/34_gallery/main.cpp](../../OpenGL/lessons/34_gallery/main.cpp#L6)，第 6—33 行：
+[OpenGL/lessons/34_gallery/main.cpp](../../OpenGL/lessons/34_gallery/main.cpp#L8)，第 8—35 行：
 
 ```cpp
 int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, "34_gallery - OpenGL Course");
     Environment env(app);
     Model robot(asset(app, "models/robot.gltf"));
@@ -79,6 +80,7 @@ int main(int argc, char** argv) try {
         sky(app, "sky.vert", "sky.frag"), bright(app, "screen.vert", "bright.frag"),
         blur(app, "screen.vert", "blur.frag"), tone(app, "screen.vert", "tone.frag");
     RenderTarget scene, highlights, ping, pong;
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width < 1 || app.height < 1) {
             app.end();
@@ -93,15 +95,13 @@ int main(int argc, char** argv) try {
         glEnable(GL_DEPTH_TEST);
         app.clear();
         env.bindIBL();
-        model.use();
-        pbrDefaults(model);
 ```
 
 ### Vulkan 原生 · 已实现
 
 底层渲染器接收借用上下文，不负责创建窗口/交换链。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L196)，第 196—223 行：
+[Vulkan/native/lessons/vk09_pbr/support/scene_vk.hpp](../../Vulkan/native/lessons/vk09_pbr/support/scene_vk.hpp#L198)，第 198—225 行：
 
 ```cpp
 class SceneVk {
@@ -138,7 +138,7 @@ public:
 
 生命周期回调管理自定义资源；不是第四个图形 API。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L44)，第 44—78 行：
+[Vulkan/nvpro/lessons/nv06_pbr_viewport/support/nvapp_course.hpp](../../Vulkan/nvpro/lessons/nv06_pbr_viewport/support/nvapp_course.hpp#L44)，第 44—78 行：
 
 ```cpp
 class NvLesson : public nvapp::IAppElement {
@@ -182,7 +182,7 @@ public:
 
 独立 DxScene/DxWindow 先可解释，再考虑抽象统一 Renderer。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L237)，第 237—261 行：
+[DirectX12/lessons/dx09_pbr/support/dx12_course.hpp](../../DirectX12/lessons/dx09_pbr/support/dx12_course.hpp#L245)，第 245—269 行：
 
 ```cpp
 class DxScene {

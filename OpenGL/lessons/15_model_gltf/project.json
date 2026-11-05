@@ -1,0 +1,5 @@
+{
+  "target": "15_model_gltf",
+  "api": "gl",
+  "independent": true
+}

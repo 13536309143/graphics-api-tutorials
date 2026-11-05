@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 14 课：Assimp 与 OBJ 模型</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>第 14 课：Assimp 与 OBJ 模型</h1>
-<p><a href="../../README.html">课程首页</a> · <a href="../13_shadows/README.html">上一课</a> · <a href="../15_model_gltf/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第 14 课：Assimp 与 OBJ 模型</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="14_model_obj"><h1>第 14 课：Assimp 与 OBJ 模型</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="14_model_obj" href="main.cpp">main.cpp</a> · <a data-course-target="14_model_obj" href="support/">本地辅助实现</a> · <a data-course-target="14_model_obj" href="shaders/">本课着色器</a> · <a data-course-target="14_model_obj" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">课程首页</a> · <a data-course-target="13_shadows" href="../13_shadows/README.html">上一课</a> · <a data-course-target="15_model_gltf" href="../15_model_gltf/README.html">下一课</a></p>
 <h2>目标与运行</h2>
 <pre><code>cmake --preset opengl
 cmake --build --preset opengl-debug --target 14_model_obj --parallel 4
@@ -8,7 +14,7 @@ cmake --build --preset opengl-debug --target 14_model_obj --parallel 4
 <p>相机：W/A/S/D 移动，Q/E 升降，按住右键转向，Esc 退出。</p>
 <h2>代码阅读顺序</h2>
 <p>14_model_obj/main.cpp → common/model.hpp → assets/models/vase.obj、vase.mtl → shaders/model.vert、pbr.frag</p>
-<p>从本课 <a href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
+<p>从本课 <a data-course-target="14_model_obj" href="main.cpp">main.cpp</a> 进入；公共工具在 <a href="../../common">common</a>，GLSL 在 <a href="../../shaders">shaders</a>。先画出每一遍读什么、写什么，再逐个展开辅助类。</p>
 <h2>原理与实现</h2>
 <p>硬编码立方体只是几何的起点。OBJ 文件存位置 v、纹理坐标 vt、法线 vn 和面 f，MTL 文件存材质及纹理路径。位置、UV、法线可以有不同索引，不能把 OBJ 的位置索引直接当成完整 GPU 顶点索引。Assimp 将这些差异整理为统一的 aiMesh。</p>
 <p>Model 使用 Assimp::Importer::ReadFile，开启三角化、平滑法线生成、切线计算、合并相同完整顶点与数据校验。车削花瓶是实际读取的 OBJ 文件，不是运行时偷偷用另一份程序几何替代。构造后控制台打印网格、材质、动画数，加载失败则显示 Assimp 错误并退出。</p>
@@ -30,20 +36,24 @@ cmake --build --preset opengl-debug --target 14_model_obj --parallel 4
 <p>OBJ 导入后可能有多个 mesh 和 material，不能只取第一个数组。Assimp 统一拓扑后仍需上传顶点/索引并应用所属节点变换，材质图片路径相对模型目录解析。</p>
 <p>配套精讲：<a href="../../../docs/compare/11_models_animation.html">三 API 对照 · 模型、节点与骨骼迁移</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="main.cpp#L5">OpenGL/lessons/14_model_obj/main.cpp</a>，第 5—30 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<p>来自 <a data-course-target="14_model_obj" href="main.cpp#L7">OpenGL/lessons/14_model_obj/main.cpp</a>，第 7—32 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;14_model_obj - OpenGL Course&quot;);
     auto modelPath = asset(app, &quot;models/vase.obj&quot;);
     for (int k = 1; k + 1 &lt; argc; ++k)
         if (std::string(argv[k]) == &quot;--model&quot;)
             modelPath = std::filesystem::absolute(argv[++k]);
+    // 模型持有自己的网格/材质；加载完成不代表自动绑定到当前 shader。
     Model model(modelPath);
+    // shader 路径指向本课自己的文件；属性、uniform 与下方 C++ 设置对应。
     Shader shader(app, &quot;model.vert&quot;, &quot;pbr.frag&quot;);
     Camera camera;
     camera.pos = glm::vec3(3, 1.0f, 6);
     camera.pitch = -7;
     camera.yaw = -116.565f;
     glEnable(GL_DEPTH_TEST);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         camera.update(app);
         app.clear();
@@ -52,16 +62,12 @@ cmake --build --preset opengl-debug --target 14_model_obj --parallel 4
         cameraUniforms(shader, app, camera);
         // 空格按下时暂停在 bind pose，便于对照骨骼形变。
         model.update(app.key(GLFW_KEY_SPACE) == GLFW_PRESS ? 0.f : app.time());
-        model.draw(shader);
-        app.end();
-    }
-    return 0;
-} catch (const std::exception&amp; e) {</code></pre>
+        model.draw(shader);</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="README.html">14_model_obj</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="14_model_obj" href="README.html">14_model_obj</a></td></tr>
 <tr><td>Vulkan 原生</td><td>迁移设计：设计：CPU MeshData → VkBuffer；骨骼 UBO/SSBO；节点/材质解析可共享。</td></tr>
 <tr><td>Vulkan / nvpro_core2</td><td>迁移设计：框架有资产相关辅助，但本课程未接入完整 glTF/skin；需要单独实现并验收。</td></tr>
 <tr><td>DirectX 12</td><td>迁移设计：设计：扩展 VBV/input layout 加 joints/weights，骨骼经 CBV/SRV 提供。</td></tr>

@@ -25,19 +25,20 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/28_ubo/README.html">28_ubo</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="28_ubo" href="../../OpenGL/lessons/28_ubo/README.html">28_ubo</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk05_indexed_uniform" href="../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv06_pbr_viewport" href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx05_indexed_cbv" href="../../DirectX12/lessons/dx05_indexed_cbv/README.html">dx05_indexed_cbv</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>block index、binding point 与实际 buffer 三层分开检查。</p>
-<p><a href="../../OpenGL/lessons/28_ubo/main.cpp#L15">OpenGL/lessons/28_ubo/main.cpp</a>，第 15—41 行：</p>
+<p><a data-course-target="28_ubo" href="../../OpenGL/lessons/28_ubo/main.cpp#L19">OpenGL/lessons/28_ubo/main.cpp</a>，第 19—45 行：</p>
 <pre><code>    GLuint block = glGetUniformBlockIndex(shader.id, &quot;CameraBlock&quot;);
     if (block == GL_INVALID_INDEX)
         throw std::runtime_error(&quot;Missing uniform block&quot;);
     glUniformBlockBinding(shader.id, block, 0);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, buffer);
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         camera.update(app);
         app.clear();
@@ -58,11 +59,10 @@
     }
     glDeleteBuffers(1, &amp;buffer);
     return 0;
-} catch (const std::exception&amp; e) {
-    return failure(e);</code></pre>
+} catch (const std::exception&amp; e) {</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>layout 规定类型/阶段，set 填资源引用，buffer 才保存矩阵。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L282">Vulkan/common/scene_vk.hpp</a>，第 282—319 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk05_indexed_uniform/support/scene_vk.hpp#L284">Vulkan/native/lessons/vk05_indexed_uniform/support/scene_vk.hpp</a>，第 284—321 行：</p>
 <pre><code>        VkDescriptorSetLayoutBinding bindings[2] = {
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
             {1,
@@ -73,6 +73,7 @@
         VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
         li.bindingCount = 2;
         li.pBindings = bindings;
+        // 绑定契约：set/binding、描述符类型和 shader 可见阶段必须与 GLSL 一致。
         vkCheck(vkCreateDescriptorSetLayout(c.device, &amp;li, nullptr, &amp;setLayout));
         VkDescriptorPoolSize sizes[2] = {{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
                                          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}};
@@ -99,11 +100,10 @@
         writes[0].pBufferInfo = &amp;ub;
         writes[1].dstBinding = 1;
         writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writes[1].pImageInfo = &amp;image;
-        vkUpdateDescriptorSets(c.device, 2, writes, 0, nullptr);</code></pre>
+        writes[1].pImageInfo = &amp;image;</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>SceneVk 逐 draw 更新 push constants；框架只提供外围上下文。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L435">Vulkan/common/scene_vk.hpp</a>，第 435—453 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp#L438">Vulkan/nvpro/lessons/nv06_pbr_viewport/support/scene_vk.hpp</a>，第 438—456 行：</p>
 <pre><code>            vkCmdPushConstants(cmd,
                                pipelineLayout,
                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -111,6 +111,7 @@
                                sizeof(d),
                                &amp;d);
             if (indirectArguments)
+                // 绘制消费此前绑定的管线、顶点与资源；布局和资源状态必须已满足。
                 vkCmdDrawIndirect(cmd, indirectArguments, 0, 1, sizeof(VkDrawIndirectCommand));
             else if (mode == 3)
                 vkCmdDraw(cmd, 3, 1, 0, 0);
@@ -121,11 +122,10 @@
         }
     }
     ~SceneVk() {
-        if (pipeline)
-            vkDestroyPipeline(c.device, pipeline, nullptr);</code></pre>
+        if (pipeline)</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>root parameter 2 指 t0，0 指 b0；两种编号不能混同。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L345">DirectX12/common/dx12_course.hpp</a>，第 345—380 行：</p>
+<p><a href="../../DirectX12/lessons/dx05_indexed_cbv/support/dx12_course.hpp#L353">DirectX12/lessons/dx05_indexed_cbv/support/dx12_course.hpp</a>，第 353—388 行：</p>
 <pre><code>        D3D12_ROOT_PARAMETER params[3]{};
         params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         params[0].Descriptor.ShaderRegister = 0;

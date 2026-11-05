@@ -34,6 +34,18 @@ Context 可启用 validation，但自定义资源的错误仍需由应用回调�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -47,65 +59,38 @@ Context 可启用 validation，但自定义资源的错误仍需由应用回调�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx38_diagnostic_delivery --parallel 4
-.\DirectX12\build\bin\Debug\dx38_diagnostic_delivery.exe
-ctest --preset dx12-debug -R "^dx38_diagnostic_delivery$" --output-on-failure
+cmake --build --preset dx12-debug --target dx05_ch_validation --parallel 4
+.\DirectX12\build\bin\Debug\dx05_ch_validation.exe
+ctest --preset dx12-debug -R "^dx05_ch_validation$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L612)，第 612—655 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/05_validation/main.cpp](main.cpp#L28)，第 28—44 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-void inspection(DxDevice& c, const LabOptions& options, int id) {
-    if (id == 37) {
-        UINT count = 0;
-        for (UINT i = 0;; ++i) {
-            ComPtr<IDXGIAdapter1> adapter;
-            auto hr = c.factory->EnumAdapters1(i, &adapter);
-            if (hr == DXGI_ERROR_NOT_FOUND)
-                break;
-            dxCheck(hr);
-            DXGI_ADAPTER_DESC1 d{};
-            dxCheck(adapter->GetDesc1(&d));
-            std::wcout << L"adapter=" << d.Description << L", bytes=" << d.DedicatedVideoMemory
-                       << L'\n';
-            ++count;
-        }
-        require(count > 0, "No DXGI adapters enumerated");
-    } else if (id == 38) {
-        require(c.messages.Get() != nullptr, "D3D12 InfoQueue unavailable");
-        dxCheck(c.messages->PushEmptyStorageFilter());
-        UINT64 before = c.messages->GetNumStoredMessages();
-        dxCheck(c.messages->AddApplicationMessage(D3D12_MESSAGE_SEVERITY_INFO,
-                                                  "Course informational diagnostic"));
-        require(c.messages->GetNumStoredMessages() > before,
-                "InfoQueue did not receive application message");
-        c.messages->PopStorageFilter();
-        std::cout
-            << "Verified informational diagnostic delivery without introducing invalid API usage\n";
-    } else if (id == 39) {
-        auto desc = c.queue->GetDesc();
-        require(desc.Type == D3D12_COMMAND_LIST_TYPE_DIRECT, "Expected direct queue");
-        std::cout << "queue type=" << desc.Type << ", priority=" << desc.Priority
-                  << ", flags=" << desc.Flags << ", nodeMask=" << desc.NodeMask << '\n';
-    } else if (id == 42) {
-        auto shader = labShader(options, "ComputeMain");
-        ComPtr<ID3D11ShaderReflection> reflection;
-        dxCheck(D3DReflect(
-            shader->GetBufferPointer(), shader->GetBufferSize(), IID_PPV_ARGS(&reflection)));
-        UINT x{}, y{}, z{};
-        reflection->GetThreadGroupSize(&x, &y, &z);
-        require(x == 64 && y == 1 && z == 1, "Unexpected shader thread-group reflection");
-        D3D11_SHADER_DESC desc{};
-        dxCheck(reflection->GetDesc(&desc));
-        std::cout << "Verified shader reflection: threads=" << x
-                  << ", bindings=" << desc.BoundResources << '\n';
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 38);
+    DxDevice c(options.warp);
+    {
+        inspection(c, options);
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

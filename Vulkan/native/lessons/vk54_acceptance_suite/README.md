@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 综合例通过 SceneVk 的显式配置连接资产、纹理与目标，保持可追踪资源拥有者。resize 重建时配置回调重建所需引用。当前窗口仍按帧等待，计算资源环证明两槽原则而非替代完整多帧呈现引擎。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,31 @@ cmake --build --preset vulkan-native-debug --target vk54_acceptance_suite --para
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L914)，第 914—957 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk54_acceptance_suite/main.cpp](main.cpp#L484)，第 484—505 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        std::cout
-            << "Verified Frame=64, Draw=80, settings offset=64 and GPU uniform vector decoding\n";
-    } else if (id == 54) {
-        capabilities(c);
-        stagingCopy(c);
-        GpuTexture mips(c, Pixels{64, 64, checker()}, true);
-        mips.verify();
-        frameRing(c);
-        std::cout << "Completed resource/texture/frame-slot acceptance suite\n";
-    } else
-        throw std::runtime_error("Unknown inspection id");
-}
-
-} // namespace
-int nativeLabMain(int argc, char** argv, int id) {
-    auto options = labOptions(argc, argv, id);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 54);
     nativeShaders = options.directory / "shaders";
-    if (id == 17 || id == 19 || id == 20 || id == 21 || id == 22 || id == 23 || id == 27 ||
-        id == 29 || id == 34 || id == 35 || id == 36 || id == 41 || id == 43 || id == 49 ||
-        id == 50 || id == 52 || id == 53)
-        return graphicsLab(argc, argv, options);
     validationErrors = 0;
-    if (id == 40) {
-        surfaceInspection();
-        return validationErrors ? 1 : 0;
-    }
     {
-        NativeDevice owner(nullptr, id == 26);
+        NativeDevice owner(nullptr, false);
         const auto& c = owner.c;
-        if (id >= 37)
-            inspection(c, id);
-        else if (id == 11)
-            capabilities(c);
-        else if (id == 12) {
-            VkBufferResource b;
-            b.init(c, 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-            immediate(c, [&](VkCommandBuffer cmd) {
-                vkCmdFillBuffer(cmd, b.buffer, 0, 256, 0x12345678);
-                bufferDependency(cmd,
-                                 b.buffer,
-                                 VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_CLEAR_BIT,
-                                 VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                 VK_PIPELINE_STAGE_2_HOST_BIT,
-                                 VK_ACCESS_2_HOST_READ_BIT);
+        {
+            inspection(c);
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

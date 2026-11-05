@@ -1,5 +1,17 @@
 # vk09_pbr · 直接光 PBR
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 [路线首页](../../README.md) · [上一课](../vk08_compute_readback/README.md) · [下一课](../vk10_offscreen/README.md)
 
 ## 构建和运行
@@ -59,35 +71,65 @@ shared sphere/draws → scene.frag pbr → push constants 每球参数。
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/common/shaders/scene.frag](../../../common/shaders/scene.frag#L17)，第 17—42 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk09_pbr/main.cpp](main.cpp#L9)，第 9—64 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
-```glsl
-vec3 pbr(vec3 N, vec3 V, vec3 P, float metal, float r) {
-    vec3 albedo = vec3(.8, .25, .07), sum = vec3(.02) * albedo * (1.0 - metal),
-         f0 = mix(vec3(.04), albedo, metal);
-    for (int i = 0; i < 4; ++i) {
-        vec3 lp = vec3(i % 2 == 0 ? -6 : 6, i < 2 ? 6 : -4, 8);
-        vec3 delta = lp - P, L = normalize(delta), H = normalize(V + L);
-        float NoV = max(dot(N, V), .001), NoL = max(dot(N, L), 0), NoH = max(dot(N, H), 0);
-        float a = r * r, a2 = a * a, d = NoH * NoH * (a2 - 1) + 1,
-              D = a2 / max(PI * d * d, .000001);
-        float k = (r + 1) * (r + 1) / 8;
-        float G = NoV / (NoV * (1 - k) + k) * NoL / (NoL * (1 - k) + k);
-        vec3 F = f0 + (1 - f0) * pow(1 - max(dot(V, H), 0), 5);
-        sum += ((1 - F) * (1 - metal) * albedo / PI + D * G * F / max(4 * NoV * NoL, .001)) * 90 /
-               dot(delta, delta) * NoL;
-    }
-    return sum;
-}
+```cpp
+int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
 
-void main() {
-    int mode = int(draw.settings.x);
-    vec3 N = normalize(normal), c;
-    if (mode <= 4)
-        c = clamp(normal, 0, 1);
-    else if (mode >= 9)
-        c = pbr(
-            N, normalize(vec3(0, 0, 14) - worldPos), worldPos, draw.settings.y, draw.settings.z);
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    if (!glfwInit())
+        throw std::runtime_error("GLFW initialization failed");
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, "Native Vulkan Course", nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error("Window creation failed");
+    {
+        NativeDevice d(window);
+        Swapchain swap(d, window, 9, options);
+        VkCommandPoolCreateInfo pi{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+        pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pi.queueFamilyIndex = d.c.family;
+        VkCommandPool pool;
+        vkCheck(vkCreateCommandPool(d.c.device, &pi, nullptr, &pool));
+        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        ai.commandPool = pool;
+        ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        ai.commandBufferCount = 1;
+        VkCommandBuffer cmd;
+        vkCheck(vkAllocateCommandBuffers(d.c.device, &ai, &cmd));
+        VkSemaphoreCreateInfo si{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkSemaphore acquired;
+        vkCheck(vkCreateSemaphore(d.c.device, &si, nullptr, &acquired));
+        VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkFence fence;
+        vkCheck(vkCreateFence(d.c.device, &fi, nullptr, &fence));
+        int frames = 0;
+        while (!glfwWindowShouldClose(window) && (!smoke || frames < 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &w, &h);
+            if (w < 1 || h < 1) {
+                glfwWaitEvents();
+                continue;
+            }
+            if (uint32_t(w) != swap.extent.width || uint32_t(h) != swap.extent.height)
+                swap.recreate();
+            // 先等待上一轮命令完成，再复用命令缓冲和共享 UBO；本课程采用单帧串行同步。
+            vkCheck(vkWaitForFences(d.c.device, 1, &fence, VK_TRUE, UINT64_MAX));
+            uint32_t imageIndex;
+            // acquire semaphore 告知 GPU 图像可用；遇到 OUT_OF_DATE 时先重建再尝试。
 ```
 
 ### 同主题跨 API 导航

@@ -1,0 +1,5 @@
+{
+  "target": "28_ubo",
+  "api": "gl",
+  "independent": true
+}

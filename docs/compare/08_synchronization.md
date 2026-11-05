@@ -58,7 +58,7 @@ nvpro 离屏目标在 GENERAL 布局下渲染并供 ImGui 采样。布局可以�
 
 常规有序 FBO→采样由 GL 规则协调；不能推导成所有 GPU 写后读都自动安全。
 
-[OpenGL/lessons/11_framebuffer/main.cpp](../../OpenGL/lessons/11_framebuffer/main.cpp#L12)，第 12—43 行：
+[OpenGL/lessons/11_framebuffer/main.cpp](../../OpenGL/lessons/11_framebuffer/main.cpp#L16)，第 16—47 行：
 
 ```cpp
     while (app.begin()) {
@@ -99,7 +99,7 @@ nvpro 离屏目标在 GENERAL 布局下渲染并供 ImGui 采样。布局可以�
 
 屏障声明前后阶段、访问及布局；并非只修改一个枚举。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L133)，第 133—167 行：
+[Vulkan/native/lessons/vk06_texture_descriptor/support/scene_vk.hpp](../../Vulkan/native/lessons/vk06_texture_descriptor/support/scene_vk.hpp#L133)，第 133—167 行：
 
 ```cpp
 inline void barrier(VkCommandBuffer cmd,
@@ -125,6 +125,7 @@ inline void barrier(VkCommandBuffer cmd,
     VkDependencyInfo dependency{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
     dependency.imageMemoryBarrierCount = 1;
     dependency.pImageMemoryBarriers = &b;
+    // 可见性依赖：源阶段/访问描述生产者，目标阶段/访问描述接下来的消费者。
     vkCmdPipelineBarrier2(cmd, &dependency);
 }
 
@@ -136,14 +137,13 @@ inline void immediate(const VkContextRef& c, const std::function<void(VkCommandB
     vkCheck(vkCreateCommandPool(c.device, &pi, nullptr, &pool));
     VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     ai.commandPool = pool;
-    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 ```
 
 ### Vulkan / nvpro_core2 · 已实现
 
 GENERAL→GENERAL 仍声明颜色写入与后续采样依赖。
 
-[Vulkan/nvpro/common/nvapp_course.hpp](../../Vulkan/nvpro/common/nvapp_course.hpp#L130)，第 130—177 行：
+[Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp](../../Vulkan/nvpro/lessons/nv03_triangle/support/nvapp_course.hpp#L130)，第 130—177 行：
 
 ```cpp
     void onRender(VkCommandBuffer cmd) override {
@@ -200,7 +200,7 @@ GENERAL→GENERAL 仍声明颜色写入与后续采样依赖。
 
 CPU 等 fence 只解决完成条件；资源状态还要与实际访问一致。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L134)，第 134—147 行：
+[DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp](../../DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp#L138)，第 138—151 行：
 
 ```cpp
     void wait() {

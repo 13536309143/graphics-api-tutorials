@@ -1,0 +1,7 @@
+{
+  "target": "vk03_ch_lifetime",
+  "api": "vk",
+  "experiment": 31,
+  "chapter": "03_lifetime",
+  "independent": true
+}

@@ -1,0 +1,5 @@
+{
+  "target": "16_blending",
+  "api": "gl",
+  "independent": true
+}

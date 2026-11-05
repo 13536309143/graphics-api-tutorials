@@ -34,6 +34,18 @@ ContextInitInfo 中声明队列需求，getQueueInfo 返回 queue 与 familyInde
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,38 @@ ContextInitInfo 中声明队列需求，getQueueInfo 返回 queue 与 familyInde
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx39_queue_properties --parallel 4
-.\DirectX12\build\bin\Debug\dx39_queue_properties.exe
-ctest --preset dx12-debug -R "^dx39_queue_properties$" --output-on-failure
+cmake --build --preset dx12-debug --target dx07_ch_queues --parallel 4
+.\DirectX12\build\bin\Debug\dx07_ch_queues.exe
+ctest --preset dx12-debug -R "^dx07_ch_queues$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L394)，第 394—437 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/07_queues/main.cpp](main.cpp#L22)，第 22—38 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        srv.Texture2D.MostDetailedMip = lastMip ? UINT(reference.size() - 1) : 0;
-        srv.Texture2D.MipLevels = lastMip ? 1 : UINT(reference.size());
-        c.device->CreateShaderResourceView(
-            texture.Get(), &srv, scene.srvHeap->GetCPUDescriptorHandleForHeapStart());
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 39);
+    DxDevice c(options.warp);
+    {
+        inspection(c, options);
     }
-    void verify() {
-        auto desc = texture->GetDesc();
-        UINT levels = UINT(reference.size());
-        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels);
-        UINT64 total{};
-        c.device->GetCopyableFootprints(
-            &desc, 0, levels, 0, footprints.data(), nullptr, nullptr, &total);
-        auto readback = c.buffer(total, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-        c.begin();
-        auto b = transition(texture.Get(),
-                            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-                            D3D12_RESOURCE_STATE_COPY_SOURCE);
-        c.cmd->ResourceBarrier(1, &b);
-        for (UINT level = 0; level < levels; ++level) {
-            D3D12_TEXTURE_COPY_LOCATION src{}, dst{};
-            src.pResource = texture.Get();
-            src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-            src.SubresourceIndex = level;
-            dst.pResource = readback.Get();
-            dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-            dst.PlacedFootprint = footprints[level];
-            c.cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-        }
-        b = transition(texture.Get(),
-                       D3D12_RESOURCE_STATE_COPY_SOURCE,
-                       D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        c.cmd->ResourceBarrier(1, &b);
-        c.submit();
-        void* p{};
-        D3D12_RANGE range{0, SIZE_T(total)};
-        dxCheck(readback->Map(0, &range, &p));
-        for (UINT level = 0; level < levels; ++level)
-            for (UINT y = 0; y < reference[level].height; ++y) {
-                auto* row = static_cast<uint8_t*>(p) + footprints[level].Offset +
-                            size_t(y) * footprints[level].Footprint.RowPitch;
-                for (UINT x = 0; x < reference[level].width * 4; ++x)
-                    require(
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

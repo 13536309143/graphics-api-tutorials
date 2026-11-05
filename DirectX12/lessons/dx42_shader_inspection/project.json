@@ -1,0 +1,7 @@
+{
+  "target": "dx42_shader_inspection",
+  "api": "dx",
+  "experiment": 42,
+  "chapter": null,
+  "independent": true
+}

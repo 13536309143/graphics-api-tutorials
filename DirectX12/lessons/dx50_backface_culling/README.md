@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 RSSetViewports 与 RSSetScissorRects 负责动态矩形，RasterizerState.CullMode 和 RenderTargetWriteMask 在 PSO 内。缩窄 viewport 会改变映射比例；缩窄 scissor 则只遮住原画面的一部分。 本例使用 FrontCounterClockwise=TRUE 识别模型外表面；FALSE 会把本应可见的外面剔除，看到立方体内部。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,23 @@ cmake --build --preset dx12-debug --target dx50_backface_culling --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L398)，第 398—441 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx50_backface_culling/main.cpp](main.cpp#L34)，第 34—47 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-        pso.pRootSignature = signature.Get();
-        pso.VS = {vs->GetBufferPointer(), vs->GetBufferSize()};
-        pso.PS = {ps->GetBufferPointer(), ps->GetBufferSize()};
-        pso.BlendState.RenderTarget[0].RenderTargetWriteMask =
-            redOnly ? D3D12_COLOR_WRITE_ENABLE_RED | D3D12_COLOR_WRITE_ENABLE_ALPHA
-                    : D3D12_COLOR_WRITE_ENABLE_ALL;
-        pso.SampleMask = UINT_MAX;
-        pso.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-        pso.RasterizerState.CullMode = cull;
-        // 共用模型按外表面逆时针排列；明确指定正面，避免剔除后只剩内部。
-        pso.RasterizerState.FrontCounterClockwise = TRUE;
-        pso.RasterizerState.DepthClipEnable = TRUE;
-        pso.DepthStencilState.DepthEnable = mode >= 5;
-        pso.DepthStencilState.DepthWriteMask =
-            mode >= 5 ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-        pso.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-        pso.DepthStencilState.StencilReadMask = pso.DepthStencilState.StencilWriteMask = 0xFF;
-        if (mode >= 4)
-            pso.InputLayout = {elements, 3};
-        pso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-        pso.NumRenderTargets = 1;
-        pso.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-        pso.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-        pso.SampleDesc.Count = samples;
-        dxCheck(c.device->CreateGraphicsPipelineState(&pso, IID_PPV_ARGS(&pipeline)));
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 50);
+    {
+        return graphicsLab(argc, argv, options);
     }
+}
+} // namespace course
 
-    // 绑定 PSO、root signature、descriptor heap 和顶点输入，再逐对象更新 root constants。
-    void render(int w, int h, float time) {
-        Frame f = overrideFrame.value_or(frame(mode, float(w) / h, false));
-        if (frameProvider)
-            f = frameProvider(float(w) / h, time, false);
-        void* mapped;
-        D3D12_RANGE empty{0, 0};
-        dxCheck(uniform->Map(0, &empty, &mapped));
-        std::memcpy(mapped, &f, sizeof(f));
-        uniform->Unmap(0, nullptr);
-        auto cmd = c.cmd.Get();
-        cmd->SetPipelineState(pipeline.Get());
-        cmd->SetGraphicsRootSignature(signature.Get());
-        ID3D12DescriptorHeap* heaps[] = {srvHeap.Get()};
-        cmd->SetDescriptorHeaps(1, heaps);
-        cmd->SetGraphicsRootConstantBufferView(0, uniform->GetGPUVirtualAddress());
-        cmd->SetGraphicsRootDescriptorTable(2, srvHeap->GetGPUDescriptorHandleForHeapStart());
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

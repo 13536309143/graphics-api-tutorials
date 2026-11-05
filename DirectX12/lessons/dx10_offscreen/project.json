@@ -1,0 +1,7 @@
+{
+  "target": "dx10_offscreen",
+  "api": "dx",
+  "experiment": 10,
+  "chapter": null,
+  "independent": true
+}

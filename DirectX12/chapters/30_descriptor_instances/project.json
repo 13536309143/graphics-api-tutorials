@@ -1,0 +1,7 @@
+{
+  "target": "dx30_ch_descriptor_instances",
+  "api": "dx",
+  "experiment": 45,
+  "chapter": "30_descriptor_instances",
+  "independent": true
+}

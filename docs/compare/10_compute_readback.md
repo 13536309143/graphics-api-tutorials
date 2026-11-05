@@ -59,19 +59,34 @@ DX12 的计算数据在 DEFAULT heap，供 UAV 写入；之后把资源转为 CO
 
 全局调用索引覆盖 256 项，host 逐项核对，不仅检查第一个值。
 
-[Vulkan/common/shaders/square.comp](../../Vulkan/common/shaders/square.comp#L2)，第 2—12 行：
+[Vulkan/native/lessons/vk08_compute_readback/main.cpp](../../Vulkan/native/lessons/vk08_compute_readback/main.cpp#L9)，第 9—34 行：
 
-```glsl
-layout(local_size_x = 64) in;
-layout(binding = 0) buffer Values {
-    uint values[];
-};
+```cpp
+int runChapter(int argc, char** argv) {
+    NativeRenderOptions options;
 
-// 每工作组 64 个线程；host dispatch 4 组，结果通过 storage buffer 读回。
-void main() {
-    uint i = gl_GlobalInvocationID.x;
-    if (i < 256)
-        values[i] = i * i + 1;
+    bool smoke = false;
+    for (int i = 1; i < argc; ++i)
+        smoke |= std::strcmp(argv[i], "--smoke") == 0;
+    validationErrors = 0;
+    nativeShaders =
+        std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / "shaders";
+    // 设备探测和计算课不创建窗口，也不需要 surface 或交换链。
+    {
+        NativeDevice d(nullptr);
+        {
+            computeSquares(d.c, nativeShaders);
+        }
+        return validationErrors ? 1 : 0;
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
 }
 ```
 
@@ -79,7 +94,7 @@ void main() {
 
 Context 提供队列和设备；计算管线与资源依赖仍是 Vulkan。
 
-[Vulkan/common/scene_vk.hpp](../../Vulkan/common/scene_vk.hpp#L466)，第 466—502 行：
+[Vulkan/nvpro/lessons/nv05_compute_readback/support/scene_vk.hpp](../../Vulkan/nvpro/lessons/nv05_compute_readback/support/scene_vk.hpp#L470)，第 470—506 行：
 
 ```cpp
 inline void computeSquares(const VkContextRef& c, const std::filesystem::path& shaders) {
@@ -125,7 +140,7 @@ inline void computeSquares(const VkContextRef& c, const std::filesystem::path& s
 
 DEFAULT UAV 结果拷贝到 READBACK，经 fence 后 Map。
 
-[DirectX12/common/dx12_course.hpp](../../DirectX12/common/dx12_course.hpp#L197)，第 197—244 行：
+[DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp](../../DirectX12/lessons/dx08_compute_uav/support/dx12_course.hpp#L202)，第 202—249 行：
 
 ```cpp
 inline void dxCompute(DxDevice& c) {
@@ -146,14 +161,17 @@ inline void dxCompute(DxDevice& c) {
     pso.pRootSignature = signature.Get();
     pso.CS = {cs->GetBufferPointer(), cs->GetBufferSize()};
     ComPtr<ID3D12PipelineState> pipeline;
+    // 计算 PSO 与根签名配套；后续 Dispatch 使用这里选择的入口。
     dxCheck(c.device->CreateComputePipelineState(&pso, IID_PPV_ARGS(&pipeline)));
     c.begin();
     c.cmd->SetComputeRootSignature(signature.Get());
     c.cmd->SetPipelineState(pipeline.Get());
     c.cmd->SetComputeRootUnorderedAccessView(0, storage->GetGPUVirtualAddress());
+    // Dispatch 的单位是工作组，线程组尺寸由 HLSL numthreads 声明。
     c.cmd->Dispatch(4, 1, 1);
     auto b = transition(
         storage.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    // 状态迁移描述资源下一步的真实用途；不能用 CPU 等待替代所需的状态。
     c.cmd->ResourceBarrier(1, &b);
     c.cmd->CopyBufferRegion(readback.Get(), 0, storage.Get(), 0, 1024);
     c.submit();
@@ -173,7 +191,4 @@ public:
     DxDevice& c;
     int mode;
     Geometry mesh;
-    ComPtr<ID3D12Resource> vertices, indices, uniform, texture;
-    ComPtr<ID3D12DescriptorHeap> srvHeap;
-    ComPtr<ID3D12RootSignature> signature;
 ```

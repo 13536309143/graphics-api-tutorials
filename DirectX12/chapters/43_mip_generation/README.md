@@ -34,6 +34,18 @@ GPU 计算使用 SRV 指前一级、UAV 指后一级，8×8 工作组平均四�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,43 +57,39 @@ GPU 计算使用 SRV 指前一级、UAV 指后一级，8×8 工作组平均四�
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx18_mip_chain --parallel 4
-.\DirectX12\build\bin\Debug\dx18_mip_chain.exe
-ctest --preset dx12-debug -R "^dx18_mip_chain$" --output-on-failure
+cmake --build --preset dx12-debug --target dx43_ch_mip_generation --parallel 4
+.\DirectX12\build\bin\Debug\dx43_ch_mip_generation.exe
+ctest --preset dx12-debug -R "^dx43_ch_mip_generation$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/shaders/lab.hlsl](../../shaders/lab.hlsl#L47)，第 47—68 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/43_mip_generation/main.cpp](main.cpp#L265)，第 265—282 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
-```hlsl
-    float a = corner * 2.0943951;
-    Vertex v;
-    v.position = float3(center + float2(cos(a), sin(a)) * .028, 0);
-    v.normal = float3(.25 + .7 * (particle % 7) / 6, .65, .95);
-    v.uv = 0;
-    vertices[i] = v;
-} Texture2D<float4> mipSource : register(t0);
-RWTexture2D<float4> mipOutput : register(u2);
-[numthreads(8, 8, 1)] void MipMain(uint3 id : SV_DispatchThreadID) {
-    uint w, h;
-    mipOutput.GetDimensions(w, h);
-    if (id.x >= w || id.y >= h)
-        return;
-    uint sw, sh;
-    mipSource.GetDimensions(sw, sh);
-    uint2 base = id.xy * 2;
-    float4 sum = 0;
-    for (uint y = 0; y < 2; ++y)
-        for (uint x = 0; x < 2; ++x)
-            sum += mipSource.Load(int3(min(base + uint2(x, y), uint2(sw - 1, sh - 1)), 0));
-    mipOutput[id.xy] = sum * .25;
+```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 18);
+    DxDevice c(options.warp);
+    {
+        GpuTexture texture(c, options, Pixels{64, 64, checker()}, true);
+        texture.verify();
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
 }
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 

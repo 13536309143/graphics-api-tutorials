@@ -2,11 +2,17 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 相同 GLM 列主序与 HLSL mul(M,v) 连接；当前场景的简化法线变换只用于旋转/均匀缩放。导入静态层级时已在 CPU 用逆转置处理节点法线；新增非均匀模型变换仍需正确 shader 约定。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -22,53 +28,23 @@ cmake --build --preset dx12-debug --target dx23_orbit_camera --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L578)，第 578—621 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx23_orbit_camera/main.cpp](main.cpp#L41)，第 41—54 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-            scene.frameProvider = [](float aspect, float time, bool) {
-                auto projection = glm::perspectiveRH_ZO(glm::radians(48.f), aspect, .1f, 100.f);
-                glm::vec3 eye(std::sin(time * .3f) * 4, 1.6f, std::cos(time * .3f) * 4);
-                return Frame{projection * glm::lookAtRH(eye, glm::vec3(0), glm::vec3(0, 1, 0))};
-            };
-    };
-    // 计算先独立提交完成，再开始图形命令录制，避免在同一 allocator 正录制时把它重置。
-    render.beforeFrame = [id](DxScene& scene, float time) {
-        // The compute submission must finish before DxWindow resets its allocator to record graphics.
-        if (id == 29)
-            std::static_pointer_cast<RenderState>(scene.extension)->particles->execute(time);
-    };
-    return dxMain(argc, argv, mode, render);
-}
-void surfaceInspection(const LabOptions& options) {
-    require(glfwInit() != 0, "GLFW init failed");
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    auto* window = glfwCreateWindow(960, 640, "DXGI inspection", nullptr, nullptr);
-    require(window != nullptr, "Window failed");
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 23);
     {
-        DxWindow app(window, 2, options.warp);
-        DXGI_SWAP_CHAIN_DESC1 desc{};
-        dxCheck(app.swap->GetDesc1(&desc));
-        require(desc.BufferCount == 2 && desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD,
-                "Unexpected swapchain configuration");
-        app.render(1, nullptr);
-        std::cout << "Verified HWND swapchain, buffers=" << desc.BufferCount
-                  << ", index=" << app.swap->GetCurrentBackBufferIndex() << '\n';
+        return graphicsLab(argc, argv, options);
     }
-    glfwDestroyWindow(window);
-    glfwTerminate();
 }
-// 查询、诊断与字节检查有明确的结果；合法 INFO 消息可能被默认过滤，临时空过滤器只扩大接收范围。
-void inspection(DxDevice& c, const LabOptions& options, int id) {
-    if (id == 37) {
-        UINT count = 0;
-        for (UINT i = 0;; ++i) {
-            ComPtr<IDXGIAdapter1> adapter;
-            auto hr = c.factory->EnumAdapters1(i, &adapter);
-            if (hr == DXGI_ERROR_NOT_FOUND)
-                break;
-            dxCheck(hr);
-            DXGI_ADAPTER_DESC1 d{};
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

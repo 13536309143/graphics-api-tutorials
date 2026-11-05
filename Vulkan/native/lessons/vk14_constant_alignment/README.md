@@ -2,13 +2,19 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 memoryTypeBits 是资源允许的类型集合，propertyFlags 是内存属性。实验为 257 字节缓冲查询实际 size/alignment/type bits，再在允许集合中选择所需属性。non-coherent 的 flush/invalidate 还需符合原子尺寸对齐。
 
 GLSL mat4 与 GLM 列主序配合，UBO 的布局必须与 C++ 实际偏移一致。动态偏移按 minUniformBufferOffsetAlignment 对齐，range 仍应覆盖具体内容且不越界。实验用 uvec4 参数让 GPU 数值验证解码。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -25,53 +31,52 @@ cmake --build --preset vulkan-native-debug --target vk14_constant_alignment --pa
 
 ### 本课的真实源码切片
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L38)，第 38—81 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [Vulkan/native/lessons/vk14_constant_alignment/main.cpp](main.cpp#L157)，第 157—199 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-struct ComputeKernel {
-    VkContextRef c;
-    VkBufferResource output, parameters;
-    VkDescriptorSetLayout layout{};
-    VkDescriptorPool pool{};
-    VkDescriptorSet set{};
-    VkPipelineLayout pipelineLayout{};
-    VkPipeline pipeline{};
-    uint32_t stride{};
-    explicit ComputeKernel(VkContextRef context, VkPipelineCache cache = {}) : c(context) {
-        VkPhysicalDeviceProperties props{};
-        vkGetPhysicalDeviceProperties(c.physical, &props);
-        stride = uint32_t(alignUp(16, props.limits.minUniformBufferOffsetAlignment));
-        output.init(c, 1024 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-        parameters.init(c, stride * 3, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        std::vector<uint8_t> bytes(stride * 3);
-        const uint32_t pairs[3][4] = {{2, 3, 0, 0}, {5, 11, 0, 0}, {7, 13, 0, 0}};
-        for (uint32_t i = 0; i < 3; ++i)
-            std::memcpy(bytes.data() + stride * i, pairs[i], 16);
-        parameters.upload(bytes.data(), bytes.size());
-        VkDescriptorSetLayoutBinding bindings[2] = {
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1,
-             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-             1,
-             VK_SHADER_STAGE_COMPUTE_BIT,
-             nullptr}};
-        VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-        li.bindingCount = 2;
-        li.pBindings = bindings;
-        vkCheck(vkCreateDescriptorSetLayout(c.device, &li, nullptr, &layout));
-        VkDescriptorPoolSize sizes[2] = {{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
-                                         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1}};
-        VkDescriptorPoolCreateInfo pi{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-        pi.maxSets = 1;
-        pi.poolSizeCount = 2;
-        pi.pPoolSizes = sizes;
-        vkCheck(vkCreateDescriptorPool(c.device, &pi, nullptr, &pool));
-        VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-        ai.descriptorPool = pool;
-        ai.descriptorSetCount = 1;
-        ai.pSetLayouts = &layout;
-        vkCheck(vkAllocateDescriptorSets(c.device, &ai, &set));
-        VkDescriptorBufferInfo infos[2] = {{output.buffer, 0, output.size},
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 14);
+    nativeShaders = options.directory / "shaders";
+    validationErrors = 0;
+    {
+        NativeDevice owner(nullptr, false);
+        const auto& c = owner.c;
+        {
+            ComputeKernel kernel(c);
+            uint32_t mode = ((1));
+            uint32_t count = (128);
+            for (uint32_t slot = 0; slot < ((1u)); ++slot) {
+                uint32_t factor = (3), bias = (7);
+                kernel.execute(mode, count, factor, bias, slot);
+                auto result = readWords(kernel.output, mode == 2 ? (count + 63) / 64 : count);
+                if (mode == 2) {
+                    uint32_t total = std::accumulate(result.begin(), result.end(), 0u);
+                    require(total == count * (count + 1) / 2, "Shared-memory reduction mismatch");
+                } else {
+                    if (mode == 1) {
+                        factor = slot == 0 ? 2 : slot == 1 ? 5 : 7;
+                        bias = slot == 0 ? 3 : slot == 1 ? 11 : 13;
+                    }
+                    for (uint32_t i = 0; i < count; ++i)
+                        require(result[i] == i * factor + bias,
+                                "Compute/dynamic-binding result mismatch");
+                }
+            }
+            std::cout << "Verified experiment " << 14 << ", items=" << count
+                      << ", uniform stride=" << kernel.stride << '\n';
+        }
+    }
+    std::cout << "Validation errors: " << validationErrors << '\n';
+    return validationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

@@ -1,0 +1,7 @@
+{
+  "target": "vk13_ch_shader_modules",
+  "api": "vk",
+  "experiment": 42,
+  "chapter": "13_shader_modules",
+  "independent": true
+}

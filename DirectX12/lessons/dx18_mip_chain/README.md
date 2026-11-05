@@ -2,13 +2,19 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 legacy transition barrier 表达 COPY_DEST、UAV、shader resource 等用途转换。compute mip 每级有自己的 subresource state；UAV 写后下级采样的依赖由对应转换建立。跨队列还需 fence Signal/Wait。
 
 GPU 计算使用 SRV 指前一级、UAV 指后一级，8×8 工作组平均四个 texel。每级 descriptor 与 subresource state 分开管理，最后转可采样。sRGB 材质链另用正确线性平均的 CPU 路径，未把编码值简单平均冒充正确颜色 mip。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -25,30 +31,26 @@ cmake --build --preset dx12-debug --target dx18_mip_chain --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/shaders/lab.hlsl](../../shaders/lab.hlsl#L47)，第 47—68 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx18_mip_chain/main.cpp](main.cpp#L265)，第 265—282 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
-```hlsl
-    float a = corner * 2.0943951;
-    Vertex v;
-    v.position = float3(center + float2(cos(a), sin(a)) * .028, 0);
-    v.normal = float3(.25 + .7 * (particle % 7) / 6, .65, .95);
-    v.uv = 0;
-    vertices[i] = v;
-} Texture2D<float4> mipSource : register(t0);
-RWTexture2D<float4> mipOutput : register(u2);
-[numthreads(8, 8, 1)] void MipMain(uint3 id : SV_DispatchThreadID) {
-    uint w, h;
-    mipOutput.GetDimensions(w, h);
-    if (id.x >= w || id.y >= h)
-        return;
-    uint sw, sh;
-    mipSource.GetDimensions(sw, sh);
-    uint2 base = id.xy * 2;
-    float4 sum = 0;
-    for (uint y = 0; y < 2; ++y)
-        for (uint x = 0; x < 2; ++x)
-            sum += mipSource.Load(int3(min(base + uint2(x, y), uint2(sw - 1, sh - 1)), 0));
-    mipOutput[id.xy] = sum * .25;
+```cpp
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 18);
+    DxDevice c(options.warp);
+    {
+        GpuTexture texture(c, options, Pixels{64, 64, checker()}, true);
+        texture.verify();
+    }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
 }
 ```
 

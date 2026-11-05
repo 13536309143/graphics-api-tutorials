@@ -31,15 +31,16 @@
 <p>以下切片直接取自当前仓库，省略了前后文。行号用于定位，不能把片段当作完整可编译程序。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../OpenGL/lessons/34_gallery/README.html">34_gallery</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="34_gallery" href="../../OpenGL/lessons/34_gallery/README.html">34_gallery</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk09_pbr" href="../../Vulkan/native/lessons/vk09_pbr/README.html">vk09_pbr</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv06_pbr_viewport" href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx09_pbr" href="../../DirectX12/lessons/dx09_pbr/README.html">dx09_pbr</a></td></tr>
 </table></div>
 <h3>OpenGL · 已实现</h3>
 <p>先观察组合效果需要哪些对象，再分离平台、资产与渲染责任。</p>
-<p><a href="../../OpenGL/lessons/34_gallery/main.cpp#L6">OpenGL/lessons/34_gallery/main.cpp</a>，第 6—33 行：</p>
+<p><a data-course-target="34_gallery" href="../../OpenGL/lessons/34_gallery/main.cpp#L8">OpenGL/lessons/34_gallery/main.cpp</a>，第 8—35 行：</p>
 <pre><code>int main(int argc, char** argv) try {
+    // 先创建上下文；它必须比 shader、纹理和网格活得更久。
     App app(argc, argv, &quot;34_gallery - OpenGL Course&quot;);
     Environment env(app);
     Model robot(asset(app, &quot;models/robot.gltf&quot;));
@@ -51,6 +52,7 @@
         sky(app, &quot;sky.vert&quot;, &quot;sky.frag&quot;), bright(app, &quot;screen.vert&quot;, &quot;bright.frag&quot;),
         blur(app, &quot;screen.vert&quot;, &quot;blur.frag&quot;), tone(app, &quot;screen.vert&quot;, &quot;tone.frag&quot;);
     RenderTarget scene, highlights, ping, pong;
+    // 每帧处理输入并绘制；GPU 对象在退出循环后按 C++ 作用域逆序释放。
     while (app.begin()) {
         if (app.width &lt; 1 || app.height &lt; 1) {
             app.end();
@@ -64,12 +66,10 @@
         scene.bind();
         glEnable(GL_DEPTH_TEST);
         app.clear();
-        env.bindIBL();
-        model.use();
-        pbrDefaults(model);</code></pre>
+        env.bindIBL();</code></pre>
 <h3>Vulkan 原生 · 已实现</h3>
 <p>底层渲染器接收借用上下文，不负责创建窗口/交换链。</p>
-<p><a href="../../Vulkan/common/scene_vk.hpp#L196">Vulkan/common/scene_vk.hpp</a>，第 196—223 行：</p>
+<p><a href="../../Vulkan/native/lessons/vk09_pbr/support/scene_vk.hpp#L198">Vulkan/native/lessons/vk09_pbr/support/scene_vk.hpp</a>，第 198—225 行：</p>
 <pre><code>class SceneVk {
 public:
     VkContextRef c;
@@ -100,7 +100,7 @@ public:
             VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,</code></pre>
 <h3>Vulkan / nvpro_core2 · 已实现</h3>
 <p>生命周期回调管理自定义资源；不是第四个图形 API。</p>
-<p><a href="../../Vulkan/nvpro/common/nvapp_course.hpp#L44">Vulkan/nvpro/common/nvapp_course.hpp</a>，第 44—78 行：</p>
+<p><a href="../../Vulkan/nvpro/lessons/nv06_pbr_viewport/support/nvapp_course.hpp#L44">Vulkan/nvpro/lessons/nv06_pbr_viewport/support/nvapp_course.hpp</a>，第 44—78 行：</p>
 <pre><code>class NvLesson : public nvapp::IAppElement {
     nvapp::Application* app{};
     VkContextRef c;
@@ -138,7 +138,7 @@ public:
         nvvk::RenderTarget::CreateInfo info{};</code></pre>
 <h3>DirectX 12 · 已实现</h3>
 <p>独立 DxScene/DxWindow 先可解释，再考虑抽象统一 Renderer。</p>
-<p><a href="../../DirectX12/common/dx12_course.hpp#L237">DirectX12/common/dx12_course.hpp</a>，第 237—261 行：</p>
+<p><a href="../../DirectX12/lessons/dx09_pbr/support/dx12_course.hpp#L245">DirectX12/lessons/dx09_pbr/support/dx12_course.hpp</a>，第 245—269 行：</p>
 <pre><code>class DxScene {
 public:
     DxDevice&amp; c;

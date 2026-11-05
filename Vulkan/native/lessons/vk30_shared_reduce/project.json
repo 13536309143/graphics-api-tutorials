@@ -1,0 +1,7 @@
+{
+  "target": "vk30_shared_reduce",
+  "api": "vk",
+  "experiment": 30,
+  "chapter": null,
+  "independent": true
+}

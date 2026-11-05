@@ -1,4 +1,10 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv05_compute_readback · Compute 与读回验证</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>nv05_compute_readback · Compute 与读回验证</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>nv05_compute_readback · Compute 与读回验证</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../../web/runner.css"><script defer src="../../../../web/runner.js"></script><main><nav><a href="../../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="nv05_compute_readback"><h1>nv05_compute_readback · Compute 与读回验证</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="nv05_compute_readback" href="main.cpp">main.cpp</a> · <a data-course-target="nv05_compute_readback" href="support/">本地辅助实现</a> · <a data-course-target="nv05_compute_readback" href="shaders/">本课着色器</a> · <a data-course-target="nv05_compute_readback" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
 <p><a href="../../README.html">路线首页</a> · <a href="../../../native/README.html">原生 Vulkan 对照</a></p>
 <h2>构建与运行</h2>
 <pre><code>cmake --preset vulkan-nvpro
@@ -6,7 +12,7 @@ cmake --build --preset vulkan-nvpro-debug --target nv05_compute_readback --paral
 .\Vulkan\nvpro\build\bin\Debug\nv05_compute_readback.exe</code></pre>
 <p>以上命令从仓库根目录执行，也可使用本页“运行本课”。预期：无窗口，在 context 队列完成 256 项计算并验证。</p>
 <h2>代码阅读</h2>
-<p>先读 <a href="main.cpp">main.cpp</a>，再读路线根目录 common/nvapp_course.hpp 的 NvLesson/nvproMain。框架实现位于 external/nvpro_core2；其固定 commit 和许可证见路线 README。共享底层实现位于 Vulkan/common/scene_vk.hpp，公共数学/几何位于 shared/scene.hpp。</p>
+<p>先读 <a data-course-target="nv05_compute_readback" href="main.cpp">main.cpp</a>，再读路线根目录 common/nvapp_course.hpp 的 NvLesson/nvproMain。框架实现位于 external/nvpro_core2；其固定 commit 和许可证见路线 README。共享底层实现位于 Vulkan/common/scene_vk.hpp，公共数学/几何位于 shared/scene.hpp。</p>
 <p>在 nvpro 管理的 device/queue 上调用与原生课程相同的 computeSquares。这样可逐项验证 framework context 没有改变 shader binding、dispatch 数量和 host 可见性规则。当前保留原生 SSBO/descriptor/pipeline 代码，以便清楚比较上下文封装前后的边界；不是把一段 CPU 运算包装成框架 compute。</p>
 <h2>动手练习</h2>
 <p>把存储/读回缓冲改为 VMA mapped buffer，保留 flush/invalidate 和 fence 正确性。</p>
@@ -17,45 +23,61 @@ cmake --build --preset vulkan-nvpro-debug --target nv05_compute_readback --paral
 <p>此课没有常规视口循环，Context 提供设备/队列，复用 computeSquares 完成 GPU 计算和逐项检查。共享算法让你单独观察框架初始化差异。</p>
 <p>配套精讲：<a href="../../../../docs/compare/10_compute_readback.html">三 API 对照 · 计算与读回</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../../common/scene_vk.hpp#L466">Vulkan/common/scene_vk.hpp</a>，第 466—495 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>inline void computeSquares(const VkContextRef&amp; c, const std::filesystem::path&amp; shaders) {
-    VkBufferResource storage;
-    storage.init(c, 256 * 4, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    VkDescriptorSetLayoutBinding binding{
-        0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
-    VkDescriptorSetLayoutCreateInfo li{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    li.bindingCount = 1;
-    li.pBindings = &amp;binding;
-    VkDescriptorSetLayout layout;
-    vkCheck(vkCreateDescriptorSetLayout(c.device, &amp;li, nullptr, &amp;layout));
-    VkPipelineLayoutCreateInfo pl{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    pl.setLayoutCount = 1;
-    pl.pSetLayouts = &amp;layout;
-    VkPipelineLayout pipelineLayout;
-    vkCheck(vkCreatePipelineLayout(c.device, &amp;pl, nullptr, &amp;pipelineLayout));
-    VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1};
-    VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    pool.maxSets = 1;
-    pool.poolSizeCount = 1;
-    pool.pPoolSizes = &amp;size;
-    VkDescriptorPool descriptorPool;
-    vkCheck(vkCreateDescriptorPool(c.device, &amp;pool, nullptr, &amp;descriptorPool));
-    VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    ai.descriptorPool = descriptorPool;
-    ai.descriptorSetCount = 1;
-    ai.pSetLayouts = &amp;layout;
-    VkDescriptorSet set;
-    vkCheck(vkAllocateDescriptorSets(c.device, &amp;ai, &amp;set));
-    VkDescriptorBufferInfo bi{storage.buffer, 0, 256 * 4};
-    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};</code></pre>
+<p>来自 <a data-course-target="nv05_compute_readback" href="main.cpp#L5">Vulkan/nvpro/lessons/nv05_compute_readback/main.cpp</a>，第 5—50 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    bool smoke = false;
+    for (int i = 1; i &lt; argc; ++i)
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+    // 课程编号与公共场景模式分别管理：第 4 课看纹理上传，第 6 课看 PBR。
+    int mode = ((5));
+    nvShaders = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME / &quot;shaders&quot;;
+    NvContextOwner owner;
+    auto&amp; context = owner.context;
+    nvValidationErrors = 0;
+    nvvk::ContextInitInfo setup{};
+    setup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+    setup.queues = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT};
+    setup.enableValidationLayers = true;
+    setup.verbose = false;
+    setup.applicationName = &quot;nvpro_core2 Course&quot;;
+    vkCheck(context.init(setup));
+    VkDebugUtilsMessengerCreateInfoEXT debug{
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debug.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debug.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debug.pfnUserCallback = nvValidation;
+    vkCheck(
+        vkCreateDebugUtilsMessengerEXT(context.getInstance(), &amp;debug, nullptr, &amp;owner.messenger));
+    {
+        auto q = context.getQueueInfo(0);
+        VkContextRef c{context.getInstance(),
+                       context.getPhysicalDevice(),
+                       context.getDevice(),
+                       q.queue,
+                       q.familyIndex};
+        {
+            computeSquares(c, nvShaders);
+        }
+    }
+    std::cout &lt;&lt; &quot;Validation errors: &quot; &lt;&lt; nvValidationErrors &lt;&lt; &quot;\n&quot;;
+    return nvValidationErrors ? 1 : 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
 <tr><td>OpenGL</td><td>基线外：当前 OpenGL 3.3 路线没有 compute 实现；粒子实例化不能作为 compute 对照。</td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../native/lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="README.html">nv05_compute_readback</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="../../../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk08_compute_readback" href="../../../native/lessons/vk08_compute_readback/README.html">vk08_compute_readback</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv05_compute_readback" href="README.html">nv05_compute_readback</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx08_compute_uav" href="../../../../DirectX12/lessons/dx08_compute_uav/README.html">dx08_compute_uav</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>没有弹窗却退出零，如何证明真的用了 GPU？</p>

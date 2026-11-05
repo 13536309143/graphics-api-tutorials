@@ -1,0 +1,5 @@
+{
+  "target": "05_texture",
+  "api": "gl",
+  "independent": true
+}

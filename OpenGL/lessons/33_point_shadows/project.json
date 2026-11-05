@@ -1,0 +1,5 @@
+{
+  "target": "33_point_shadows",
+  "api": "gl",
+  "independent": true
+}

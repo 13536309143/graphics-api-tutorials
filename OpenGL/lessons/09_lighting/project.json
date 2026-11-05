@@ -1,0 +1,5 @@
+{
+  "target": "09_lighting",
+  "api": "gl",
+  "independent": true
+}

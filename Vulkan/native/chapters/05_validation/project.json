@@ -1,0 +1,7 @@
+{
+  "target": "vk05_ch_validation",
+  "api": "vk",
+  "experiment": 38,
+  "chapter": "05_validation",
+  "independent": true
+}

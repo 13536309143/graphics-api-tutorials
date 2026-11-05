@@ -1,0 +1,7 @@
+{
+  "target": "vk37_ch_texture_binding",
+  "api": "vk",
+  "experiment": 6,
+  "chapter": "37_texture_binding",
+  "independent": true
+}

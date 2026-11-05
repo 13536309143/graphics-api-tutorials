@@ -2,6 +2,12 @@
 
 [54 课目录](../../COURSE.md)
 
+## 本课独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本课着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+本目录包含独立课程源码，关键位置有中文注释。单独复制整个文件夹后可用 `cmake -S . -B build -A x64` 配置、`cmake --build build --config Debug` 构建；不需要其他章节源码。
+
 ## 目的与实际执行
 
 UPLOAD 固定 GENERIC_READ，DEFAULT 先 COPY_DEST，完成第一份 copy 后转 COPY_SOURCE，READBACK 固定 COPY_DEST。不能因为都叫 BufferRegion 就省掉资源状态；临时 upload 在 fence 前保持存活。
@@ -10,7 +16,7 @@ GetCopyableFootprints 返回 Offset、RowPitch 和各行信息，逐行填充后
 
 legacy transition barrier 表达 COPY_DEST、UAV、shader resource 等用途转换。compute mip 每级有自己的 subresource state；UAV 写后下级采样的依赖由对应转换建立。跨队列还需 fence Signal/Wait。
 
-本程序有独立实验选择与验证路径，公共实现集中在 advanced_labs.cpp。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
+本程序的 C++、辅助实现、着色器和构建脚本均位于本目录，关键步骤含中文注释。设备/API 检查、数值 compute 与图形渲染采用不同证据；不是每个程序都会弹出窗口。
 
 ## 构建和运行
 
@@ -28,53 +34,26 @@ cmake --build --preset dx12-debug --target dx13_staging_copy --parallel 4
 
 ### 本课的真实源码切片
 
-来自 [DirectX12/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L148)，第 148—191 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
+来自 [DirectX12/lessons/dx13_staging_copy/main.cpp](main.cpp#L53)，第 53—69 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。
 
 ```cpp
-void stagingCopy(DxDevice& c) {
-    std::vector<uint32_t> original(257);
-    for (uint32_t i = 0; i < 257; ++i)
-        original[i] = i * 17 + 9;
-    auto upload = c.buffer(257 * 4, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-    auto gpu = c.buffer(257 * 4, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST);
-    auto readback = c.buffer(257 * 4, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    writeBuffer(upload.Get(), original.data(), original.size() * 4);
-    c.begin();
-    c.cmd->CopyBufferRegion(gpu.Get(), 0, upload.Get(), 0, 257 * 4);
-    auto b =
-        transition(gpu.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    c.cmd->ResourceBarrier(1, &b);
-    c.cmd->CopyBufferRegion(readback.Get(), 0, gpu.Get(), 0, 257 * 4);
-    c.submit();
-    require(readBuffer(readback.Get(), 257) == original, "DEFAULT staging-copy result mismatch");
-    std::cout << "Verified 257 DEFAULT round-trip words\n";
-}
-// 两组 allocator/list 与可变资源交替提交；等待的是本槽上次使用，不是每次提交后立即全局等待。
-void frameRing(DxDevice& c, const LabOptions& options) {
-    ComputeKernel kernels[2] = {ComputeKernel(c, options), ComputeKernel(c, options)};
-    ComPtr<ID3D12CommandAllocator> allocators[2];
-    ComPtr<ID3D12GraphicsCommandList> commands[2];
-    UINT64 completed[2]{};
-    int previous[2] = {-1, -1};
-    for (uint32_t i = 0; i < 2; ++i) {
-        dxCheck(c.device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                                 IID_PPV_ARGS(&allocators[i])));
-        dxCheck(c.device->CreateCommandList(0,
-                                            D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                            allocators[i].Get(),
-                                            nullptr,
-                                            IID_PPV_ARGS(&commands[i])));
-        dxCheck(commands[i]->Close());
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 13);
+    DxDevice c(options.warp);
+    {
+        stagingCopy(c);
     }
-    for (uint32_t frame = 0; frame < 8; ++frame) {
-        uint32_t slot = frame % 2;
-        waitValue(c, completed[slot]);
-        if (previous[slot] >= 0) {
-            auto result = readBuffer(kernels[slot].readback.Get(), 257);
-            for (uint32_t i = 0; i < 257; ++i)
-                require(result[i] == i * 3 + uint32_t(previous[slot]),
-                        "In-flight slot overwritten");
-        }
+    c.checkMessages();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
 ### 同主题跨 API 导航

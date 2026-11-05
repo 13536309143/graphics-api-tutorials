@@ -1,0 +1,7 @@
+{
+  "target": "vk06_texture_descriptor",
+  "api": "vk",
+  "experiment": 6,
+  "chapter": null,
+  "independent": true
+}

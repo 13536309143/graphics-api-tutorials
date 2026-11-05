@@ -12,12 +12,12 @@ ctest --preset vulkan-nvpro-debug
 <p>只开启 nvutils/nvgui/nvapp/nvvk，未强制安装 Slang、CUDA、Aftermath 或光追扩展。自定义 shader 使用 GLSL→SPIR-V，框架内部必要的预编译 shader 由上游提供。项目包含上游许可证，应用元素结构参考了 NVIDIA project_template，见根 NOTICE。</p>
 <div class="table-scroll"><table>
 <tr><td>程序</td><td>课程</td></tr>
-<tr><td>nv01_context</td><td><a href="lessons/nv01_context/README.html">Context 与显式资源所有权</a></td></tr>
-<tr><td>nv02_application</td><td><a href="lessons/nv02_application/README.html">nvapp Application 生命周期</a></td></tr>
-<tr><td>nv03_triangle</td><td><a href="lessons/nv03_triangle/README.html">动态渲染与共享场景</a></td></tr>
-<tr><td>nv04_vma_staging_texture</td><td><a href="lessons/nv04_vma_staging_texture/README.html">VMA、Staging 与采样纹理</a></td></tr>
-<tr><td>nv05_compute_readback</td><td><a href="lessons/nv05_compute_readback/README.html">Compute 与读回验证</a></td></tr>
-<tr><td>nv06_pbr_viewport</td><td><a href="lessons/nv06_pbr_viewport/README.html">PBR 视口与 UI 参数</a></td></tr>
+<tr><td>nv01_context</td><td><a data-course-target="nv01_context" href="lessons/nv01_context/README.html">Context 与显式资源所有权</a></td></tr>
+<tr><td>nv02_application</td><td><a data-course-target="nv02_application" href="lessons/nv02_application/README.html">nvapp Application 生命周期</a></td></tr>
+<tr><td>nv03_triangle</td><td><a data-course-target="nv03_triangle" href="lessons/nv03_triangle/README.html">动态渲染与共享场景</a></td></tr>
+<tr><td>nv04_vma_staging_texture</td><td><a data-course-target="nv04_vma_staging_texture" href="lessons/nv04_vma_staging_texture/README.html">VMA、Staging 与采样纹理</a></td></tr>
+<tr><td>nv05_compute_readback</td><td><a data-course-target="nv05_compute_readback" href="lessons/nv05_compute_readback/README.html">Compute 与读回验证</a></td></tr>
+<tr><td>nv06_pbr_viewport</td><td><a data-course-target="nv06_pbr_viewport" href="lessons/nv06_pbr_viewport/README.html">PBR 视口与 UI 参数</a></td></tr>
 </table></div>
 <h2>生命周期和调试</h2>
 <p>Context→Application→Element attach→resize/UI/render→detach→Application deinit→Context deinit。nvvk 对象通常要求显式 deinit，不能将它当成自动 RAII。Settings/Viewports 是 ImGui UI；普通窗口 Esc 退出。</p>

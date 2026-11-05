@@ -1,0 +1,7 @@
+{
+  "target": "nv05_compute_readback",
+  "api": "nv",
+  "experiment": 5,
+  "chapter": null,
+  "independent": true
+}

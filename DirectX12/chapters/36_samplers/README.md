@@ -34,6 +34,18 @@ sampler 指定 addressMode、min/magFilter、mipmapMode 和 maxLod；组合 desc
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,35 @@ sampler 指定 addressMode、min/magFilter、mipmapMode 和 maxLod；组合 desc
 
 ```powershell
 cmake --preset dx12
-cmake --build --preset dx12-debug --target dx52_sampler_addressing --parallel 4
-.\DirectX12\build\bin\Debug\dx52_sampler_addressing.exe
-ctest --preset dx12-debug -R "^dx52_sampler_addressing$" --output-on-failure
+cmake --build --preset dx12-debug --target dx36_ch_samplers --parallel 4
+.\DirectX12\build\bin\Debug\dx36_ch_samplers.exe
+ctest --preset dx12-debug -R "^dx36_ch_samplers$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [DirectX12/common/dx12_course.hpp](../../common/dx12_course.hpp#L354)，第 354—397 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [DirectX12/chapters/36_samplers/main.cpp](main.cpp#L307)，第 307—320 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-        range.NumDescriptors = 1;
-        range.BaseShaderRegister = 0;
-        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        params[2].DescriptorTable = {1, &range};
-        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_STATIC_SAMPLER_DESC sampler{};
-        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW =
-            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        sampler.MaxLOD = D3D12_FLOAT32_MAX;
-        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_ROOT_SIGNATURE_DESC root{};
-        root.NumParameters = 3;
-        root.pParameters = params;
-        root.NumStaticSamplers = 1;
-        root.pStaticSamplers = &sampler;
-        root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-        signature = rootSignature(c, root);
-        auto vs = compileHlsl(mode == 3 ? "TriangleMain" : "VertexMain", "vs_5_1"),
-             ps = compileHlsl("PixelMain", "ps_5_1");
-        D3D12_INPUT_ELEMENT_DESC elements[] = {{"POSITION",
-                                                0,
-                                                DXGI_FORMAT_R32G32B32_FLOAT,
-                                                0,
-                                                0,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                                                0},
-                                               {"NORMAL",
-                                                0,
-                                                DXGI_FORMAT_R32G32B32_FLOAT,
-                                                0,
-                                                12,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                                                0},
-                                               {"TEXCOORD",
-                                                0,
-                                                DXGI_FORMAT_R32G32_FLOAT,
-                                                0,
-                                                24,
-                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                                                0}};
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC pso{};
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 52);
+    {
+        return graphicsLab(argc, argv, options);
+    }
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +117,4 @@ clamp 将越界坐标限制到边缘 texel，repeat 周期折回。两者都读�
 
 ## 固定输入的实际 GPU 读回
 
-![dx52_sampler_addressing](../../../docs/previews/dx52_sampler_addressing.png)
+![dx36_ch_samplers](../../../docs/previews/dx52_sampler_addressing.png)

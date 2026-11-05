@@ -20,16 +20,14 @@
       "error": "把所有初始化都理解成“创建窗口”，会使设备失败、目标失败和管线失败难以区分。先标注责任再看函数名。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "capabilities",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/01_architecture/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "capabilities",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/01_architecture/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -73,16 +71,14 @@
       "error": "链接缺库应查 CMake target 和架构；shader 缺文件查复制与路径；设备版本不足查驱动/能力。不要用复制任意 DLL 同时处理三类故障。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void inspection",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/02_environment/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void inspection",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/02_environment/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -126,16 +122,14 @@
       "error": "调试器里 C++ 指针不为空不能证明 GPU 句柄仍有效；某个驱动偶尔未崩溃也不能证明回收顺序合法。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void stagingCopy",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/03_lifetime/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void stagingCopy",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/03_lifetime/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -178,16 +172,14 @@
       "error": "扩展名拼写正确不代表当前实现支持；实例与设备扩展放错创建位置也不会因为同为字符串就生效。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void inspection",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/04_instance_factory/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void inspection",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/04_instance_factory/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -231,16 +223,14 @@
       "error": "先解决第一条根因。一个无效对象导致的后续数十条报错，通常不需要同时修改数十处代码。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void inspection",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/05_validation/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void inspection",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/05_validation/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -283,16 +273,14 @@
       "error": "能力查询失败时应报告具体条件，不能把“不支持”直接解释成文件或 shader 语法错误。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "capabilities",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/06_physical_device/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "capabilities",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/06_physical_device/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -335,16 +323,14 @@
       "error": "把 queue index 与 queue family index 混淆，会使 command pool 与提交队列不匹配。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "vkGetPhysicalDeviceQueueFamilyProperties",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/07_queues/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "GetDesc();",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/07_queues/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -387,16 +373,14 @@
       "error": "复用一段过期 pNext 指针或忘记 sType，会在逻辑上尚未进入绘制之前就破坏调用参数。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/native_app.hpp",
-          "anchor": "NativeDevice(GLFWwindow",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/08_logical_device/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "explicit DxDevice",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/08_logical_device/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -439,16 +423,14 @@
       "error": "GLFW 默认创建 OpenGL context。显式 API 课程要设置 GLFW_NO_API，避免把两套上下文机制混在一起。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void surfaceInspection",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/09_surface/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void surfaceInspection",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/09_surface/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -492,16 +474,14 @@
       "error": "窗口最小化导致零尺寸时不要创建零大小投影或附件；先等待可用 framebuffer 尺寸再继续。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/native_app.hpp",
-          "anchor": "void recreate()",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/10_swapchain/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "DxWindow(GLFWwindow",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/10_swapchain/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -544,16 +524,14 @@
       "error": "把 sampler 的 LOD 当作资源绝对 mip 号，会在 view 已偏移 base mip 时再次偏移；先明确相对范围。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void attach(",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/11_image_views/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void attach(",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/11_image_views/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -596,16 +574,14 @@
       "error": "动态渲染不是“动态创建所有管线状态”；附件格式和多样本配置仍须与管线兼容。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "VkGraphicsPipelineCreateInfo gp",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/12_pipeline_overview/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "D3D12_GRAPHICS_PIPELINE_STATE_DESC pso",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/12_pipeline_overview/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -648,16 +624,14 @@
       "error": "修改 exe 旁的副本会被下次 build 覆盖；应修改源目录，再检查复制与编译时间。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "Wrong SPIR-V magic",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/13_shader_modules/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "D3DReflect",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/13_shader_modules/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -704,16 +678,14 @@
       "error": "只改窗口大小未更新 viewport；或把线性代数的左右手约定直接当成 front-face 设置，都会造成误判。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "attachment.colorWriteMask",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/14_fixed_function/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "RenderTargetWriteMask",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/14_fixed_function/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -762,16 +734,14 @@
       "error": "把 storeOp=DONT_CARE 的结果当成可靠输入，或把离屏 copy 当成可执行任意 shader 的后处理，会混淆契约。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/native_app.hpp",
-          "anchor": "if (mode == 10)",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/15_rendering_scope/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "if (mode == 10)",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/15_rendering_scope/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -814,16 +784,14 @@
       "error": "把 16 字节误写为 16 个 DWORD，或用错阶段范围，会破坏接口；不要通过扩大所有范围掩盖错误。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void record(",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/16_pipeline_interface/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void record(",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/16_pipeline_interface/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -866,16 +834,14 @@
       "error": "只调整颜色附件而保留旧尺寸深度，或管线仍为单样本，都会使目标组合不一致。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/native_app.hpp",
-          "anchor": "VkRenderingAttachmentInfo color",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/17_targets/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "ResolveSubresource",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/17_targets/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -918,16 +884,14 @@
       "error": "以固定 sleep 替代 fence 并不能证明安全，换设备、驱动或调度后可能立即暴露竞态。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void commandReuse",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/18_command_storage/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "allocator/list generations",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/18_command_storage/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -970,16 +934,14 @@
       "error": "漏掉 End/Close 或重用仍在执行的命令存储，应优先查看验证信息，而不是调整绘制几何。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "int nativeLabMain",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/19_record_submit/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "int dxLabMain",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/19_record_submit/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1023,16 +985,14 @@
       "error": "把 CPU fence 等待当成 present 已消费 binary semaphore 的通用证明，会使信号量复用条件错误。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "Initial fence not signaled",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/20_present_sync/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "monotonic fence reuse",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/20_present_sync/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1076,16 +1036,14 @@
       "error": "只删除 wait 而保持单份 UBO/allocator，可能偶发闪烁或验证错误；延迟出现不代表问题只在最后一帧。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void frameRing",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/21_frames_in_flight/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void frameRing",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/21_frames_in_flight/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1129,16 +1087,14 @@
       "error": "旧 descriptor/image view 仍指向被释放附件，或新尺寸深度与颜色不同，都是比投影参数更早的问题。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/native_app.hpp",
-          "anchor": "void recreate()",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/22_swapchain_recreation/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "DxWindow(GLFWwindow",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/22_swapchain_recreation/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1181,16 +1137,14 @@
       "error": "导入模型扩展 joints/weights 后仍套用 32 字节布局，或把整数 joint 当浮点 attribute，会产生完全错误的输入。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "VkVertexInputBindingDescription bind",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/23_vertex_input/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "D3D12_INPUT_ELEMENT_DESC elements",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/23_vertex_input/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1233,16 +1187,14 @@
       "error": "上传成功但缓冲绑定到错误 slot，仍会读到错误数据；先看实际 draw 的绑定而不只看创建调用。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "struct VkBufferResource",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/24_vertex_buffer/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "DxScene(DxDevice",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/24_vertex_buffer/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1286,16 +1238,14 @@
       "error": "先分配“看起来够大”的字节再忽略 memoryTypeBits，或把 GPU 可写默认纹理直接 Map，都是层次混淆。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "vkGetBufferMemoryRequirements",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/25_memory/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "GetResourceAllocationInfo",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/25_memory/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1338,16 +1288,14 @@
       "error": "上传后立刻释放/覆盖 upload，或用错误的 consumer access/stage，可能在轻负载下偶然正确。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void stagingCopy",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/26_staging/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void stagingCopy",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/26_staging/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1390,16 +1338,14 @@
       "error": "CPU 存 uint32 却绑定 uint16，或把 count 传成字节数，会导致错连、越界或部分几何消失。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "VkDescriptorSetLayoutBinding bindings",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/27_indices/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "D3D12_ROOT_PARAMETER params",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/27_indices/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1443,16 +1389,14 @@
       "error": "用 vec3/float3 扩展结构却不复查 padding，或认为 transpose 能同时修复存储与数学语义，会造成隐蔽错误。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "Frame=64",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/28_uniform_layout/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "Frame=64",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/28_uniform_layout/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1496,16 +1440,14 @@
       "error": "把 binding location、root parameter、HLSL register 和 heap offset 当成同一个整数系统，会产生看似相近却错误的绑定。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "VkDescriptorSetLayoutBinding bindings",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/29_descriptor_layout/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "D3D12_ROOT_PARAMETER params",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/29_descriptor_layout/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1548,16 +1490,14 @@
       "error": "把 descriptor update 当成数据 copy，或在旧提交仍读取同一描述符槽时覆盖它，会破坏接口与时间契约。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "Updated descriptor points",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/30_descriptor_instances/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "Root UAV replacement",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/30_descriptor_instances/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1600,16 +1540,14 @@
       "error": "range=WHOLE_SIZE 后再添加动态偏移可能越过缓冲末端。对齐正确也不代表范围自动合法。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void record(",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/31_dynamic_offsets/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void record(",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/31_dynamic_offsets/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1652,16 +1590,14 @@
       "error": "字节与 DWORD 单位混淆、更新到错误 root parameter，或只更新结构前半段却读取后半段，都会留下错误数据。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void record(",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/32_per_draw_constants/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void record(",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/32_per_draw_constants/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1704,16 +1640,14 @@
       "error": "读取失败先看路径与解码；周期错行先看通道/row pitch；整体明暗再看 sRGB，不用同一个“翻转图片”操作解决所有问题。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "struct GpuTexture",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/33_image_decode/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "struct GpuTexture",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/33_image_decode/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1757,16 +1691,14 @@
       "error": "只分配有效像素字节数却按对齐 row pitch 写，会越界；分配足够但使用错误 pitch，也会造成图像错行。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "struct GpuTexture",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/34_image_upload/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "struct GpuTexture",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/34_image_upload/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1810,16 +1742,14 @@
       "error": "coherent、Map 成功、descriptor 中的 layout 或 CPU 提交顺序，任何一个都不能独自证明完整 GPU 写后读关系。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void stagingCopy",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/35_image_dependencies/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void stagingCopy",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/35_image_dependencies/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1862,16 +1792,14 @@
       "error": "只有 UV 在 0..1 时，切换寻址可能几乎看不出变化；应选择能激活该状态差异的受控输入。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "addressModeU",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/36_samplers/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "sampler.AddressU",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/36_samplers/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1914,16 +1842,14 @@
       "error": "只查 C++ 成员句柄而不查实际 draw 的 GPU 绑定，会错过被后续命令覆盖的 table/set。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "auto data = checker",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/37_texture_binding/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/37_texture_binding/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -1967,16 +1893,14 @@
       "error": "把所有 PNG 都当颜色、对 HDR 中间结果提前 tone-map，或最终重复编码，会让跨 API 亮度比较失去意义。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "struct GpuTexture",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/38_color_space/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "struct GpuTexture",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/38_color_space/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2019,16 +1943,14 @@
       "error": "颜色支持 4x、深度仅单样本，却仍创建一个 MSAA pipeline，是目标一致性问题而不是光照公式问题。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "depth format=",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/39_depth_formats/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "depth format=",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/39_depth_formats/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2071,16 +1993,14 @@
       "error": "前一遍关闭 depth write 后未恢复，或忘记每帧清除，可能让问题随帧累积，看起来像随机闪烁。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/native_app.hpp",
-          "anchor": "VkRenderingAttachmentInfo depth",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/40_depth_test/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "pso.DepthStencilState",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/40_depth_test/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2123,16 +2043,14 @@
       "error": "只取第一个 mesh、遗漏索引 base 或使用不匹配的 stride，会使模型残缺、错连或重叠。",
       "sources": {
         "vk": {
-          "file": "shared/advanced.hpp",
-          "anchor": "inline Geometry staticAsset",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/41_obj_models/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "shared/advanced.hpp",
-          "anchor": "inline Geometry staticAsset",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/41_obj_models/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2175,16 +2093,14 @@
       "error": "重复应用 meshGlobal、忽略父变换或把 inverse bind pose 当节点当前姿态，是不同问题，先用无动画静态场景隔离。",
       "sources": {
         "vk": {
-          "file": "shared/advanced.hpp",
-          "anchor": "inline Geometry staticAsset",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/42_gltf_nodes/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "shared/advanced.hpp",
-          "anchor": "inline Geometry staticAsset",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/42_gltf_nodes/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2227,16 +2143,14 @@
       "error": "只设置 sampler 最大 LOD 却没有生成内容，或用全资源错误 before state 覆盖各级不同状态，会产生未初始化读取。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "vkCmdBlitImage",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/43_mip_generation/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/shaders/lab.hlsl",
-          "anchor": "void MipMain",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/43_mip_generation/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2280,16 +2194,14 @@
       "error": "UV 从不缩小或 sampler 仍限制在 level 0 时，增加 mip 不一定有可见效果；实验输入要能触发目标机制。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "VkSamplerCreateInfo si",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/44_mip_sampling/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void attach(",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/44_mip_sampling/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2332,16 +2244,14 @@
       "error": "颜色 4x、深度 1x、PSO/pipeline 1x 的任一混搭都不满足目标契约，先修正一致性再讨论视觉效果。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/native_app.hpp",
-          "anchor": "VkRenderingAttachmentInfo color",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/45_msaa/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "ResolveSubresource",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/45_msaa/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2384,16 +2294,14 @@
       "error": "把 dispatch(256,1,1) 当成 256 个线程，在 local size=64 时实际发出 16384 个调用，若无边界检查会越界。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "inline void computeSquares",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/46_compute/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "inline void dxCompute",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/46_compute/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2436,16 +2344,14 @@
       "error": "首元素正确或进程未崩溃不证明范围正确。保留全量参考函数和错误返回值，让脚本能识别失败。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void record(",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/47_storage_tail/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void record(",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/47_storage_tail/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2488,16 +2394,14 @@
       "error": "buffer 转为可绘制用途并不意味着内存布局自动相同；vec3 填充与结构化 stride 错误会使粒子变成刺状几何。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "struct ParticleKernel",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/48_compute_graphics/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "struct ParticleKernel",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/48_compute_graphics/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2540,16 +2444,14 @@
       "error": "将组内同步误当成全 dispatch 的同步，会导致多组数据依赖错误。需要拆 dispatch 并建立全局资源依赖。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/shaders/lab.comp",
-          "anchor": "void main()",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/49_group_shared/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/shaders/lab.hlsl",
-          "anchor": "void ComputeMain",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/49_group_shared/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2592,16 +2494,14 @@
       "error": "CPU 提前 signal 一个并非真实 GPU 完成的值来“解锁”，会让后续生命周期证明失效。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void timelineCounter",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/50_timeline/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "Verified queue producer",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/50_timeline/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2644,16 +2544,14 @@
       "error": "结构字节布局、offset 对齐或 command signature stride 错误，会让 GPU 解释错误命令。先核对参数字节，再考虑 GPU-driven 调度。",
       "sources": {
         "vk": {
-          "file": "Vulkan/common/scene_vk.hpp",
-          "anchor": "vkCmdDrawIndirect",
-          "count": 44,
-          "lead": 8
+          "file": "Vulkan/native/chapters/51_indirect/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/dx12_course.hpp",
-          "anchor": "ExecuteIndirect",
-          "count": 44,
-          "lead": 8
+          "file": "DirectX12/chapters/51_indirect/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2697,16 +2595,14 @@
       "error": "把现有截图当逐像素回归或把轨道相机称为完整自由相机，都会夸大当前实现。实验输入和交互范围要写清楚。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "scene.frameProvider",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/52_camera_material/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "scene.frameProvider",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/52_camera_material/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2750,16 +2646,14 @@
       "error": "把 Debug smoke 的总秒数、垂直同步限制的 FPS 或一次最小值当成 API 性能排名，均缺少可比前提。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "void timestamps",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/53_measure_cache/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "void timestamps",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/53_measure_cache/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -2803,16 +2697,14 @@
       "error": "最终图正确不证明所有中间资源、同步和重建组合都正确。保留自动数值检查、图像读回、人工抓帧与功能矩阵四份证据。",
       "sources": {
         "vk": {
-          "file": "Vulkan/native/common/advanced_labs.cpp",
-          "anchor": "int graphicsLab",
-          "count": 44,
-          "lead": 0
+          "file": "Vulkan/native/chapters/54_capstone/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         },
         "dx": {
-          "file": "DirectX12/common/advanced_labs.cpp",
-          "anchor": "int graphicsLab",
-          "count": 44,
-          "lead": 0
+          "file": "DirectX12/chapters/54_capstone/main.cpp",
+          "anchor": "int runChapter",
+          "count": 56
         }
       },
       "contracts": [
@@ -3490,758 +3382,650 @@
   "sources": {
     "1": {
       "vk": {
-        "file": "Vulkan/native/common/native_app.hpp",
-        "anchor": "NativeDevice(GLFWwindow",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk01_instance_device/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "explicit DxDevice",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx01_device/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "2": {
       "vk": {
-        "file": "Vulkan/native/common/native_app.hpp",
-        "anchor": "void recreate()",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk02_swapchain/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "DxWindow(GLFWwindow",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx02_swapchain/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "3": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "VkGraphicsPipelineCreateInfo gp",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk03_triangle/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "D3D12_GRAPHICS_PIPELINE_STATE_DESC pso",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx03_triangle/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "4": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "struct VkBufferResource",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk04_vertex_buffer/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "DxScene(DxDevice",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx04_vertex_buffer/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "5": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "VkDescriptorSetLayoutBinding bindings",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk05_indexed_uniform/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "D3D12_ROOT_PARAMETER params",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx05_indexed_cbv/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "6": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "auto data = checker",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk06_texture_descriptor/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx06_texture_srv/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "7": {
       "vk": {
-        "file": "Vulkan/native/common/native_app.hpp",
-        "anchor": "VkRenderingAttachmentInfo depth",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk07_depth_instancing/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "pso.DepthStencilState",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx07_depth_instancing/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "8": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "inline void computeSquares",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk08_compute_readback/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "inline void dxCompute",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx08_compute_uav/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "9": {
       "vk": {
-        "file": "Vulkan/common/shaders/scene.frag",
-        "anchor": "vec3 pbr",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk09_pbr/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/shaders/scene.hlsl",
-        "anchor": "float3 PBR",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx09_pbr/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "10": {
       "vk": {
-        "file": "Vulkan/native/common/native_app.hpp",
-        "anchor": "if (mode == 10)",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk10_offscreen/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "if (mode == 10)",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx10_offscreen/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "11": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "capabilities",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk11_capabilities/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "capabilities",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx11_capabilities/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "12": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "int nativeLabMain",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk12_queue_submit/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "int dxLabMain",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx12_queue_submit/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "13": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void stagingCopy",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk13_staging_copy/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void stagingCopy",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx13_staging_copy/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "14": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "struct ComputeKernel",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk14_constant_alignment/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "struct ComputeKernel",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx14_constant_alignment/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "15": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void record(",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk15_dynamic_binding/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void record(",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx15_dynamic_binding/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "16": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void record(",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk16_push_constants/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void record(",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx16_push_constants/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "17": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "struct GpuTexture",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk17_image_file/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "struct GpuTexture",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx17_image_file/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "18": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "vkCmdBlitImage",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk18_mip_chain/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/shaders/lab.hlsl",
-        "anchor": "void MipMain",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx18_mip_chain/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "19": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "VkSamplerCreateInfo si",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk19_texture_lod/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void attach(",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx19_texture_lod/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "20": {
       "vk": {
-        "file": "Vulkan/native/common/native_app.hpp",
-        "anchor": "VkRenderingAttachmentInfo color",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk20_msaa_resolve/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "ResolveSubresource",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx20_msaa_resolve/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "21": {
       "vk": {
-        "file": "shared/advanced.hpp",
-        "anchor": "inline Geometry staticAsset",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk21_obj_model/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "shared/advanced.hpp",
-        "anchor": "inline Geometry staticAsset",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx21_obj_model/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "22": {
       "vk": {
-        "file": "shared/advanced.hpp",
-        "anchor": "inline Geometry staticAsset",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk22_gltf_scene/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "shared/advanced.hpp",
-        "anchor": "inline Geometry staticAsset",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx22_gltf_scene/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "23": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "scene.frameProvider",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk23_orbit_camera/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "scene.frameProvider",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx23_orbit_camera/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "24": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void frameRing",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk24_frame_ring/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void frameRing",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx24_frame_ring/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "25": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void timestamps",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk25_timestamps/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void timestamps",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx25_timestamps/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "26": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void timelineCounter",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk26_timeline_counter/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "Verified queue producer",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx26_timeline_counter/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "27": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "vkCmdDrawIndirect",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk27_indirect_draw/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "ExecuteIndirect",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx27_indirect_draw/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "28": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void record(",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk28_compute_tail/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void record(",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx28_compute_tail/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "29": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "struct ParticleKernel",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk29_gpu_particles/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "struct ParticleKernel",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx29_gpu_particles/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "30": {
       "vk": {
-        "file": "Vulkan/common/shaders/lab.comp",
-        "anchor": "void main()",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk30_shared_reduce/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/shaders/lab.hlsl",
-        "anchor": "void ComputeMain",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx30_shared_reduce/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "31": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void stagingCopy",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk31_retire_resources/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void stagingCopy",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx31_retire_resources/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "32": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "VkPipelineCacheCreateInfo info",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk32_pipeline_cache/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "Verified cached PSO",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx32_pipeline_cache/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "33": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "vkCmdBeginDebugUtilsLabelEXT",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk33_debug_labels/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "SetName(L\"Course Graphics Queue\"",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx33_debug_labels/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "34": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "halfScissor",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk34_dynamic_scissor/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "RSSetScissorRects",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx34_dynamic_scissor/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "35": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "struct GpuTexture",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk35_srgb_view/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "struct GpuTexture",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx35_srgb_view/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "36": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "int graphicsLab",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk36_integration/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "int graphicsLab",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx36_integration/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "37": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void inspection",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk37_instance_extensions/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void inspection",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx37_instance_extensions/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "38": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void inspection",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk38_diagnostic_delivery/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void inspection",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx38_diagnostic_delivery/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "39": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "vkGetPhysicalDeviceQueueFamilyProperties",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk39_queue_properties/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "GetDesc();",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx39_queue_properties/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "40": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void surfaceInspection",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk40_surface_support/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void surfaceInspection",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx40_surface_support/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "41": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void attach(",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk41_subresource_view/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "void attach(",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx41_subresource_view/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "42": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "Wrong SPIR-V magic",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk42_shader_inspection/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "D3DReflect",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx42_shader_inspection/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "43": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "attachment.colorWriteMask",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk43_color_write_mask/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "RenderTargetWriteMask",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx43_color_write_mask/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "44": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "void commandReuse",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk44_command_reuse/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "allocator/list generations",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx44_command_reuse/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "45": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "Updated descriptor points",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk45_descriptor_update/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "Root UAV replacement",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx45_descriptor_update/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "46": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "depth format=",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk46_depth_formats/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "depth format=",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx46_depth_formats/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "47": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "vkGetBufferMemoryRequirements",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk47_allocation_requirements/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "GetResourceAllocationInfo",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx47_allocation_requirements/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "48": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "Initial fence not signaled",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk48_fence_lifecycle/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "monotonic fence reuse",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx48_fence_lifecycle/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "49": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "VkViewport viewport",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk49_viewport_mapping/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "D3D12_VIEWPORT viewport",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx49_viewport_mapping/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "50": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "raster.cullMode",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk50_backface_culling/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "RasterizerState.CullMode",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx50_backface_culling/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "51": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "Frame=64",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk51_uniform_layout/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "Frame=64",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx51_uniform_layout/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "52": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "addressModeU",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk52_sampler_addressing/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "sampler.AddressU",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx52_sampler_addressing/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "53": {
       "vk": {
-        "file": "Vulkan/common/scene_vk.hpp",
-        "anchor": "VkVertexInputBindingDescription bind",
-        "count": 44,
-        "lead": 0
+        "file": "Vulkan/native/lessons/vk53_vertex_layout/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/dx12_course.hpp",
-        "anchor": "D3D12_INPUT_ELEMENT_DESC elements",
-        "count": 44,
-        "lead": 0
+        "file": "DirectX12/lessons/dx53_vertex_layout/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     },
     "54": {
       "vk": {
-        "file": "Vulkan/native/common/advanced_labs.cpp",
-        "anchor": "Completed resource/texture/frame-slot",
-        "count": 44,
-        "lead": 8
+        "file": "Vulkan/native/lessons/vk54_acceptance_suite/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       },
       "dx": {
-        "file": "DirectX12/common/advanced_labs.cpp",
-        "anchor": "Completed buffer/texture/frame-slot",
-        "count": 44,
-        "lead": 8
+        "file": "DirectX12/lessons/dx54_acceptance_suite/main.cpp",
+        "anchor": "int runChapter",
+        "count": 56
       }
     }
   }

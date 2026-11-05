@@ -34,6 +34,18 @@ RenderTarget 产生图像和 view，ImTexture 引用供 UI 显示的 view。重�
 
 这部分是原生 Vulkan 各课的框架对照，框架可运行入口仍为原有六课。如果本节需要新接入工作，会按正文说明；不把原生实验当作已完成的框架实现。
 
+## 本章独立工程与关键注释
+
+[main.cpp](main.cpp) · [本地辅助实现](support/) · [本章着色器](shaders/) · [CMakeLists.txt](CMakeLists.txt)
+
+完整源码就在本目录，关键步骤含中文注释。只复用 GLFW/GLM/Assimp 等第三方库，不包含或链接其他章节的课程实现。单独复制本章文件夹也可配置构建；初始化或纯计算章节不需要图形阶段。
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure
+```
+
 ## 运行与实际检查
 
 | 路线 | 实际实验 |
@@ -45,65 +57,36 @@ RenderTarget 产生图像和 view，ImTexture 引用供 UI 显示的 view。重�
 
 ```powershell
 cmake --preset vulkan-native
-cmake --build --preset vulkan-native-debug --target vk41_subresource_view --parallel 4
-.\Vulkan\native\build\bin\Debug\vk41_subresource_view.exe
-ctest --preset vulkan-native-debug -R "^vk41_subresource_view$" --output-on-failure
+cmake --build --preset vulkan-native-debug --target vk11_ch_image_views --parallel 4
+.\Vulkan\native\build\bin\Debug\vk11_ch_image_views.exe
+ctest --preset vulkan-native-debug -R "^vk11_ch_image_views$" --output-on-failure
 ```
 
 检查三个层次：创建/绑定/提交的接口约束；数据读回或目标画面；资源使用结束后的回收。诊断实验用合法信息或查询证明渠道可用，不故意保留 API 错误。图形 smoke 的像素检查与数值实验的逐项检查不同，具体实现见源码。
 
 ## 关键实现：从当前源码定位
 
-来自 [Vulkan/native/common/advanced_labs.cpp](../../common/advanced_labs.cpp#L448)，第 448—491 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
+来自 [Vulkan/native/chapters/11_image_views/main.cpp](main.cpp#L272)，第 272—286 行。下列是当前仓库的局部切片，可能在函数中间结束；完整上下文请打开文件，切片不作为单独可编译程序。
 
 ```cpp
-    void attach(SceneVk& scene, bool lastMip = false) {
-        if (lastMip) {
-            VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-            ci.image = image.image;
-            ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            ci.format = format;
-            ci.subresourceRange = {
-                VK_IMAGE_ASPECT_COLOR_BIT, uint32_t(reference.size() - 1), 1, 0, 1};
-            vkCheck(vkCreateImageView(c.device, &ci, nullptr, &selectedView));
-        }
-        VkDescriptorImageInfo info{
-            sampler, lastMip ? selectedView : image.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-        VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.dstSet = scene.descriptor;
-        write.dstBinding = 1;
-        write.descriptorCount = 1;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.pImageInfo = &info;
-        vkUpdateDescriptorSets(c.device, 1, &write, 0, nullptr);
+int runChapter(int argc, char** argv) {
+    auto options = labOptions(argc, argv, 41);
+    nativeShaders = options.directory / "shaders";
+    {
+        return graphicsLab(argc, argv, options);
     }
-    // 逐级复制到可见缓冲并核对每个 texel，避免只检查第一个级别或最终画面。
-    void verify() {
-        VkDeviceSize bytes = 0;
-        std::vector<VkDeviceSize> offsets;
-        for (const auto& p : reference) {
-            offsets.push_back(bytes);
-            bytes += p.rgba.size();
-        }
-        VkBufferResource readback;
-        readback.init(c, bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-        immediate(c, [&](VkCommandBuffer cmd) {
-            for (uint32_t i = 0; i < reference.size(); ++i) {
-                imageDependency(cmd,
-                                image.image,
-                                i,
-                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                                VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
-                                VK_PIPELINE_STAGE_2_COPY_BIT,
-                                VK_ACCESS_2_TRANSFER_READ_BIT);
-                VkBufferImageCopy copy{};
-                copy.bufferOffset = offsets[i];
-                copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, i, 0, 1};
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << '\n';
+    return 1;
+}
 ```
 
-阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。共享 helper 减少重复代码，但不会取消每课的 API 契约。
+阅读时按“前置对象 → 参数/布局 → 录制/调用 → 完成/可见性 → 释放”五步标注。辅助实现与着色器是本章自己的文件；修改不会影响其他章。
 
 ## 受控修改实验
 
@@ -135,4 +118,4 @@ view 不拥有存储。原始纹理仍有完整 mip 链，只是当前接口暴�
 
 ## 固定输入的实际 GPU 读回
 
-![vk41_subresource_view](../../../../docs/previews/vk41_subresource_view.png)
+![vk11_ch_image_views](../../../../docs/previews/vk41_subresource_view.png)

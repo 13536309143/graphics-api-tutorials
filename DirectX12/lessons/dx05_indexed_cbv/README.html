@@ -1,5 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx05_indexed_cbv · 索引、CBV 与 Root Constants</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><h1>dx05_indexed_cbv · 索引、CBV 与 Root Constants</h1>
-<p><a href="../../README.html">路线首页</a> · <a href="../dx04_vertex_buffer/README.html">上一课</a> · <a href="../dx06_texture_srv/README.html">下一课</a></p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dx05_indexed_cbv · 索引、CBV 与 Root Constants</title><style>body{margin:0;background:#101722;color:#dce5ef;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:35px auto;padding:24px}a{color:#65c8ff;overflow-wrap:anywhere}h1{line-height:1.35;color:#fff}h2{margin-top:2em;border-bottom:1px solid #354052}pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;background:#080d14;padding:20px;overflow:auto;border-radius:10px;line-height:1.6}code{overflow-wrap:anywhere;font-family:Consolas,monospace;color:#ffd17d}.table-scroll{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%}td,th{border:1px solid #354052;padding:9px}p{margin:1em 0}nav{font-size:14px;color:#a8b8c8}img{max-width:100%;border-radius:10px}li{margin:.4em 0}</style><link rel="stylesheet" href="../../../web/runner.css"><script defer src="../../../web/runner.js"></script><main><nav><a href="../../../index.html">图形 API 教程首页</a> · C++ / CMake · OpenGL / Vulkan / DirectX 12</nav><meta name="course-target" content="dx05_indexed_cbv"><h1>dx05_indexed_cbv · 索引、CBV 与 Root Constants</h1>
+<h2>本课独立工程与关键注释</h2>
+<p><a data-course-target="dx05_indexed_cbv" href="main.cpp">main.cpp</a> · <a data-course-target="dx05_indexed_cbv" href="support/">本地辅助实现</a> · <a data-course-target="dx05_indexed_cbv" href="shaders/">本课着色器</a> · <a data-course-target="dx05_indexed_cbv" href="CMakeLists.txt">CMakeLists.txt</a></p>
+<p>本目录拥有完整课程源码、资源与依赖配方。关键步骤含中文注释，不链接其他课的课程实现。可将整个目录复制到其他位置，用以下命令单独构建和检查；第三方依赖首次配置需要联网或提供缓存。</p>
+<pre><code>cmake -S . -B build -A x64
+cmake --build build --config Debug --parallel 4
+ctest --test-dir build -C Debug --output-on-failure</code></pre>
+<p><a href="../../README.html">路线首页</a> · <a data-course-target="dx04_vertex_buffer" href="../dx04_vertex_buffer/README.html">上一课</a> · <a data-course-target="dx06_texture_srv" href="../dx06_texture_srv/README.html">下一课</a></p>
 <h2>构建和运行</h2>
 <p>从仓库根目录执行，完成配置后后续只需 build：</p>
 <pre><code>cmake --preset dx12
@@ -9,7 +15,7 @@ cmake --build --preset dx12-debug --target dx05_indexed_cbv --parallel 4
 <p>预期结果：旋转立方体，前后遮挡正确。</p>
 <h2>先读哪些代码</h2>
 <p>Index Buffer / CBV / Root Constants</p>
-<p>本目录 <a href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/dx12_course.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
+<p>本目录 <a data-course-target="dx05_indexed_cbv" href="main.cpp">main.cpp</a> 选择本课的执行路径。完整 API 实现在 <code>common/dx12_course.hpp</code>（相对路线根目录），数学和网格在仓库 shared/scene.hpp。每课都是独立程序；共享代码避免把相同资源生命周期错误复制十遍，也会为后续课预先初始化部分公共状态。首次阅读只沿本课列出的调用路径展开。</p>
 <h2>原理和实现</h2>
 <p>Frame 的 CBV 地址按 256 字节对齐，实际矩阵仅 64 字节；Root Constants 20 个 DWORD 对应 80 字节 Draw。CPU 的 GLM 列主序与 HLSL column_major、mul(M,v) 保持一致。模型只有旋转/均匀缩放，因此 HLSL 中简化法线变换成立；非均匀缩放需显式逆转置。</p>
 <p>本课使用与 Vulkan 相同的几何和验证目标，比较资源绑定与同步的不同表达。CPU 创建的数据、GPU 资源和用于访问它的 view/descriptor 是不同层次；用调试层与抓帧工具分别核对接口约定和实际内容。命令异步执行，示例显式等待 fence 后才重用单份上传资源与 command allocator。</p>
@@ -29,45 +35,69 @@ cmake --build --preset dx12-debug --target dx05_indexed_cbv --parallel 4
 <p>Frame 地址通过 root CBV 提供，Draw 是 20 DWORD root constants，SRV table 在另一 root parameter。parameter 下标、register 编号与 descriptor heap offset 各自独立。</p>
 <p>配套精讲：<a href="../../../docs/compare/05_binding_constants.html">三 API 对照 · 常量与资源绑定</a>。先读概念与参数选择，再返回本课实现核对，不必一次展开所有公共类。</p>
 <h3>本课的真实源码切片</h3>
-<p>来自 <a href="../../common/dx12_course.hpp#L345">DirectX12/common/dx12_course.hpp</a>，第 345—374 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
-<pre><code>        D3D12_ROOT_PARAMETER params[3]{};
-        params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        params[0].Descriptor.ShaderRegister = 0;
-        params[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-        params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        params[1].Constants = {1, 0, 20};
-        params[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        D3D12_DESCRIPTOR_RANGE range{};
-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        range.NumDescriptors = 1;
-        range.BaseShaderRegister = 0;
-        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        params[2].DescriptorTable = {1, &amp;range};
-        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_STATIC_SAMPLER_DESC sampler{};
-        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        sampler.AddressU = sampler.AddressV = sampler.AddressW =
-            clampSampler ? D3D12_TEXTURE_ADDRESS_MODE_CLAMP : D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        sampler.MaxLOD = D3D12_FLOAT32_MAX;
-        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        D3D12_ROOT_SIGNATURE_DESC root{};
-        root.NumParameters = 3;
-        root.pParameters = params;
-        root.NumStaticSamplers = 1;
-        root.pStaticSamplers = &amp;sampler;
-        root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-        signature = rootSignature(c, root);
-        auto vs = compileHlsl(mode == 3 ? &quot;TriangleMain&quot; : &quot;VertexMain&quot;, &quot;vs_5_1&quot;),</code></pre>
+<p>来自 <a data-course-target="dx05_indexed_cbv" href="main.cpp#L9">DirectX12/lessons/dx05_indexed_cbv/main.cpp</a>，第 9—62 行；这是现有实现的局部摘录，末尾可能处于函数中间，不是可单独编译的完整程序。</p>
+<pre><code>int runChapter(int argc, char** argv) {
+    DxRenderOptions options;
+
+    dxShaderFile = std::filesystem::absolute(argv[0]).parent_path() / COURSE_RUNTIME_NAME /
+                   &quot;shaders&quot; / &quot;scene.hlsl&quot;;
+    bool smoke = false, warp = false;
+    for (int i = 1; i &lt; argc; ++i) {
+        smoke |= std::strcmp(argv[i], &quot;--smoke&quot;) == 0;
+        warp |= std::strcmp(argv[i], &quot;--warp&quot;) == 0;
+    }
+    if (!glfwInit())
+        throw std::runtime_error(&quot;GLFW failed&quot;);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if (smoke)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    auto window = glfwCreateWindow(960, 640, &quot;DirectX 12 Course&quot;, nullptr, nullptr);
+    if (!window)
+        throw std::runtime_error(&quot;Window creation failed&quot;);
+    {
+        DxWindow app(window, 5, warp, options);
+        int frame = 0;
+        auto output = std::filesystem::path(argv[0]).parent_path() /
+                      (options.captureStem.empty() ? &quot;dx12_&quot; + std::to_string(5) + &quot;.ppm&quot;
+                                                   : options.captureStem + &quot;.ppm&quot;);
+        while (!glfwWindowShouldClose(window) &amp;&amp; (!smoke || frame &lt; 4)) {
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                break;
+            int w, h;
+            glfwGetFramebufferSize(window, &amp;w, &amp;h);
+            if (!w || !h) {
+                glfwWaitEvents();
+                continue;
+            }
+            app.resize(w, h);
+            float time = smoke ? 1.f : float(glfwGetTime());
+            if (app.scene &amp;&amp; options.beforeFrame)
+                options.beforeFrame(*app.scene, time);
+            app.render(time, smoke &amp;&amp; frame == 3 ? &amp;output : nullptr);
+            ++frame;
+        }
+    }
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
+} // namespace course
+
+int main(int argc, char** argv) try {
+    return course::runChapter(argc, argv);
+} catch (const std::exception&amp; error) {
+    std::cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}</code></pre>
 <h3>同主题跨 API 导航</h3>
 <p>以下是同主题参考；场景、功能完成度和版本基线可能不同，具体边界见对照章节。</p>
 <div class="table-scroll"><table>
 <tr><td>路线</td><td>可运行参照 / 当前范围</td></tr>
-<tr><td>OpenGL</td><td><a href="../../../OpenGL/lessons/28_ubo/README.html">28_ubo</a></td></tr>
-<tr><td>Vulkan 原生</td><td><a href="../../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
-<tr><td>Vulkan / nvpro_core2</td><td><a href="../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
-<tr><td>DirectX 12</td><td><a href="README.html">dx05_indexed_cbv</a></td></tr>
+<tr><td>OpenGL</td><td><a data-course-target="28_ubo" href="../../../OpenGL/lessons/28_ubo/README.html">28_ubo</a></td></tr>
+<tr><td>Vulkan 原生</td><td><a data-course-target="vk05_indexed_uniform" href="../../../Vulkan/native/lessons/vk05_indexed_uniform/README.html">vk05_indexed_uniform</a></td></tr>
+<tr><td>Vulkan / nvpro_core2</td><td><a data-course-target="nv06_pbr_viewport" href="../../../Vulkan/nvpro/lessons/nv06_pbr_viewport/README.html">nv06_pbr_viewport</a></td></tr>
+<tr><td>DirectX 12</td><td><a data-course-target="dx05_indexed_cbv" href="README.html">dx05_indexed_cbv</a></td></tr>
 </table></div>
 <h3>先预测，再验证</h3>
 <p>为什么 64 字节矩阵仍给 256 字节空间？</p>
